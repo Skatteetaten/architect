@@ -2,7 +2,7 @@ package prepare
 
 import (
 	"text/template"
-	"../config"
+	"github.com/Skatteetaten/architect/pkg/java/config"
 	"io"
 	"fmt"
 	"strings"
@@ -84,7 +84,7 @@ func findLabels(cfg *config.ArchitectConfig) string {
 func findReadinessEnv(cfg *config.ArchitectConfig) string {
 	m := make(map[string]interface{})
 
-	if cfg.Openshift != nil {
+	if &cfg.Openshift != nil {
 		if cfg.Openshift.ReadinessURL != "" {
 			m["READINESS_CHECK_URL"] = cfg.Openshift.ReadinessURL
 		}
@@ -92,7 +92,7 @@ func findReadinessEnv(cfg *config.ArchitectConfig) string {
 		if cfg.Openshift.ReadinessOnManagementPort == "" || cfg.Openshift.ReadinessOnManagementPort == "true" {
 			m["READINESS_ON_MANAGEMENT_PORT"] = "true"
 		}
-	} else if cfg.Java != nil && cfg.Java.ReadinessURL != "" {
+	} else if &cfg.Java != nil && cfg.Java.ReadinessURL != "" {
 		m["READINESS_CHECK_URL"] = cfg.Java.ReadinessURL
 	}
 
