@@ -23,7 +23,7 @@ type Nexus struct {
 	Type       string
 }
 
-func (n* Nexus) DownloadArtifact() (string, error) {
+func (n *Nexus) DownloadArtifact() (string, error) {
 	resourceUrl, err := createURL(n)
 	if err != nil {
 		return "", err
@@ -65,7 +65,7 @@ func (n* Nexus) DownloadArtifact() (string, error) {
 	return fileName, nil
 }
 
-func createURL(n* Nexus) (string, error) {
+func createURL(n *Nexus) (string, error) {
 	tmpUrl, err := url.Parse(n.BaseUrl)
 	if err != nil {
 		return "", err
