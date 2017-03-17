@@ -35,7 +35,7 @@ func TestBuild(t *testing.T) {
 
 	var buf bytes.Buffer
 
-	NewForConfig(cfg).Build("Base", "BAYA", &buf)
+	NewForConfig(cfg).Build("BaseUrl", "MY_ENV", &buf)
 
 	assert.Contains(t, buf.String(), maintainer)
 	assert.Contains(t, buf.String(), k8sDescription)
