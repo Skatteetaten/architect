@@ -4,20 +4,10 @@ import (
 	"text/template"
 	"github.com/Skatteetaten/architect/pkg/java/config"
 	"io"
-	"fmt"
-	"strings"
 )
 
 type Dockerfile interface {
-	Build(DockerBase string, Env string, writer io.Writer) (error)
-}
-
-type DockerParam struct {
-	DockerBase   string
-	Maintainer   string
-	Labels       string
-	Env          string
-	ReadinessEnv string
+	Build(writer io.Writer) (error)
 }
 
 var dockerfileTemplate string =
@@ -25,32 +15,36 @@ var dockerfileTemplate string =
 	`FROM {{.DockerBase}}
 
 	MAINTAINER {{.Maintainer}}
-	LABEL {{.Labels}}
+	LABEL {{range $key, $value := .Labels}}{{$key}}="{{$value}}" {{end}}
 
 	COPY ./app /u01
 	RUN chmod -R 777 /u01/
 
 	ENV {{.Env}} \
-	    {{.ReadinessEnv}}
+	    {{range $key, $value := .ReadinessEnv}}{{$key}}="{{$value}}" {{end}}
 
 	CMD ["bin/run"]`
 
 type DefaultDockerfile struct {
-	maintainer   string
-	labels       string
-	readinessEnv string
+	DockerBase   string
+	Maintainer   string
+	Labels       map[string]interface{}
+	Env          string
+	ReadinessEnv map[string]string
 }
 
-func NewForConfig(cfg *config.ArchitectConfig) Dockerfile {
+func NewForConfig(DockerBase string, Env string, cfg *config.ArchitectConfig) Dockerfile {
 	var impl *DefaultDockerfile = &DefaultDockerfile{}
-	impl.maintainer = findMaintainer(cfg)
-	impl.labels = findLabels(cfg)
-	impl.readinessEnv = findReadinessEnv(cfg)
+	impl.Maintainer = cfg.Docker.Maintainer
+	impl.Labels = cfg.Docker.Labels.(map[string]interface{})
+	impl.ReadinessEnv = findReadinessEnv(cfg)
+	impl.Env = Env
+	impl.DockerBase = DockerBase
 	var spec Dockerfile = impl
 	return spec
 }
 
-func (dockerfile *DefaultDockerfile) Build(DockerBase string, Env string, writer io.Writer) (error) {
+func (dockerfile *DefaultDockerfile) Build(writer io.Writer) (error) {
 
 	tmpl, err := template.New("dockerfile").Parse(dockerfileTemplate)
 
@@ -58,33 +52,13 @@ func (dockerfile *DefaultDockerfile) Build(DockerBase string, Env string, writer
 		return err
 	}
 
-	params := DockerParam{DockerBase, dockerfile.maintainer, dockerfile.labels, Env, dockerfile.readinessEnv}
-
-	err = tmpl.Execute(writer, params)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return tmpl.Execute(writer, dockerfile)
 }
 
-func findMaintainer(cfg *config.ArchitectConfig) string {
-	return cfg.Docker.Maintainer
-}
+func findReadinessEnv(cfg *config.ArchitectConfig) map[string]string {
+	m := make(map[string]string)
 
-func findLabels(cfg *config.ArchitectConfig) string {
-	if cfg.Docker.Labels == nil {
-		return ""
-	} else {
-		return joinMap(cfg.Docker.Labels.(map[string]interface{}))
-	}
-}
-
-func findReadinessEnv(cfg *config.ArchitectConfig) string {
-	m := make(map[string]interface{})
-
-	if &cfg.Openshift != nil {
+	if cfg.Openshift != nil {
 		if cfg.Openshift.ReadinessURL != "" {
 			m["READINESS_CHECK_URL"] = cfg.Openshift.ReadinessURL
 		}
@@ -92,19 +66,9 @@ func findReadinessEnv(cfg *config.ArchitectConfig) string {
 		if cfg.Openshift.ReadinessOnManagementPort == "" || cfg.Openshift.ReadinessOnManagementPort == "true" {
 			m["READINESS_ON_MANAGEMENT_PORT"] = "true"
 		}
-	} else if &cfg.Java != nil && cfg.Java.ReadinessURL != "" {
+	} else if cfg.Java != nil && cfg.Java.ReadinessURL != "" {
 		m["READINESS_CHECK_URL"] = cfg.Java.ReadinessURL
 	}
 
-	return joinMap(m)
-}
-
-func joinMap(m map[string]interface{}) string {
-	var labels []string
-
-	for k, v := range m {
-		labels = append(labels, fmt.Sprintf("%s=\"%s\"", k, v))
-	}
-
-	return strings.Join(labels, " ")
+	return m
 }
