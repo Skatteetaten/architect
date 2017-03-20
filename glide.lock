@@ -1,0 +1,22 @@
+hash: 5c3fee7471e05c55c05e108ca4638e3774c2f681ec7028abb247ad057f16fc13
+updated: 2017-03-17T12:57:23.685366937+01:00
+imports:
+- name: github.com/cpuguy83/go-md2man
+  version: 71acacd42f85e5e82f70a55327789582a5200a90
+  subpackages:
+  - md2man
+- name: github.com/docker/docker
+  version: ce07fb6b0f1b8765b92022e45f96bd4349812e06
+  subpackages:
+  - client
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/russross/blackfriday
+  version: 8cec3a854e68dba10faabbe31c089abf4a3e57a6
+- name: github.com/shurcooL/sanitized_anchor_name
+  version: 244f5ac324cb97e1987ef901a0081a77bfd8e845
+- name: github.com/spf13/cobra
+  version: 1c44ec8d3f1552cac48999f9306da23c4d8a288b
+- name: github.com/spf13/pflag
+  version: 5ccb023bc27df288a957c5e994cd44fd19619465
+testImports: []
