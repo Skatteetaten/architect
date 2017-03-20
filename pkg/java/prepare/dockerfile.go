@@ -1,9 +1,9 @@
 package prepare
 
 import (
+	"io"
 	"text/template"
 	"github.com/Skatteetaten/architect/pkg/java/config"
-	"io"
 )
 
 type Dockerfile interface {
@@ -20,26 +20,24 @@ var dockerfileTemplate string =
 	COPY ./app /u01
 	RUN chmod -R 777 /u01/
 
-	ENV {{.Env}} \
-	    {{range $key, $value := .ReadinessEnv}}{{$key}}="{{$value}}" {{end}}
+	ENV {{range $key, $value := .Env}}{{$key}}="{{$value}}" {{end}}
 
 	CMD ["bin/run"]`
 
 type DefaultDockerfile struct {
-	DockerBase   string
-	Maintainer   string
-	Labels       map[string]interface{}
-	Env          string
-	ReadinessEnv map[string]string
+	DockerBase string
+	Maintainer string
+	Labels     map[string]interface{}
+	Env        map[string]string
 }
 
-func NewForConfig(DockerBase string, Env string, cfg *config.ArchitectConfig) Dockerfile {
+func NewForConfig(DockerBase string, Env map[string]string, cfg *config.ArchitectConfig) Dockerfile {
 	var impl *DefaultDockerfile = &DefaultDockerfile{}
 	impl.Maintainer = cfg.Docker.Maintainer
 	impl.Labels = cfg.Docker.Labels.(map[string]interface{})
-	impl.ReadinessEnv = findReadinessEnv(cfg)
 	impl.Env = Env
 	impl.DockerBase = DockerBase
+	appendReadinesEnv(impl, cfg)
 	var spec Dockerfile = impl
 	return spec
 }
@@ -55,20 +53,17 @@ func (dockerfile *DefaultDockerfile) Build(writer io.Writer) (error) {
 	return tmpl.Execute(writer, dockerfile)
 }
 
-func findReadinessEnv(cfg *config.ArchitectConfig) map[string]string {
-	m := make(map[string]string)
+func appendReadinesEnv(dockerfile *DefaultDockerfile, cfg *config.ArchitectConfig) {
 
 	if cfg.Openshift != nil {
 		if cfg.Openshift.ReadinessURL != "" {
-			m["READINESS_CHECK_URL"] = cfg.Openshift.ReadinessURL
+			dockerfile.Env["READINESS_CHECK_URL"] = cfg.Openshift.ReadinessURL
 		}
 
 		if cfg.Openshift.ReadinessOnManagementPort == "" || cfg.Openshift.ReadinessOnManagementPort == "true" {
-			m["READINESS_ON_MANAGEMENT_PORT"] = "true"
+			dockerfile.Env["READINESS_ON_MANAGEMENT_PORT"] = "true"
 		}
 	} else if cfg.Java != nil && cfg.Java.ReadinessURL != "" {
-		m["READINESS_CHECK_URL"] = cfg.Java.ReadinessURL
+		dockerfile.Env["READINESS_CHECK_URL"] = cfg.Java.ReadinessURL
 	}
-
-	return m
 }

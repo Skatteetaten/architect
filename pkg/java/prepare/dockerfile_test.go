@@ -1,8 +1,9 @@
 package prepare
 
 import (
-	"testing"
+	"os"
 	"bytes"
+	"testing"
 	"strings"
 	"github.com/Skatteetaten/architect/pkg/java/config"
 )
@@ -13,6 +14,8 @@ func TestBuild(t *testing.T) {
 	const k8sDescription string = "Demo application with spring boot on Openshift."
 	const openshiftTags string = "openshift,springboot"
 	const readinessUrl string = "http://ready.skead.no"
+	const envVar01 string = "1.0.95-b2.2.3-oracle8-1.4.0"
+	const envVar02 string = "1.0.95"
 
 	cfg := &config.ArchitectConfig{
 		Docker: &struct {
@@ -34,8 +37,13 @@ func TestBuild(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
+	Env := make(map[string]string)
+	Env["ENV_VAR_01"] = envVar01
+	Env["ENV_VAR_02"] = envVar02
 
-	NewForConfig("BaseUrl", "MY_ENV", cfg).Build(&buf)
+
+	NewForConfig("BaseUrl", Env, cfg).Build(&buf)
+	NewForConfig("BaseUrl", Env, cfg).Build(os.Stdout)
 
 	dockerfile := buf.String()
 
@@ -43,6 +51,8 @@ func TestBuild(t *testing.T) {
 	assertContainsElement(t, dockerfile, k8sDescription)
 	assertContainsElement(t, dockerfile, openshiftTags)
 	assertContainsElement(t, dockerfile, readinessUrl)
+	assertContainsElement(t, dockerfile, envVar01)
+	assertContainsElement(t, dockerfile, envVar02)
 }
 
 func assertContainsElement(t *testing.T, target string, element string) {
