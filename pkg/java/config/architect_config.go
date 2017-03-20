@@ -5,7 +5,7 @@ import "encoding/json"
 type ArchitectConfig struct {
 	Docker *struct {
 		Maintainer string `json:"maintainer"`
-		Labels     interface{} `json:"labels"`
+		Labels     map[string]string `json:"labels"`
 	} `json:"docker"`
 	Java *struct {
 		MainClass       string `json:"mainClass"`

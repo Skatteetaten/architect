@@ -20,10 +20,10 @@ func TestBuild(t *testing.T) {
 	cfg := &config.ArchitectConfig{
 		Docker: &struct {
 			Maintainer string `json:"maintainer"`
-			Labels     interface{} `json:"labels"`
+			Labels     map[string]string `json:"labels"`
 		}{
 			Maintainer: maintainer,
-			Labels: map[string]interface{}{
+			Labels: map[string]string {
 				"io.k8s.description": k8sDescription,
 				"io.openshift.tags":  openshiftTags,
 			},
