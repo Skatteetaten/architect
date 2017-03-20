@@ -1,7 +1,6 @@
 package prepare
 
 import (
-	"os"
 	"bytes"
 	"testing"
 	"strings"
@@ -43,7 +42,6 @@ func TestBuild(t *testing.T) {
 
 
 	NewForConfig("BaseUrl", Env, cfg).Build(&buf)
-	NewForConfig("BaseUrl", Env, cfg).Build(os.Stdout)
 
 	dockerfile := buf.String()
 

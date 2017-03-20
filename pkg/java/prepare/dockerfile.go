@@ -27,14 +27,14 @@ var dockerfileTemplate string =
 type DefaultDockerfile struct {
 	DockerBase string
 	Maintainer string
-	Labels     map[string]interface{}
+	Labels     map[string]string
 	Env        map[string]string
 }
 
 func NewForConfig(DockerBase string, Env map[string]string, cfg *config.ArchitectConfig) Dockerfile {
 	var impl *DefaultDockerfile = &DefaultDockerfile{}
 	impl.Maintainer = cfg.Docker.Maintainer
-	impl.Labels = cfg.Docker.Labels.(map[string]interface{})
+	impl.Labels = cfg.Docker.Labels
 	impl.Env = Env
 	impl.DockerBase = DockerBase
 	appendReadinesEnv(impl, cfg)
