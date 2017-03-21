@@ -28,11 +28,25 @@ func TestNewFromJson(t *testing.T) {
   }
 }`
 
-	var cfg *ArchitectConfig = NewFromJson(openshiftJson)
+	meta, err := NewDeliverableMetadata(openshiftJson)
 
-	assertEquals(t, maintainer, cfg.Docker.Maintainer)
-	assertEquals(t, readinessUrl, cfg.Openshift.ReadinessURL)
-	assertEquals(t, ioK8sDescription, cfg.Docker.Labels["io.k8s.description"])
+	if err != nil {
+		t.Error("Failed to initialize metadata from JSON")
+	}
+
+	assertEquals(t, maintainer, meta.Docker.Maintainer)
+	assertEquals(t, readinessUrl, meta.Openshift.ReadinessURL)
+	assertEquals(t, ioK8sDescription, meta.Docker.Labels["io.k8s.description"])
+}
+
+func TestErrorOnInvalidJson(t *testing.T) {
+	const xml string = `<this>is not<json>`
+
+	_, err := NewDeliverableMetadata(xml)
+
+	if err == nil {
+		t.Error("Invalid Json must return error")
+	}
 }
 
 func assertEquals(t *testing.T, expected string, actual string) {

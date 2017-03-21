@@ -16,7 +16,7 @@ func TestBuild(t *testing.T) {
 	const envVar01 string = "1.0.95-b2.2.3-oracle8-1.4.0"
 	const envVar02 string = "1.0.95"
 
-	cfg := &config.ArchitectConfig{
+	cfg := &config.DeliverableMetadata{
 		Docker: &struct {
 			Maintainer string `json:"maintainer"`
 			Labels     map[string]string `json:"labels"`
@@ -36,12 +36,12 @@ func TestBuild(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	Env := make(map[string]string)
-	Env["ENV_VAR_01"] = envVar01
-	Env["ENV_VAR_02"] = envVar02
+	env := make(map[string]string)
+	env["ENV_VAR_01"] = envVar01
+	env["ENV_VAR_02"] = envVar02
 
 
-	NewForConfig("BaseUrl", Env, cfg).Build(&buf)
+	NewTemplateDockerfile("BaseUrl", env, cfg).Build(&buf)
 
 	dockerfile := buf.String()
 

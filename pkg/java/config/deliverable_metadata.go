@@ -2,7 +2,7 @@ package config
 
 import "encoding/json"
 
-type ArchitectConfig struct {
+type DeliverableMetadata struct {
 	Docker *struct {
 		Maintainer string `json:"maintainer"`
 		Labels     map[string]string `json:"labels"`
@@ -19,8 +19,9 @@ type ArchitectConfig struct {
 	} `json:"openshift"`
 }
 
-func NewFromJson(input string) *ArchitectConfig {
-	var cfg ArchitectConfig
-	json.Unmarshal([]byte(input), &cfg)
-	return &cfg
+func NewDeliverableMetadata(input string) (*DeliverableMetadata, error) {
+	var meta DeliverableMetadata
+	err := json.Unmarshal([]byte(input), &meta)
+
+	return &meta, err
 }
