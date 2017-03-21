@@ -1,0 +1,47 @@
+package prepare
+
+import (
+	"io"
+	"text/template"
+	"github.com/Skatteetaten/architect/pkg/java/config"
+)
+
+type StartScript interface {
+	Write(writer io.Writer) (error)
+}
+
+var startscriptTemplate string =
+	`exec java {{.JvmOptions}} $JAVA_PROPERTIES_ARGS ` +
+	`-cp {{range $i, $value := .Classpath}}{{$value}}:{{end}} ` +
+	`$JAVA_DEBUG_ARGS -javaagent:$JOLOKIA_PATH=host=0.0.0.0,port=8778,protocol=https $JAVA_OPTS {{.MainClass}} {{.ApplicationArgs}}`
+
+type JavaStartScript struct {
+	Classpath []string
+	JvmOptions string
+	MainClass string
+	ApplicationArgs string
+}
+
+func NewJavaStartScript(classpath []string, meta *config.DeliverableMetadata) StartScript {
+	var jvmOptions string
+	var mainClass string
+	var applicationArgs string
+	if meta.Java != nil {
+		jvmOptions = meta.Java.JvmOpts
+		mainClass = meta.Java.MainClass
+		applicationArgs = meta.Java.ApplicationArgs
+	}
+
+	return &JavaStartScript{classpath, jvmOptions, mainClass, applicationArgs}
+}
+
+func (startscript *JavaStartScript) Write(writer io.Writer) (error) {
+
+	tmpl, err := template.New("startscript").Parse(startscriptTemplate)
+
+	if err != nil {
+		return err
+	}
+
+	return tmpl.Execute(writer, startscript)
+}
