@@ -26,12 +26,12 @@ type DockerClient struct {
 func (d *DockerClient) BuildImage(dockerBuild DockerBuildConfig) error {
 	dockerFilePath, err := createDockerTar(dockerBuild.BuildFolder)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	dockerFile, err := os.Open(dockerFilePath)
 	if err != nil {
-		return nil
+		return err
 	}
 	defer dockerFile.Close()
 
