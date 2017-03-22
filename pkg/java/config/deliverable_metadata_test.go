@@ -50,7 +50,7 @@ func TestErrorOnInvalidJson(t *testing.T) {
 }
 
 func assertEquals(t *testing.T, expected string, actual string) {
-	if ! (expected == actual) {
+	if !(expected == actual) {
 		t.Error("excpected", expected, ", got", actual)
 	}
 }
