@@ -3,17 +3,17 @@ package config
 type ApplicationType string
 
 const (
-	JavaLeveransepakke ApplicationType = "JavaLeveransepakke"
+	JavaLeveransepakke   ApplicationType = "JavaLeveransepakke"
 	NodeJsLeveransepakke ApplicationType = "NodeJsLeveranse"
 )
 
 type Config struct {
 	ApplicationType ApplicationType
-	NexusGav        NexusGav
+	MavenGav        MavenGav
 	DockerSpec      DockerSpec
 }
 
-type NexusGav struct {
+type MavenGav struct {
 	ArtifactId string
 	GroupId    string
 	Version    string

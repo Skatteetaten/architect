@@ -1,11 +1,11 @@
 package config
 
 import (
-	"os"
-	"errors"
 	"encoding/json"
+	"errors"
 	"github.com/skatteetaten/architect/pkg/config/api"
 	"io/ioutil"
+	"os"
 )
 
 type ConfigReader interface {
@@ -30,7 +30,7 @@ func NewFileConfigReader(filepath string) ConfigReader {
 func (m *FileConfigReader) ReadConfig() (*Config, error) {
 	dat, err := ioutil.ReadFile(m.pathToConfigFile)
 	if err != nil {
-		return nil, err;
+		return nil, err
 	}
 	return newConfig(dat)
 
@@ -55,7 +55,7 @@ func newConfig(buildConfig []byte) (*Config, error) {
 	if customStrategy == nil {
 		return nil, errors.New("Expected strategy to be custom strategy. Thats the only one supported.")
 	}
-	gav := NexusGav{}
+	gav := MavenGav{}
 	if artifactId, err := findEnv(customStrategy.Env, "ARTIFACT_ID"); err == nil {
 		gav.ArtifactId = artifactId
 	} else {
@@ -77,14 +77,14 @@ func newConfig(buildConfig []byte) (*Config, error) {
 	if outputKind != "DockerImage" {
 		return nil, errors.New("This image only supports output of kind DockerImage")
 	}
-	output := build.Spec.Output.To.Name;
+	output := build.Spec.Output.To.Name
 	dockerSpec.Registry = output
 	c := &Config{
 		ApplicationType: JavaLeveransepakke,
-		NexusGav: gav,
-		DockerSpec: dockerSpec,
+		MavenGav:        gav,
+		DockerSpec:      dockerSpec,
 	}
-	return c, nil;
+	return c, nil
 }
 
 func findEnv(vars []api.EnvVar, name string) (string, error) {
@@ -95,4 +95,3 @@ func findEnv(vars []api.EnvVar, name string) (string, error) {
 	}
 	return "", errors.New("No env variable with name " + name)
 }
-

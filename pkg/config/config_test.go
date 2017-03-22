@@ -1,8 +1,8 @@
 package config_test
 
 import (
-	"testing"
 	"github.com/skatteetaten/architect/pkg/config"
+	"testing"
 )
 
 func TestNewFileConfigReader(t *testing.T) {
@@ -17,13 +17,13 @@ func TestNewFileConfigReader(t *testing.T) {
 	if c.ApplicationType != config.JavaLeveransepakke {
 		t.Errorf("Expected %s, was %s", config.JavaLeveransepakke, c.ApplicationType)
 	}
-	if c.NexusGav.ArtifactId != "application-server" {
-		t.Errorf("Expected %s, was %s", "openshift-referanse-springboot-server", c.NexusGav.ArtifactId)
+	if c.MavenGav.ArtifactId != "application-server" {
+		t.Errorf("Expected %s, was %s", "openshift-referanse-springboot-server", c.MavenGav.ArtifactId)
 	}
-	if c.NexusGav.GroupId != "groupid.com" {
-		t.Errorf("Expected %s, was %s", "groupid.com", c.NexusGav.GroupId)
+	if c.MavenGav.GroupId != "groupid.com" {
+		t.Errorf("Expected %s, was %s", "groupid.com", c.MavenGav.GroupId)
 	}
-	if c.NexusGav.Version != "0.0.62" {
-		t.Errorf("Expected %s, was %s", "0.0.62", c.NexusGav.Version)
+	if c.MavenGav.Version != "0.0.62" {
+		t.Errorf("Expected %s, was %s", "0.0.62", c.MavenGav.Version)
 	}
 }
