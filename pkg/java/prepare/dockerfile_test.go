@@ -2,9 +2,9 @@ package prepare
 
 import (
 	"bytes"
-	"testing"
+	"github.com/skatteetaten/architect/pkg/java/config"
 	"strings"
-	"github.com/Skatteetaten/architect/pkg/java/config"
+	"testing"
 )
 
 func TestBuild(t *testing.T) {
@@ -18,11 +18,11 @@ func TestBuild(t *testing.T) {
 
 	cfg := &config.DeliverableMetadata{
 		Docker: &struct {
-			Maintainer string `json:"maintainer"`
+			Maintainer string            `json:"maintainer"`
 			Labels     map[string]string `json:"labels"`
 		}{
 			Maintainer: maintainer,
-			Labels: map[string]string {
+			Labels: map[string]string{
 				"io.k8s.description": k8sDescription,
 				"io.openshift.tags":  openshiftTags,
 			},
@@ -40,7 +40,6 @@ func TestBuild(t *testing.T) {
 	env["ENV_VAR_01"] = envVar01
 	env["ENV_VAR_02"] = envVar02
 
-
 	NewTemplateDockerfile("BaseUrl", env, cfg).Build(&buf)
 
 	dockerfile := buf.String()
@@ -55,6 +54,6 @@ func TestBuild(t *testing.T) {
 
 func assertContainsElement(t *testing.T, target string, element string) {
 	if strings.Contains(target, element) == false {
-		t.Error( "excpected", element, ", got", target)
+		t.Error("excpected", element, ", got", target)
 	}
 }

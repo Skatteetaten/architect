@@ -1,8 +1,8 @@
-package: architect
+package: github.com/skatteetaten/architect
 import:
 - package: github.com/spf13/cobra
   version: 1c44ec8d3f1552cac48999f9306da23c4d8a288b
 - package: github.com/docker/docker
   version: 1.13.x
   subpackages:
-    - client
+  - client
