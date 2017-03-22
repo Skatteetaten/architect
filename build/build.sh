@@ -39,7 +39,7 @@ export GOARCH="${ARCH}"
 # So for now, we filter on our own dependencies
 #
 
-PACKAGES=$(go list ./... | grep "architect/pkg" | xargs echo)
+PACKAGES=$(go list ./... | grep "architect/pkg\|architect$\|architect/cmd" | xargs echo)
 go install                                                         \
     -installsuffix "static"                                        \
     -ldflags "-X ${PKG}/pkg/version.VERSION=${VERSION}" \
