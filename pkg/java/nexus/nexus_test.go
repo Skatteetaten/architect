@@ -4,6 +4,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"github.com/docker/docker/pkg/homedir"
+	"github.com/skatteetaten/architect/pkg/config"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -11,11 +13,7 @@ import (
 	"testing"
 )
 
-func getArtifact(d Downloader) (string, error) {
-	return d.DownloadArtifact()
-}
-
-func TestNexus(t *testing.T) {
+func TestDownloadFromNexusServer(t *testing.T) {
 	b, err := createZipFile()
 	if err != nil {
 		t.Error(err.Error())
@@ -30,8 +28,14 @@ func TestNexus(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	n := &Nexus{BaseUrl: ts.URL, ArtifactId: "openshift-resource-monitor", GroupId: "ske.fellesplattform.monitor", Version: "1.1.4", Type: "zip"}
-	r, err := getArtifact(n)
+	n := NewNexusDownloader(ts.URL)
+	m := config.MavenGav{
+		ArtifactId: "openshift-resource-monitor",
+		GroupId:    "ske.fellesplattform.monitor",
+		Version:    "1.1.4",
+	}
+
+	r, err := n.DownloadArtifact(&m)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -40,6 +44,25 @@ func TestNexus(t *testing.T) {
 		t.Error(
 			"excpected", zipFileName,
 			"got", r)
+	}
+}
+
+func TestNewLocalDownloader(t *testing.T) {
+	d := NewLocalDownloader()
+	m := config.MavenGav{
+		ArtifactId: "dontexist",
+		GroupId:    "ske",
+		Version:    "develop-SNAPSHOT",
+	}
+	l, err := d.DownloadArtifact(&m)
+	homedir := homedir.Get()
+	expected := homedir + "/.m2/repository/ske/dontexist/develop-SNAPSHOT/" +
+		"dontexist-develop-SNAPSHOT-Leveransepakke.zip"
+	if l != expected {
+		t.Errorf("Expexted %s, was %s", expected, l)
+	}
+	if err == nil {
+		t.Error("Error expected on non existing file")
 	}
 }
 

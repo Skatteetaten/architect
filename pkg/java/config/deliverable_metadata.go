@@ -4,7 +4,7 @@ import "encoding/json"
 
 type DeliverableMetadata struct {
 	Docker *struct {
-		Maintainer string `json:"maintainer"`
+		Maintainer string            `json:"maintainer"`
 		Labels     map[string]string `json:"labels"`
 	} `json:"docker"`
 	Java *struct {

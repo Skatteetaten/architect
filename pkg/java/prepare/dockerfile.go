@@ -1,13 +1,13 @@
 package prepare
 
 import (
+	"github.com/skatteetaten/architect/pkg/java/config"
 	"io"
 	"text/template"
-	"github.com/Skatteetaten/architect/pkg/java/config"
 )
 
 type Dockerfile interface {
-	Build(writer io.Writer) (error)
+	Build(writer io.Writer) error
 }
 
 var dockerfileTemplate string = `FROM {{.DockerBase}}
@@ -42,7 +42,7 @@ func NewTemplateDockerfile(dockerBase string, env map[string]string, meta *confi
 	return &TemplateDockerfile{dockerBase, maintainer, labels, env}
 }
 
-func (dockerfile *TemplateDockerfile) Build(writer io.Writer) (error) {
+func (dockerfile *TemplateDockerfile) Build(writer io.Writer) error {
 
 	tmpl, err := template.New("dockerfile").Parse(dockerfileTemplate)
 

@@ -2,6 +2,8 @@ package nexus
 
 import (
 	"fmt"
+	"github.com/docker/docker/pkg/homedir"
+	"github.com/skatteetaten/architect/pkg/config"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -9,22 +11,43 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Downloader interface {
-	DownloadArtifact() (string, error)
+	DownloadArtifact(c *config.MavenGav) (string, error)
 }
 
 type Nexus struct {
-	BaseUrl    string
-	ArtifactId string
-	GroupId    string
-	Version    string
-	Type       string
+	baseUrl string
 }
 
-func (n *Nexus) DownloadArtifact() (string, error) {
-	resourceUrl, err := createURL(n)
+type LocalRepo struct {
+}
+
+func NewNexusDownloader(baseUrl string) Downloader {
+	return &Nexus{
+		baseUrl: baseUrl,
+	}
+}
+
+func NewLocalDownloader() Downloader {
+	return &LocalRepo{}
+}
+
+func (n *LocalRepo) DownloadArtifact(c *config.MavenGav) (string, error) {
+	home := homedir.Get()
+	replacer := strings.NewReplacer(".", "/")
+	path := home + "/.m2/repository/" + replacer.Replace(c.GroupId) +
+		"/" + c.ArtifactId + "/" + c.Version + "/" + c.ArtifactId + "-" + c.Version + "-Leveransepakke.zip"
+	if _, err := os.Stat(path); err != nil {
+		return path, err
+	}
+	return path, nil
+}
+
+func (n *Nexus) DownloadArtifact(c *config.MavenGav) (string, error) {
+	resourceUrl, err := n.createURL(c)
 	if err != nil {
 		return "", err
 	}
@@ -65,8 +88,8 @@ func (n *Nexus) DownloadArtifact() (string, error) {
 	return fileName, nil
 }
 
-func createURL(n *Nexus) (string, error) {
-	tmpUrl, err := url.Parse(n.BaseUrl)
+func (m *Nexus) createURL(n *config.MavenGav) (string, error) {
+	tmpUrl, err := url.Parse(m.baseUrl)
 	if err != nil {
 		return "", err
 	}
@@ -74,7 +97,7 @@ func createURL(n *Nexus) (string, error) {
 	query.Set("g", n.GroupId)
 	query.Set("a", n.ArtifactId)
 	query.Set("v", n.Version)
-	query.Set("e", n.Type)
+	query.Set("e", "zip")
 	query.Set("c", "Leveransepakke")
 	query.Set("r", "public-with-staging")
 	tmpUrl.RawQuery = query.Encode()
