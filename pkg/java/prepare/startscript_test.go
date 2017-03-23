@@ -2,8 +2,8 @@ package prepare
 
 import (
 	"bytes"
+	"github.com/skatteetaten/architect/pkg/java/config"
 	"testing"
-	"github.com/Skatteetaten/architect/pkg/java/config"
 )
 
 func TestWriteStartscript(t *testing.T) {
@@ -16,7 +16,7 @@ func TestWriteStartscript(t *testing.T) {
 
 	cfg := &config.DeliverableMetadata{
 		Docker: &struct {
-			Maintainer string `json:"maintainer"`
+			Maintainer string            `json:"maintainer"`
 			Labels     map[string]string `json:"labels"`
 		}{},
 		Java: &struct {
@@ -25,8 +25,8 @@ func TestWriteStartscript(t *testing.T) {
 			ApplicationArgs string `json:"applicationArgs"`
 			ReadinessURL    string `json:"readinessUrl"`
 		}{
-			MainClass: mainClass,
-			JvmOpts: jvmOpts,
+			MainClass:       mainClass,
+			JvmOpts:         jvmOpts,
 			ApplicationArgs: applicationArgs,
 		},
 		Openshift: &struct {
@@ -48,5 +48,3 @@ func TestWriteStartscript(t *testing.T) {
 	assertContainsElement(t, startscript, classpath[1])
 	assertContainsElement(t, startscript, classpath[2])
 }
-
-

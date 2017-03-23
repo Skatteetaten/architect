@@ -1,11 +1,11 @@
 package prepare
 
 import (
-	"os"
+	"bufio"
 	"errors"
 	"io/ioutil"
+	"os"
 	"path/filepath"
-	"bufio"
 )
 
 type ExtractedDeliverable struct {
@@ -17,6 +17,7 @@ func NewExtractedDeliverable(baseFolder string) ExtractedDeliverable {
 }
 
 func (artifact *ExtractedDeliverable) Classpath() ([]string, error) {
+
 	libFolder, err := artifact.locateLibraryPath()
 
 	if err != nil {
@@ -38,7 +39,8 @@ func (artifact *ExtractedDeliverable) Classpath() ([]string, error) {
 	return classpath, err
 }
 
-func (artifact *ExtractedDeliverable) AddStartscript(script StartScript) (error) {
+func (artifact *ExtractedDeliverable) AddStartscript(script StartScript) error {
+
 	path := filepath.Join(artifact.baseFolder, "bin/generated-start")
 
 	scriptFile, err := os.Create(path)
@@ -63,7 +65,7 @@ func (artifact *ExtractedDeliverable) AddStartscript(script StartScript) (error)
 func (artifact *ExtractedDeliverable) locateLibraryPath() (folder string, err error) {
 	if _, err := os.Stat(filepath.Join(artifact.baseFolder, "repo")); err == nil {
 		folder = filepath.Join(artifact.baseFolder, "repo")
-	} else if  _, err := os.Stat(filepath.Join(artifact.baseFolder, "repo")); err == nil {
+	} else if _, err := os.Stat(filepath.Join(artifact.baseFolder, "lib")); err == nil {
 		folder = filepath.Join(artifact.baseFolder, "lib")
 	} else {
 		err = errors.New("No lib folder in artifact")
@@ -71,6 +73,3 @@ func (artifact *ExtractedDeliverable) locateLibraryPath() (folder string, err er
 
 	return folder, err
 }
-
-
-
