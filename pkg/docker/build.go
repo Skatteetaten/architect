@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 type DockerClientConfig struct {
@@ -15,8 +18,9 @@ type DockerClientConfig struct {
 }
 
 type DockerBuildConfig struct {
-	BuildTarget string
-	BuildFolder string
+	BuildTarget      string
+	BuildFolder      string
+	ContextTarReader io.Reader
 }
 
 type DockerClient struct {
@@ -24,24 +28,12 @@ type DockerClient struct {
 }
 
 func (d *DockerClient) BuildImage(dockerBuild DockerBuildConfig) error {
-	dockerFilePath, err := createDockerTar(dockerBuild.BuildFolder)
-	if err != nil {
-		return err
-	}
-
-	dockerFile, err := os.Open(dockerFilePath)
-	if err != nil {
-		return err
-	}
-	defer dockerFile.Close()
-
 	dockerOpt := types.ImageBuildOptions{
 		Tags:           []string{dockerBuild.BuildTarget},
-		Context:        dockerFile,
 		SuppressOutput: false,
 	}
 
-	build, err := d.client.ImageBuild(context.Background(), dockerFile, dockerOpt)
+	build, err := d.client.ImageBuild(context.Background(), dockerBuild.ContextTarReader, dockerOpt)
 	if err != nil {
 		return err
 	}
@@ -61,33 +53,48 @@ func NewDockerClient(config *DockerClientConfig) (*DockerClient, error) {
 	return &DockerClient{client: *cli}, nil
 }
 
-func createDockerTar(dockerBase string) (string, error) {
-	dockerTarFile, err := os.Create(os.TempDir() + "/DockerPackage.tar")
-	defer dockerTarFile.Close()
+func CreatContextTarStreamToTarWriter(dockerBase string, writer io.Writer) error {
+	baseDir := "./"
 
-	if err != nil {
-		return "", err
-	}
-
-	dockerTarWriter := tar.NewWriter(dockerTarFile)
+	dockerTarWriter := tar.NewWriter(writer)
 	defer dockerTarWriter.Close()
 
-	readDockerBasePath, err := ioutil.ReadDir(dockerBase)
+	err := filepath.Walk(dockerBase,
+		func(path string, info os.FileInfo, errfunc error) error {
+			header, err := tar.FileInfoHeader(info, info.Name())
+			if err != nil {
+				return err
+			}
 
+			header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, dockerBase))
+
+			if err := dockerTarWriter.WriteHeader(header); err != nil {
+				return err
+			}
+
+			if info.IsDir() {
+				return nil
+			}
+
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+			_, err = io.Copy(dockerTarWriter, file)
+			return err
+		})
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	for _, dockerFile := range readDockerBasePath {
-		dockerFileContent, err := ioutil.ReadFile(dockerBase + "/" + dockerFile.Name())
-		dockerFileHeader, err := tar.FileInfoHeader(dockerFile, "")
-		if err != nil {
-			return "", err
-		}
-		dockerTarWriter.WriteHeader(dockerFileHeader)
-		dockerTarWriter.Write(dockerFileContent)
-	}
-	dockerTarWriter.Flush()
+	return nil
+}
 
-	return dockerTarFile.Name(), nil
+func CreatContextTarStreamReader(dockerBase string) io.ReadCloser {
+	r, w := io.Pipe()
+	go func() {
+		w.CloseWithError(CreatContextTarStreamToTarWriter(dockerBase, w))
+	}()
+	return r
 }

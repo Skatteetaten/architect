@@ -17,7 +17,14 @@ func TestBuildImage(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := cli.BuildImage(DockerBuildConfig{BuildTarget: "test_image", BuildFolder: dir}); err != nil {
+	tarReader := CreatContextTarStreamReader(dir)
+	buildConfig := DockerBuildConfig{
+		BuildTarget: "test_image",
+		BuildFolder: dir,
+		ContextTarReader: tarReader,
+	}
+
+	if err := cli.BuildImage(buildConfig); err != nil {
 		t.Error(err)
 	}
 }
