@@ -1,9 +1,12 @@
 package docker
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestBuildImage(t *testing.T) {
@@ -19,13 +22,16 @@ func TestBuildImage(t *testing.T) {
 
 	tarReader := CreatContextTarStreamReader(dir)
 	buildConfig := DockerBuildConfig{
-		BuildTarget: "test_image",
-		BuildFolder: dir,
+		BuildTarget:      "test_image",
+		BuildFolder:      dir,
 		ContextTarReader: tarReader,
 	}
 
-	if err := cli.BuildImage(buildConfig); err != nil {
+	imageid, err := cli.BuildImage(buildConfig)
+	if err != nil {
 		t.Error(err)
+	} else {
+		fmt.Println("Image id created: " + imageid)
 	}
 }
 
@@ -36,13 +42,25 @@ func createDockerBase() (string, error) {
 	}
 
 	dockerFile, err := os.Create(dir + "/Dockerfile")
+	defer dockerFile.Close()
 	if err != nil {
 		return "", err
 	}
+
+	newDir := dir + "/dir1/dir2"
+	os.MkdirAll(newDir, 0777)
+	echoFileName := "echome.txt"
+
+	t := time.Now()
+
+	echoFile, err := os.Create(newDir + "/" + echoFileName)
+	echoFile.WriteString("Date created " + t.String())
+	echoFile.Close()
+
 	var dockerFileContent string = `FROM alpine:3.3
-		RUN echo "hello world!"`
+		ADD ` + strings.TrimPrefix(newDir, dir) + "/" + echoFileName + ` ./
+		RUN cat ` + echoFileName
 	dockerFile.WriteString(dockerFileContent)
-	defer dockerFile.Close()
 
 	return dir, nil
 }

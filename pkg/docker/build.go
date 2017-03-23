@@ -2,12 +2,13 @@ package docker
 
 import (
 	"archive/tar"
+	"bufio"
 	"context"
-	"fmt"
+	"encoding/json"
+	"errors"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,21 +28,43 @@ type DockerClient struct {
 	client client.Client
 }
 
-func (d *DockerClient) BuildImage(dockerBuild DockerBuildConfig) error {
+func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error) {
 	dockerOpt := types.ImageBuildOptions{
-		Tags:           []string{dockerBuild.BuildTarget},
+		Tags:           []string{buildConfig.BuildTarget},
 		SuppressOutput: false,
 	}
 
-	build, err := d.client.ImageBuild(context.Background(), dockerBuild.ContextTarReader, dockerOpt)
+	build, err := d.client.ImageBuild(context.Background(), buildConfig.ContextTarReader, dockerOpt)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	b, _ := ioutil.ReadAll(build.Body)
-	fmt.Println(string(b))
+	// ImageBuild will not return error message if build fails.
+	var bodyLine string = ""
+	scanner := bufio.NewScanner(build.Body)
+	for scanner.Scan() {
+		bodyLine = scanner.Text()
+		if strings.Contains(bodyLine, "errorDetail") {
+			msg, err := JsonMapToString(bodyLine, "error")
+			if err != nil {
+				return "", err
+			}
+			return "", errors.New(msg)
+		}
+	}
+	// Get image id.
+	msg, err := JsonMapToString(bodyLine, "stream")
 
-	return nil
+	return strings.TrimPrefix(msg, "Successfully built "), nil
+}
+
+func JsonMapToString(jsonStr string, key string) (string, error) {
+	var f interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &f); err != nil {
+		return "", err
+	}
+	errorMap := f.(map[string]interface{})
+	return errorMap[key].(string), nil
 }
 
 func NewDockerClient(config *DockerClientConfig) (*DockerClient, error) {
