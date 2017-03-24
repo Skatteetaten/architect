@@ -76,7 +76,7 @@ func NewDockerClient(config *DockerClientConfig) (*DockerClient, error) {
 	return &DockerClient{client: *cli}, nil
 }
 
-func CreatContextTarStreamToTarWriter(dockerBase string, writer io.Writer) error {
+func CreateContextTarStreamToTarWriter(dockerBase string, writer io.Writer) error {
 	baseDir := "./"
 
 	dockerTarWriter := tar.NewWriter(writer)
@@ -114,10 +114,10 @@ func CreatContextTarStreamToTarWriter(dockerBase string, writer io.Writer) error
 	return nil
 }
 
-func CreatContextTarStreamReader(dockerBase string) io.ReadCloser {
+func CreateContextTarStreamReader(dockerBase string) io.ReadCloser {
 	r, w := io.Pipe()
 	go func() {
-		w.CloseWithError(CreatContextTarStreamToTarWriter(dockerBase, w))
+		w.CloseWithError(CreateContextTarStreamToTarWriter(dockerBase, w))
 	}()
 	return r
 }
