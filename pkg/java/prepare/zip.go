@@ -1,9 +1,5 @@
 package prepare
 
-/**
-Source: http://blog.ralch.com/tutorial/golang-working-with-zip/
-*/
-
 import (
 	"archive/zip"
 	"fmt"
