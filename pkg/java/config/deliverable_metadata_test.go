@@ -1,8 +1,8 @@
 package config
 
 import (
-	"testing"
 	"strings"
+	"testing"
 )
 
 func TestNewFromJson(t *testing.T) {

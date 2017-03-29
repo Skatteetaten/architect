@@ -7,35 +7,34 @@ import (
 	"testing"
 )
 
-	const mainClass string = "foo.bar.Main"
-	const jvmOpts string = "-Dfoo=bar"
-	const applicationArgs string = "--logging.config=logback.xml"
+const mainClass string = "foo.bar.Main"
+const jvmOpts string = "-Dfoo=bar"
+const applicationArgs string = "--logging.config=logback.xml"
 
-	var classpath []string = []string{"/app/lib/metrics.jar", "/app/lib/rt.jar", "/app/lib/spring.jar"}
+var classpath []string = []string{"/app/lib/metrics.jar", "/app/lib/rt.jar", "/app/lib/spring.jar"}
 
-	var TestMeta *config.DeliverableMetadata = &config.DeliverableMetadata{
-		Docker: &struct {
-			Maintainer string            `json:"maintainer"`
-			Labels     map[string]string `json:"labels"`
-		}{},
-		Java: &struct {
-			MainClass       string `json:"mainClass"`
-			JvmOpts         string `json:"jvmOpts"`
-			ApplicationArgs string `json:"applicationArgs"`
-			ReadinessURL    string `json:"readinessUrl"`
-		}{
-			MainClass:       mainClass,
-			JvmOpts:         jvmOpts,
-			ApplicationArgs: applicationArgs,
-		},
-		Openshift: &struct {
-			ReadinessURL              string `json:"readinessUrl"`
-			ReadinessOnManagementPort string `json:"readinessOnManagementPort"`
-		}{},
-	}
+var TestMeta *config.DeliverableMetadata = &config.DeliverableMetadata{
+	Docker: &struct {
+		Maintainer string            `json:"maintainer"`
+		Labels     map[string]string `json:"labels"`
+	}{},
+	Java: &struct {
+		MainClass       string `json:"mainClass"`
+		JvmOpts         string `json:"jvmOpts"`
+		ApplicationArgs string `json:"applicationArgs"`
+		ReadinessURL    string `json:"readinessUrl"`
+	}{
+		MainClass:       mainClass,
+		JvmOpts:         jvmOpts,
+		ApplicationArgs: applicationArgs,
+	},
+	Openshift: &struct {
+		ReadinessURL              string `json:"readinessUrl"`
+		ReadinessOnManagementPort string `json:"readinessOnManagementPort"`
+	}{},
+}
 
 func TestWriteStartscript(t *testing.T) {
-
 
 	var buf bytes.Buffer
 

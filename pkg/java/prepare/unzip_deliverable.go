@@ -29,7 +29,7 @@ func UnzipDeliverable(archivePath string, extractedDirPath string) error {
 		}
 
 		if err != nil {
-			return 	fmt.Errorf("Failed to extract %s: %v", zipEntry.Name, err)
+			return fmt.Errorf("Failed to extract %s: %v", zipEntry.Name, err)
 		}
 	}
 
@@ -83,7 +83,7 @@ func fillPathGap(path string) error {
 
 	if err == nil {
 		return nil
-	} else if ! os.IsNotExist(err) {
+	} else if !os.IsNotExist(err) {
 		return err
 	}
 

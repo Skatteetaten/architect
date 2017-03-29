@@ -1,11 +1,11 @@
 package prepare
 
 import (
+	"fmt"
+	"github.com/skatteetaten/architect/pkg/java/config"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"fmt"
-	"github.com/skatteetaten/architect/pkg/java/config"
 )
 
 const (
@@ -16,7 +16,7 @@ func PrepareApplication(applicationPath string, meta *config.DeliverableMetadata
 
 	scriptPath := filepath.Join(applicationPath, "bin")
 
-	if err:= os.MkdirAll(scriptPath, 0755); err != nil {
+	if err := os.MkdirAll(scriptPath, 0755); err != nil {
 		return err
 	}
 
@@ -61,17 +61,17 @@ func prepareEffectiveStartscript(scriptPath string) error {
 	defaultScriptExists, err := Exists(filepath.Join(scriptPath, "os-start"))
 
 	if err != nil {
-		return 	err
+		return err
 	} else if defaultScriptExists {
 		return nil
 	}
 
-	for _, altScriptName := range []string{ "os-start.sh", "generated-start", "start", "start.sh" } {
+	for _, altScriptName := range []string{"os-start.sh", "generated-start", "start", "start.sh"} {
 		scriptExists, err := Exists(filepath.Join(scriptPath, altScriptName))
 
 		if err != nil {
-			return 	err
-		} else if ! scriptExists {
+			return err
+		} else if !scriptExists {
 			continue
 		}
 

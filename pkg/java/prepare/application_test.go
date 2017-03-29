@@ -1,11 +1,11 @@
 package prepare_test
 
 import (
+	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
-	"github.com/skatteetaten/architect/pkg/java/prepare"
 )
 
 func TestClasspathOrder(t *testing.T) {
@@ -29,7 +29,7 @@ func TestClasspathOrder(t *testing.T) {
 			return
 		}
 
-		actualLib   := actualCp[idx]
+		actualLib := actualCp[idx]
 		if actualLib != expectedLib {
 			t.Error("Classpath", actualCp, "is not correct, excpected", expectedLib, ", got", actualLib)
 		}
@@ -49,13 +49,13 @@ func TestPrepareStartscript(t *testing.T) {
 	// Then
 	scriptExists, err := prepare.Exists(filepath.Join(root, "bin", "generated-start"))
 
-	if err != nil || ! scriptExists {
+	if err != nil || !scriptExists {
 		t.Error("Failed to generate startscript")
 	}
 
 	linkExists, err := prepare.Exists(filepath.Join(root, "bin", "os-start"))
 
-	if err != nil || ! linkExists {
+	if err != nil || !linkExists {
 		t.Error("Failed to generate link to startscript")
 	}
 
