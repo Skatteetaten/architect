@@ -1,27 +1,23 @@
 package prepare
 
 import (
-	"github.com/skatteetaten/architect/pkg/java/config"
 	"io"
 	"text/template"
+	"github.com/skatteetaten/architect/pkg/java/config"
 )
-
-type StartScript interface {
-	Write(writer io.Writer) error
-}
 
 var startscriptTemplate string = `exec java {{.JvmOptions}} $JAVA_PROPERTIES_ARGS ` +
 	`-cp {{range $i, $value := .Classpath}}{{$value}}:{{end}} ` +
 	`$JAVA_DEBUG_ARGS -javaagent:$JOLOKIA_PATH=host=0.0.0.0,port=8778,protocol=https $JAVA_OPTS {{.MainClass}} {{.ApplicationArgs}}`
 
-type JavaStartScript struct {
+type Startscript struct {
 	Classpath       []string
 	JvmOptions      string
 	MainClass       string
 	ApplicationArgs string
 }
 
-func NewJavaStartScript(classpath []string, meta *config.DeliverableMetadata) StartScript {
+func NewStartscript(classpath []string, meta config.DeliverableMetadata) *Startscript {
 	var jvmOptions string
 	var mainClass string
 	var applicationArgs string
@@ -31,10 +27,10 @@ func NewJavaStartScript(classpath []string, meta *config.DeliverableMetadata) St
 		applicationArgs = meta.Java.ApplicationArgs
 	}
 
-	return &JavaStartScript{classpath, jvmOptions, mainClass, applicationArgs}
+	return &Startscript{classpath, jvmOptions, mainClass, applicationArgs}
 }
 
-func (startscript *JavaStartScript) Write(writer io.Writer) error {
+func (startscript Startscript) Write(writer io.Writer) error {
 
 	tmpl, err := template.New("startscript").Parse(startscriptTemplate)
 

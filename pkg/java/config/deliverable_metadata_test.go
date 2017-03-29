@@ -2,6 +2,7 @@ package config
 
 import (
 	"testing"
+	"strings"
 )
 
 func TestNewFromJson(t *testing.T) {
@@ -28,7 +29,7 @@ func TestNewFromJson(t *testing.T) {
   }
 }`
 
-	meta, err := NewDeliverableMetadata(openshiftJson)
+	meta, err := NewDeliverableMetadata(strings.NewReader(openshiftJson))
 
 	if err != nil {
 		t.Error("Failed to initialize metadata from JSON")
@@ -42,7 +43,7 @@ func TestNewFromJson(t *testing.T) {
 func TestErrorOnInvalidJson(t *testing.T) {
 	const xml string = `<this>is not<json>`
 
-	_, err := NewDeliverableMetadata(xml)
+	_, err := NewDeliverableMetadata(strings.NewReader(xml))
 
 	if err == nil {
 		t.Error("Invalid Json must return error")

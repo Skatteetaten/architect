@@ -1,20 +1,19 @@
-package prepare
+package prepare_test
 
 import (
 	"bytes"
 	"github.com/skatteetaten/architect/pkg/java/config"
+	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"testing"
 )
-
-func TestWriteStartscript(t *testing.T) {
 
 	const mainClass string = "foo.bar.Main"
 	const jvmOpts string = "-Dfoo=bar"
 	const applicationArgs string = "--logging.config=logback.xml"
 
-	classpath := []string{"/app/lib/metrics.jar", "/app/lib/rt.jar", "/app/lib/spring.jar"}
+	var classpath []string = []string{"/app/lib/metrics.jar", "/app/lib/rt.jar", "/app/lib/spring.jar"}
 
-	cfg := &config.DeliverableMetadata{
+	var TestMeta *config.DeliverableMetadata = &config.DeliverableMetadata{
 		Docker: &struct {
 			Maintainer string            `json:"maintainer"`
 			Labels     map[string]string `json:"labels"`
@@ -35,9 +34,12 @@ func TestWriteStartscript(t *testing.T) {
 		}{},
 	}
 
+func TestWriteStartscript(t *testing.T) {
+
+
 	var buf bytes.Buffer
 
-	NewJavaStartScript(classpath, cfg).Write(&buf)
+	prepare.NewStartscript(classpath, *TestMeta).Write(&buf)
 
 	startscript := buf.String()
 
