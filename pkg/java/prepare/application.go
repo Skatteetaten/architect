@@ -78,9 +78,11 @@ func prepareEffectiveStartscript(scriptPath string) error {
 		if err := os.Symlink(altScriptName, filepath.Join(scriptPath, "os-start")); err != nil {
 			return err
 		}
+
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("No start script found")
 }
 
 func Classpath(libPath string) ([]string, error) {
