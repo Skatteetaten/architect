@@ -1,6 +1,10 @@
 package config
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"io"
+	"io/ioutil"
+)
 
 type DeliverableMetadata struct {
 	Docker *struct {
@@ -19,9 +23,15 @@ type DeliverableMetadata struct {
 	} `json:"openshift"`
 }
 
-func NewDeliverableMetadata(input string) (*DeliverableMetadata, error) {
+func NewDeliverableMetadata(reader io.Reader) (*DeliverableMetadata, error) {
 	var meta DeliverableMetadata
-	err := json.Unmarshal([]byte(input), &meta)
+	content, err := ioutil.ReadAll(reader)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(content, &meta)
 
 	return &meta, err
 }

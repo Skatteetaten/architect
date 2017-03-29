@@ -1,8 +1,9 @@
-package prepare
+package prepare_test
 
 import (
 	"bytes"
 	"github.com/skatteetaten/architect/pkg/java/config"
+	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"strings"
 	"testing"
 )
@@ -40,7 +41,7 @@ func TestBuild(t *testing.T) {
 	env["ENV_VAR_01"] = envVar01
 	env["ENV_VAR_02"] = envVar02
 
-	NewTemplateDockerfile("BaseUrl", env, cfg).Build(&buf)
+	prepare.NewDockerfile("BaseUrl", env, cfg).Write(&buf)
 
 	dockerfile := buf.String()
 

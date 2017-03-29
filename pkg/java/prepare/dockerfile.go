@@ -6,10 +6,6 @@ import (
 	"text/template"
 )
 
-type Dockerfile interface {
-	Build(writer io.Writer) error
-}
-
 var dockerfileTemplate string = `FROM {{.DockerBase}}
 
 MAINTAINER {{.Maintainer}}
@@ -22,14 +18,14 @@ ENV {{range $key, $value := .Env}}{{$key}}="{{$value}}" {{end}}
 
 CMD ["bin/run"]`
 
-type TemplateDockerfile struct {
+type Dockerfile struct {
 	DockerBase string
 	Maintainer string
 	Labels     map[string]string
 	Env        map[string]string
 }
 
-func NewTemplateDockerfile(dockerBase string, env map[string]string, meta *config.DeliverableMetadata) Dockerfile {
+func NewDockerfile(dockerBase string, env map[string]string, meta *config.DeliverableMetadata) *Dockerfile {
 	var maintainer string
 	var labels map[string]string
 	if meta.Docker != nil {
@@ -39,10 +35,10 @@ func NewTemplateDockerfile(dockerBase string, env map[string]string, meta *confi
 
 	appendReadinesEnv(env, meta)
 
-	return &TemplateDockerfile{dockerBase, maintainer, labels, env}
+	return &Dockerfile{dockerBase, maintainer, labels, env}
 }
 
-func (dockerfile *TemplateDockerfile) Build(writer io.Writer) error {
+func (dockerfile *Dockerfile) Write(writer io.Writer) error {
 
 	tmpl, err := template.New("dockerfile").Parse(dockerfileTemplate)
 
