@@ -19,9 +19,8 @@ type DockerClientConfig struct {
 }
 
 type DockerBuildConfig struct {
-	BuildTarget      string
-	BuildFolder      string
-	ContextTarReader io.Reader
+	Tag         string
+	BuildFolder string
 }
 
 type DockerClient struct {
@@ -30,11 +29,11 @@ type DockerClient struct {
 
 func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error) {
 	dockerOpt := types.ImageBuildOptions{
-		Tags:           []string{buildConfig.BuildTarget},
+		Tags:           []string{buildConfig.Tag},
 		SuppressOutput: false,
 	}
-
-	build, err := d.client.ImageBuild(context.Background(), buildConfig.ContextTarReader, dockerOpt)
+	tarReader := createContextTarStreamReader(buildConfig.BuildFolder)
+	build, err := d.client.ImageBuild(context.Background(), tarReader, dockerOpt)
 	if err != nil {
 		return "", err
 	}
@@ -69,14 +68,14 @@ func JsonMapToString(jsonStr string, key string) (string, error) {
 
 func NewDockerClient(config *DockerClientConfig) (*DockerClient, error) {
 	// foreloepig bypasser config biten.
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClient(client.DefaultDockerHost, "1.24", nil, nil)
 	if err != nil {
 		return nil, err
 	}
 	return &DockerClient{client: *cli}, nil
 }
 
-func CreateContextTarStreamToTarWriter(dockerBase string, writer io.Writer) error {
+func createContextTarStreamToTarWriter(dockerBase string, writer io.Writer) error {
 	baseDir := "./"
 
 	dockerTarWriter := tar.NewWriter(writer)
@@ -84,7 +83,16 @@ func CreateContextTarStreamToTarWriter(dockerBase string, writer io.Writer) erro
 
 	err := filepath.Walk(dockerBase,
 		func(path string, info os.FileInfo, errfunc error) error {
-			header, err := tar.FileInfoHeader(info, info.Name())
+
+			var link string
+			if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+				var err error
+				if link, err = os.Readlink(path); err != nil {
+					return err
+				}
+			}
+
+			header, err := tar.FileInfoHeader(info, link)
 			if err != nil {
 				return err
 			}
@@ -95,7 +103,7 @@ func CreateContextTarStreamToTarWriter(dockerBase string, writer io.Writer) erro
 				return err
 			}
 
-			if info.IsDir() {
+			if !info.Mode().IsRegular() { //nothing more to do for non-regular
 				return nil
 			}
 
@@ -114,10 +122,10 @@ func CreateContextTarStreamToTarWriter(dockerBase string, writer io.Writer) erro
 	return nil
 }
 
-func CreateContextTarStreamReader(dockerBase string) io.ReadCloser {
+func createContextTarStreamReader(dockerBase string) io.ReadCloser {
 	r, w := io.Pipe()
 	go func() {
-		w.CloseWithError(CreateContextTarStreamToTarWriter(dockerBase, w))
+		w.CloseWithError(createContextTarStreamToTarWriter(dockerBase, w))
 	}()
 	return r
 }

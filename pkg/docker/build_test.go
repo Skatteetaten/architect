@@ -20,11 +20,9 @@ func TestBuildImage(t *testing.T) {
 		t.Error(err)
 	}
 
-	tarReader := CreateContextTarStreamReader(dir)
 	buildConfig := DockerBuildConfig{
-		BuildTarget:      "test_image",
-		BuildFolder:      dir,
-		ContextTarReader: tarReader,
+		Tag:         "test_image",
+		BuildFolder: dir,
 	}
 
 	imageid, err := cli.BuildImage(buildConfig)

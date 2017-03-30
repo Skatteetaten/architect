@@ -14,40 +14,40 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(baseImage string, env map[string]string, deliverablePath string) error {
+func Prepare(baseImage string, env map[string]string, deliverablePath string) (string, error) {
 
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
 
 	if err != nil {
-		return fmt.Errorf("Failed to create root folder: ", err)
+		return "", fmt.Errorf("Failed to create root folder: %s", err)
 	}
 
 	// Unzip deliverable
 	applicationPath, err := unzipDeliverable(dockerBuildPath, deliverablePath)
 
 	if err != nil {
-		return fmt.Errorf("Failed to unzip deliverable: ", err)
+		return "", fmt.Errorf("Failed to unzip deliverable: %s", err)
 	}
 
 	// Load metadata
 	meta, err := loadDeliverableMetadata(filepath.Join(applicationPath, DeliveryMetadataPath))
 
 	if err != nil {
-		return fmt.Errorf("Failed to load deliverable metadata: ", err)
+		return "", fmt.Errorf("Failed to load deliverable metadata: %s", err)
 	}
 
 	// Prepare application
 	if err := PrepareApplication(applicationPath, meta); err != nil {
-		return fmt.Errorf("Failed to prepare application: ", err)
+		return "", fmt.Errorf("Failed to prepare application: %s", err)
 	}
 
 	// Dockerfile
 	if err = addDockerfile(dockerBuildPath, meta, baseImage, env); err != nil {
-		return fmt.Errorf("Failed to create dockerfile: ", err)
+		return "", fmt.Errorf("Failed to create dockerfile: %s", err)
 	}
 
-	return nil
+	return dockerBuildPath, nil
 }
 
 func unzipDeliverable(dockerBuildPath string, deliverablePath string) (string, error) {

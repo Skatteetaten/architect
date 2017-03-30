@@ -72,7 +72,26 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		return nil, err
 	}
 
+	if version, err := findEnv(customStrategy.Env, "VERSION"); err == nil {
+		gav.Version = version
+	} else {
+		return nil, err
+	}
+
 	dockerSpec := DockerSpec{}
+
+	if baseImage, err := findEnv(customStrategy.Env, "DOCKER_BASE_IMAGE"); err == nil {
+		dockerSpec.BaseImage = baseImage
+	} else if baseImage, err := findEnv(customStrategy.Env, "DOCKER_BASE_NAME"); err == nil {
+		dockerSpec.BaseImage = baseImage
+	} else {
+		return nil, err
+	}
+
+	if baseImageVersion, err := findEnv(customStrategy.Env, "DOCKER_BASE_VERSION"); err == nil {
+		dockerSpec.BaseImage = dockerSpec.BaseImage + ":" + baseImageVersion
+	}
+
 	outputKind := build.Spec.Output.To.Kind
 	if outputKind != "DockerImage" {
 		return nil, errors.New("This image only supports output of kind DockerImage")
