@@ -54,7 +54,7 @@ endif
 
 IMAGE := $(REGISTRY)/$(BIN)-$(ARCH)
 
-BUILD_IMAGE ?= golang:1.7-alpine
+BUILD_IMAGE ?= golang:1.8-alpine
 
 # If you want to build all binaries, see the 'all-build' rule.
 # If you want to build all containers, see the 'all-container' rule.
@@ -135,10 +135,11 @@ test: build-dirs
 	    -v $$(pwd):/go/src/$(PKG)                                          \
 	    -v $$(pwd)/bin/$(ARCH):/go/bin                                     \
 	    -v $$(pwd)/.go/std/$(ARCH):/usr/local/go/pkg/linux_$(ARCH)_static  \
+	    -v /var/run/docker.sock:/var/run/docker.sock                       \
 	    -w /go/src/$(PKG)                                                  \
 	    $(BUILD_IMAGE)                                                     \
 	    /bin/sh -c "                                                       \
-	        ./build/test.sh $(SRC_DIRS)                                    \
+	    ./build/test.sh $(SRC_DIRS)                                        \
 	    "
 
 build-dirs:

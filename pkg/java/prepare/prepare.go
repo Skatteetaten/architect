@@ -24,35 +24,36 @@ func Prepare(baseImage string, env map[string]string, deliverablePath string) (s
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
 
 	if err != nil {
-		return "", fmt.Errorf("Failed to create root folder: ", err)
+		return "", fmt.Errorf("Failed to create root folder: %v", err)
 	}
 
 	// Unzip deliverable
 	applicationPath, err := extractDeliverable(dockerBuildPath, deliverablePath)
 
 	if err != nil {
-		return "", fmt.Errorf("Failed to unzip deliverable: ", err)
+		return "", fmt.Errorf("Failed to unzip deliverable: %v", err)
 	}
 
 	// Load metadata
 	meta, err := loadDeliverableMetadata(filepath.Join(applicationPath, DeliveryMetadataPath))
 
 	if err != nil {
-		return "", fmt.Errorf("Failed to load deliverable metadata: ", err)
+		return "", fmt.Errorf("Failed to load deliverable metadata: %v", err)
 	}
 
 	// Prepare application
 	if err := PrepareApplication(applicationPath, meta); err != nil {
-		return "", fmt.Errorf("Failed to prepare application: ", err)
+		return "", fmt.Errorf("Failed to prepare application: %v", err)
 	}
 
 	// Dockerfile
-	if err := addDockerfile(dockerBuildPath, meta, baseImage, env); err != nil {
-		return "", fmt.Errorf("Failed to create dockerfile: ", err)
+	if err = addDockerfile(dockerBuildPath, meta, baseImage, env); err != nil {
+		return "", fmt.Errorf("Failed to create dockerfile: %v", err)
 	}
 
+	// Runtime scripts
 	if err := addRuntimeScripts(ScriptSrcPath, dockerBuildPath); err != nil {
-		return "", fmt.Errorf("Failed to add scripts: ", err)
+		return "", fmt.Errorf("Failed to add scripts: %v", err)
 	}
 
 	return dockerBuildPath, nil
@@ -125,14 +126,14 @@ func loadDeliverableMetadata(path string) (*config.DeliverableMetadata, error) {
 }
 
 func addRuntimeScripts(ScriptSrcPath, dockerBuildPath string) error {
-	scriptPath := filepath.Join(dockerBuildPath, "app", "bin")
+	scriptDirPath := filepath.Join(dockerBuildPath, "app", "bin")
 
-	if err := os.MkdirAll(scriptPath, 0755); err != nil {
+	if err := os.MkdirAll(scriptDirPath, 0755); err != nil {
 		return err
 	}
 
 	for _, script := range []string{"run", "run_tools.sh", "readiness_std.sh", "liveness_std.sh"} {
-		if err := Copy(filepath.Join(ScriptSrcPath, script), filepath.Join(scriptPath, script)); err != nil {
+		if err := Copy(filepath.Join(ScriptSrcPath, script), filepath.Join(scriptDirPath, script)); err != nil {
 			return err
 		}
 	}

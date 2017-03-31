@@ -21,5 +21,6 @@ type MavenGav struct {
 }
 
 type DockerSpec struct {
-	Registry string
+	Registry  string
+	BaseImage string
 }

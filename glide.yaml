@@ -6,3 +6,5 @@ import:
   version: 1.13.x
   subpackages:
   - client
+- package: github.com/sirupsen/logrus
+  version: v0.11.5
