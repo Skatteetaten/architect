@@ -57,23 +57,16 @@ func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error)
 	return strings.TrimPrefix(msg, "Successfully built "), nil
 }
 
-func (d *DockerClient) PushImage(ImageID string) (error) {
-	/*
-	Ble lagt til en test for aa sjekke gyldighet til navnet
-	Var usikker rundt digest id-en, om denne kunne/skulle pushes. Saa fant en test paa det ogsaa
-	Foreloepig styrer vi dette fra andre steder.
-	*/
-	/*ref, err := reference.ParseNamed(buildConfig.ImageName)
-	if err != nil {
-		return err
+func (d *DockerClient) TagImage(ImageID string, tags []string) (error) {
+	for _, tag := range tags {
+		if err := d.client.ImageTag(context.Background(),ImageID,tag); err != nil {
+			return err
+		}
 	}
+	return nil
+}
 
-	switch x := ref.(type) {
-	case reference.Canonical:
-		return errors.New("cannot push a digest reference: " + x.Digest().String())
-	}*/
-
-	//push, err := d.client.ImagePush(context.Background(), ref.Name(), types.ImagePushOptions{})
+func (d *DockerClient) PushImage(ImageID string) (error) {
 	push, err := d.client.ImagePush(context.Background(), ImageID, types.ImagePushOptions{})
 	if err != nil {
 		return err
