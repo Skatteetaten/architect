@@ -10,47 +10,55 @@ import (
 	"path/filepath"
 )
 
+const (
+	ScriptSrcPath = "resources" // Temporary, untill a solution is found for distribution of the scripts.
+)
+
 type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(baseImage string, env map[string]string, deliverablePath string) error {
+func Prepare(baseImage string, env map[string]string, deliverablePath string) (string, error) {
 
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
 
 	if err != nil {
-		return fmt.Errorf("Failed to create root folder: ", err)
+		return "", fmt.Errorf("Failed to create root folder: ", err)
 	}
 
 	// Unzip deliverable
-	applicationPath, err := unzipDeliverable(dockerBuildPath, deliverablePath)
+	applicationPath, err := extractDeliverable(dockerBuildPath, deliverablePath)
 
 	if err != nil {
-		return fmt.Errorf("Failed to unzip deliverable: ", err)
+		return "", fmt.Errorf("Failed to unzip deliverable: ", err)
 	}
 
 	// Load metadata
 	meta, err := loadDeliverableMetadata(filepath.Join(applicationPath, DeliveryMetadataPath))
 
 	if err != nil {
-		return fmt.Errorf("Failed to load deliverable metadata: ", err)
+		return "", fmt.Errorf("Failed to load deliverable metadata: ", err)
 	}
 
 	// Prepare application
 	if err := PrepareApplication(applicationPath, meta); err != nil {
-		return fmt.Errorf("Failed to prepare application: ", err)
+		return "", fmt.Errorf("Failed to prepare application: ", err)
 	}
 
 	// Dockerfile
-	if err = addDockerfile(dockerBuildPath, meta, baseImage, env); err != nil {
-		return fmt.Errorf("Failed to create dockerfile: ", err)
+	if err := addDockerfile(dockerBuildPath, meta, baseImage, env); err != nil {
+		return "", fmt.Errorf("Failed to create dockerfile: ", err)
 	}
 
-	return nil
+	if err := addRuntimeScripts(ScriptSrcPath, dockerBuildPath); err != nil {
+		return "", fmt.Errorf("Failed to add scripts: ", err)
+	}
+
+	return dockerBuildPath, nil
 }
 
-func unzipDeliverable(dockerBuildPath string, deliverablePath string) (string, error) {
+func extractDeliverable(dockerBuildPath string, deliverablePath string) (string, error) {
 	applicationBase := filepath.Join(dockerBuildPath, "app")
 	applicationPath := filepath.Join(applicationBase, "application")
 
@@ -58,7 +66,7 @@ func unzipDeliverable(dockerBuildPath string, deliverablePath string) (string, e
 		return "", err
 	}
 
-	if err := UnzipDeliverable(deliverablePath, filepath.Join(dockerBuildPath, "app")); err != nil {
+	if err := ExtractDeliverable(deliverablePath, filepath.Join(dockerBuildPath, "app")); err != nil {
 		return "", fmt.Errorf("Failed to unzip deliverable %s: %v", deliverablePath, err)
 	}
 
@@ -116,6 +124,22 @@ func loadDeliverableMetadata(path string) (*config.DeliverableMetadata, error) {
 	return deliverableMetadata, nil
 }
 
+func addRuntimeScripts(ScriptSrcPath, dockerBuildPath string) error {
+	scriptPath := filepath.Join(dockerBuildPath, "app", "bin")
+
+	if err := os.MkdirAll(scriptPath, 0755); err != nil {
+		return err
+	}
+
+	for _, script := range []string{"run", "run_tools.sh", "readiness_std.sh", "liveness_std.sh"} {
+		if err := Copy(filepath.Join(ScriptSrcPath, script), filepath.Join(scriptPath, script)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func WriteFile(path string, generator FileGenerator) error {
 
 	file, err := os.Create(path)
@@ -149,4 +173,33 @@ func Exists(path string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func Copy(srcPath, dstPath string) error {
+
+	srcFile, err := os.Open(srcPath)
+
+	if err != nil {
+		return err
+	}
+
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dstPath)
+
+	if err != nil {
+		return err
+	}
+
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+
+	closeErr := dstFile.Close()
+
+	if err != nil {
+		return err
+	}
+
+	return closeErr
 }
