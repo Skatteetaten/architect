@@ -1,0 +1,56 @@
+#!/bin/bash
+
+
+# There are a few subtleties in this script that are hard to catch without knowing the background for why they are
+# needed in the first place.
+#
+# This script basically just runs the start script from the Leveransepakke the image is built from, but there are a
+# couple of requirements in this regard
+#  - We want the application process that is started from the start script to get PID 1 in the container to be able to
+#    receive signals like SIGTERM.
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source $DIR/run_tools.sh
+
+
+create_splunk_stanza "$SPLUNK_INDEX" logs/application.splunk "$SPLUNK_STANZA"
+
+if [ -z "$HTTP_PORT" ]; then
+  export HTTP_PORT="8080"
+fi
+
+if [ -z "$DEPLOY_TYPE" ]; then
+  export DEPLOY_TYPE="OpenShift"
+fi
+
+export JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true"
+
+
+if [ -z "$JAVA_OPTS" ]; then
+  #Try out to see max memory based on kubernetes limitations
+  CONTAINER_MEMORY_IN_BYTES=`cat /sys/fs/cgroup/memory/memory.limit_in_bytes`
+  set_java_opts_memory_from_bytes "$CONTAINER_MEMORY_IN_BYTES"
+fi
+
+JAVA_DEBUG_ARGS=""
+if [ "x${REMOTE_DEBUG}" == "xtrue" ]; then
+  export JAVA_DEBUG_ARGS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=${DEBUG_PORT}"
+fi
+
+CONFIG_BASEDIR=/u01/config
+SYMLINK_DIR=/u01
+
+load_aurora_config $SYMLINK_DIR $CONFIG_BASEDIR $AURORA_VERSION $APP_VERSION
+
+export JAVA_PROPERTIES_ARGS="-Dversion=${AURORA_VERSION}  -Dnamespace=\"$POD_NAMESPACE\" -Dpodname=\"$POD_NAME\""
+
+cd application
+echo "Starting application in $(pwd)... $(date)"
+
+# We set a trap on TERM so we can have code running after the child has terminated. OpenShift gives an
+# error on a non-zero exit code, and the JVM exits with 143 when sent at SIGTERM
+# This construct depends on an init-system like dumb-init that signals all processes in the session. If the JVM
+# is not signaled, it will not exit, the trap will not run, and everything will hang...
+trap 'exit 0' TERM
+# We run the script explicitly through bash to allow shebang lines of the form #!/usr/bin/env bash -eu
+bash bin/os-start
