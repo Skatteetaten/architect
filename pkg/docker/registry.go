@@ -1,12 +1,13 @@
 package docker
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/docker/image"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"encoding/json"
 )
 
 type RegistryClient interface {
@@ -69,35 +70,17 @@ func GetManifestEnv(client RegistryClient, repository string, tag string, name s
 }
 
 func getEnvFromV1Data(v1data string, name string) (string, error) {
+	var v1image image.V1Image
 
-	m := map[string]interface{}{}
-
-	if err := json.Unmarshal([]byte(v1data), &m); err != nil {
+	if err := json.Unmarshal([]byte(v1data), &v1image); err != nil {
 		return "", err
 	}
 
-	configMap, err := getConfigMap(m)
-
-	if err != nil {
-		return "", err
-	}
-
-	envArray, err := getEnvArray(configMap)
-
-	if err != nil {
-		return "", err
-	}
-
-	for _, entry := range envArray {
-		dec, ok := entry.(string)
-
-		if !ok {
-			return "", fmt.Errorf("Failed to read variable")
-		}
-
-		key, value, err := envKeyValue(dec)
+	for _, entry := range v1image.Config.Env {
+		key, value, err := envKeyValue(entry)
 
 		if err != nil {
+			fmt.Println(err)
 			continue
 		}
 
@@ -109,35 +92,7 @@ func getEnvFromV1Data(v1data string, name string) (string, error) {
 	return "", nil
 }
 
-func getConfigMap(m map[string]interface{}) (map[string]interface{}, error) {
-	if m["config"] == nil {
-		return nil, fmt.Errorf("Missing \"config\" object")
-	}
-
-	config, ok := m["config"].(map[string]interface{})
-
-	if !ok {
-		return nil, fmt.Errorf("Object \"config\" has unexpected type")
-	}
-
-	return config, nil
-}
-
-func getEnvArray(m map[string]interface{}) ([]interface{}, error) {
-	if m["Env"] == nil {
-		return nil, fmt.Errorf("Missing \"Env\" object")
-	}
-
-	env, ok := m["Env"].([]interface{})
-
-	if !ok {
-		return nil, fmt.Errorf("Object \"Env\" has unexpected type")
-	}
-
-	return env, nil
-}
-
-func envKeyValue(target string) (string, string, error){
+func envKeyValue(target string) (string, string, error) {
 	s := strings.Split(target, "=")
 
 	if len(s) != 2 {
