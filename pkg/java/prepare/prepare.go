@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"github.com/skatteetaten/architect/pkg/docker"
+	"strings"
 )
 
 const (
@@ -91,6 +93,11 @@ func renameApplicationDir(base string) error {
 }
 
 func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, baseImage string, env map[string]string) error {
+	baseImage, err := fixBaseImageTag(baseImage)
+
+	if err != nil {
+		return err
+	}
 
 	dockerfile := NewDockerfile(baseImage, env, meta)
 
@@ -99,6 +106,26 @@ func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, baseIma
 	}
 
 	return nil
+}
+
+func fixBaseImageTag(baseImage string) (string, error) {
+	repo, tag := SplitLast(baseImage, ":")
+
+	if repo == "" || tag == "" {
+		return "", fmt.Errorf("Invalid base image reference: ", baseImage)
+	}
+
+	rc := docker.NewHttpClient("http://uil0map-paas-app01:9090") // TODO Handle registry address
+
+	biv, err := docker.GetManifestEnv(rc, repo, tag, "BASE_IMAGE_VERSION")
+
+	if err != nil {
+		return "", err
+	} else if biv == "" {
+		return "", fmt.Errorf("Failed to get base image version from Docker registry")
+	}
+
+	return fmt.Sprintf("%s:%s", repo, biv), nil
 }
 
 func loadDeliverableMetadata(path string) (*config.DeliverableMetadata, error) {
@@ -203,4 +230,16 @@ func Copy(srcPath, dstPath string) error {
 	}
 
 	return closeErr
+}
+
+func SplitLast(target string, sep string) (string, string) {
+	s := strings.Split(target, sep)
+
+	if len(s) == 1 {
+		return s[0], ""
+	} else if len(s) < 1 {
+		return "", ""
+	}
+
+	return strings.Join(s[:len(s)-1], sep), s[len(s)-1]
 }

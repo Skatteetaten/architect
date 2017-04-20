@@ -45,6 +45,10 @@ func GetManifestEnv(client RegistryClient, repository string, tag string, name s
 
 	body, err := client.PullManifest(repository, tag)
 
+	if err != nil {
+		return "", err
+	}
+
 	manifest := &schema1.SignedManifest{}
 
 	if err = manifest.UnmarshalJSON(body); err != nil {
@@ -85,20 +89,20 @@ func getEnvFromV1Data(v1data string, name string) (string, error) {
 	}
 
 	for _, entry := range envArray {
-		pair, ok := entry.(string)
+		dec, ok := entry.(string)
 
 		if !ok {
 			return "", fmt.Errorf("Failed to read variable")
 		}
 
-		s := strings.Split(pair, "=")
+		key, value, err := envKeyValue(dec)
 
-		if len(s) != 2 {
+		if err != nil {
 			continue
 		}
 
-		if s[0] == name {
-			return s[1], nil
+		if key == name {
+			return value, nil
 		}
 	}
 
@@ -131,4 +135,15 @@ func getEnvArray(m map[string]interface{}) ([]interface{}, error) {
 	}
 
 	return env, nil
+}
+
+func envKeyValue(target string) (string, string, error){
+	s := strings.Split(target, "=")
+
+	if len(s) != 2 {
+		return "", "", fmt.Errorf("Invalid env declaration: %s", target)
+	}
+
+	return strings.TrimSpace(s[0]), strings.TrimSpace(s[1]), nil
+
 }

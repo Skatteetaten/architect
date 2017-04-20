@@ -9,7 +9,7 @@ import (
 
 func TestPrepare(t *testing.T) {
 
-	dockerBuildPath, err := prepare.Prepare("foobar8", map[string]string{"VAR1": "VAL1", "VAR2": "VAL2"}, "testdata/minarch-1.2.22-Leveransepakke.zip")
+	dockerBuildPath, err := prepare.Prepare("aurora/oracle8:1", map[string]string{"VAR1": "VAL1", "VAR2": "VAL2"}, "testdata/minarch-1.2.22-Leveransepakke.zip")
 
 	if err != nil {
 		t.Error(err)
@@ -48,5 +48,20 @@ func TestPrepare(t *testing.T) {
 	}
 
 	//os.RemoveAll(dockerBuildPath)
+
+}
+
+func TestSplitLast(t *testing.T) {
+	target := "a:b:c"
+
+	s1, s2 := prepare.SplitLast(target, ":")
+
+	if s1 != "a:b" {
+		t.Errorf("Expected first element %s, got %s", "a:b", s1 )
+	}
+
+	if s2 != "c" {
+		t.Errorf("Expected last element %s, got %s", "c", s2 )
+	}
 
 }

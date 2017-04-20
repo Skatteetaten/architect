@@ -1,7 +1,6 @@
 package docker
 
 import (
-	"fmt"
 	"io/ioutil"
 	"testing"
 )
@@ -25,7 +24,7 @@ func TestGetManifestEnv(t *testing.T) {
 	actual, err := GetManifestEnv(rc, "aurora/oracle8", "1", "BASE_IMAGE_VERSION")
 
 	if err != nil {
-		fmt.Println("ERROR: ", err)
+		t.Error(err)
 	}
 
 	if actual != expected_value {
