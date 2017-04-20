@@ -109,10 +109,10 @@ func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, baseIma
 }
 
 func fixBaseImageTag(baseImage string) (string, error) {
-	repo, tag := SplitLast(baseImage, ":")
+	repo, tag, err := FindRepoAndTagFromBaseImage(baseImage, ":")
 
-	if repo == "" || tag == "" {
-		return "", fmt.Errorf("Invalid base image reference: ", baseImage)
+	if err != nil {
+		return "", err
 	}
 
 	rc := docker.NewHttpClient("http://uil0map-paas-app01:9090") // TODO Handle registry address
@@ -232,14 +232,12 @@ func Copy(srcPath, dstPath string) error {
 	return closeErr
 }
 
-func SplitLast(target string, sep string) (string, string) {
+func FindRepoAndTagFromBaseImage (target string, sep string) (string, string, error) {
 	s := strings.Split(target, sep)
 
-	if len(s) == 1 {
-		return s[0], ""
-	} else if len(s) < 1 {
-		return "", ""
+	if len(s) < 2 {
+		return "", "", fmt.Errorf("Invalid base image reference: %s", target)
 	}
 
-	return strings.Join(s[:len(s)-1], sep), s[len(s)-1]
+	return strings.Join(s[:len(s)-1], sep), s[len(s)-1], nil
 }

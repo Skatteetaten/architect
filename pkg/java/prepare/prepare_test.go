@@ -51,10 +51,14 @@ func TestPrepare(t *testing.T) {
 
 }
 
-func TestSplitLast(t *testing.T) {
+func TestFindRepoAndTagFromBaseImage(t *testing.T) {
 	target := "a:b:c"
 
-	s1, s2 := prepare.SplitLast(target, ":")
+	s1, s2, err := prepare.FindRepoAndTagFromBaseImage(target, ":")
+
+	if err != nil {
+		t.Errorf("%v", err)
+	}
 
 	if s1 != "a:b" {
 		t.Errorf("Expected first element %s, got %s", "a:b", s1 )
