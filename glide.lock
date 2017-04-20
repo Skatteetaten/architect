@@ -1,5 +1,5 @@
-hash: f41a67f52c46eb644060a2398f8224a827b960e9a48581057177f477f028891e
-updated: 2017-03-30T10:12:04.518402373+02:00
+hash: 10f3047bb89abdc8f9e6b57ee3053e6e1fbe14a72891db55f82577d5248d3b15
+updated: 2017-04-24T09:38:20.515024717+02:00
 imports:
 - name: github.com/cpuguy83/go-md2man
   version: 71acacd42f85e5e82f70a55327789582a5200a90
@@ -40,6 +40,8 @@ imports:
   version: 0bbddae09c5a5419a8c6dcdd7ff90da3d450393b
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/jteeuwen/go-bindata
+  version: bbd0c6e271208dce66d8fda4bc536453cd27fc4a
 - name: github.com/Microsoft/go-winio
   version: fff283ad5116362ca252298cfc9b95828956d85d
 - name: github.com/opencontainers/runc
@@ -52,12 +54,10 @@ imports:
   version: 8cec3a854e68dba10faabbe31c089abf4a3e57a6
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 244f5ac324cb97e1987ef901a0081a77bfd8e845
-- name: github.com/sirupsen/logrus
-  version: ba1b36c82c5e05c4f912a88eab0dcd91a171688f
 - name: github.com/Sirupsen/logrus
   version: 55eb11d21d2a31a3cc93838241d04800f52e823d
-  subpackages:
-  - formatters/logstash
+- name: github.com/sirupsen/logrus
+  version: ba1b36c82c5e05c4f912a88eab0dcd91a171688f
 - name: github.com/spf13/cobra
   version: 1c44ec8d3f1552cac48999f9306da23c4d8a288b
 - name: github.com/spf13/pflag

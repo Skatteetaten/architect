@@ -5,13 +5,13 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"github.com/pkg/errors"
 )
 
 type DockerClientConfig struct {
@@ -35,7 +35,7 @@ func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error)
 	tarReader := createContextTarStreamReader(buildConfig.BuildFolder)
 	build, err := d.client.ImageBuild(context.Background(), tarReader, dockerOpt)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "Error building image")
 	}
 
 	// ImageBuild will not return error message if build fails.
@@ -46,7 +46,7 @@ func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error)
 		if strings.Contains(bodyLine, "errorDetail") {
 			msg, err := JsonMapToString(bodyLine, "error")
 			if err != nil {
-				return "", err
+				return "", errors.Wrap(err, "Error mapping JSON error message. Error in build.")
 			}
 			return "", errors.New(msg)
 		}

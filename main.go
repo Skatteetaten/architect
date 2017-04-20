@@ -14,8 +14,23 @@
 
 package main
 
-import "github.com/skatteetaten/architect/cmd"
+import (
+	"github.com/skatteetaten/architect/cmd"
+	"os"
+	"strings"
+	"github.com/skatteetaten/architect/cmd/architect"
+	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/java/nexus"
+	"github.com/Sirupsen/logrus"
+)
 
 func main() {
-	cmd.Execute()
+	// We are called main. Assume we run in a container
+	if strings.HasSuffix(os.Args[:1][0], "main") {
+		mavenRepo := "http://aurora/nexus/service/local/artifact/maven/content"
+		logrus.Debugf("Using Maven repo on %s", mavenRepo)
+		architect.RunArchitect(config.NewInClusterConfigReader(), nexus.NewNexusDownloader(mavenRepo))
+	} else {
+		cmd.Execute()
+	}
 }

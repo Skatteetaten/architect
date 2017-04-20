@@ -52,16 +52,16 @@ func init() {
 func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader) {
 	c, err := configReader.ReadConfig()
 	if err != nil {
-		logrus.Errorf("Could not read configuration: %s", err)
+		logrus.Fatalf("Could not read configuration: %s", err)
 	}
 
 	path, err := downloader.DownloadArtifact(&c.MavenGav)
 	if err != nil {
-		logrus.Errorf("Could not download artifact: %s", err)
+		logrus.Fatalf("Could not download artifact: %s", err)
 	}
 	path, err = prepare.Prepare(c.DockerSpec.BaseImage, make(map[string]string), path)
 	if err != nil {
-		logrus.Errorf("Error prepare artifact: %s", err)
+		logrus.Fatalf("Error prepare artifact: %s", err)
 	}
 
 	logrus.Infof("Prepre successfull. Trigger docker build in %s", path)
@@ -71,11 +71,11 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 	}
 	client, err := docker.NewDockerClient(&docker.DockerClientConfig{})
 	if err != nil {
-		logrus.Errorln("Error initializing Docker", err)
+		logrus.Fatalf("Error initializing Docker", err)
 	}
 	imageid, err := client.BuildImage(buildConf)
 	if err != nil {
-		logrus.Errorf("Fuckup! %s", err)
+		logrus.Fatalf("Fuckup! %s", err)
 	} else {
 		logrus.Infof("Done building. Imageid: %s", imageid)
 	}
