@@ -80,7 +80,6 @@ func getEnvFromV1Data(v1data string, name string) (string, error) {
 		key, value, err := envKeyValue(entry)
 
 		if err != nil {
-			fmt.Println(err)
 			continue
 		}
 
