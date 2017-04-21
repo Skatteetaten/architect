@@ -3,9 +3,12 @@ package docker
 import (
 	"io/ioutil"
 	"testing"
+	"net/http/httptest"
+	"net/http"
+	"fmt"
 )
 
-const expected_value = "1.7.0"
+const expected_version = "1.7.0"
 
 type RegistryClientMock struct {
 }
@@ -16,19 +19,30 @@ func (registry *RegistryClientMock) PullManifest(repository string, tag string) 
 
 func TestGetManifestEnv(t *testing.T) {
 
-	// Uncomment to pull manifest from registry:
-	//rc := NewHttpClient("http://uil0map-paas-app01:9090")
-
-	rc := &RegistryClientMock{}
-
-	actual, err := GetManifestEnv(rc, "aurora/oracle8", "1", "BASE_IMAGE_VERSION")
+	b, err := testmanifest()
 
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("Failed to load test manifest; %v", err)
 	}
 
-	if actual != expected_value {
-		t.Error("Expected", expected_value, "got", actual)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Write(b)
+	}))
+
+	defer ts.Close()
+
+	rc := NewRegistryClient(ts.URL)
+
+	actual_version, err := GetManifestEnv(*rc, "aurora/oracle8", "1", "BASE_IMAGE_VERSION")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if actual_version != expected_version {
+		t.Errorf("Expected %s, got %s", expected_version, actual_version)
 	}
 }
 

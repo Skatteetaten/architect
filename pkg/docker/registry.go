@@ -10,19 +10,15 @@ import (
 	"encoding/json"
 )
 
-type RegistryClient interface {
-	PullManifest(repository string, tag string) ([]byte, error)
-}
-
-type HttpClient struct {
+type RegistryClient struct {
 	address string
 }
 
-func NewHttpClient(address string) *HttpClient {
-	return &HttpClient{address: address}
+func NewRegistryClient(address string) *RegistryClient {
+	return &RegistryClient{address: address}
 }
 
-func (registry *HttpClient) PullManifest(repository string, tag string) ([]byte, error) {
+func (registry *RegistryClient) PullManifest(repository string, tag string) (*schema1.SignedManifest, error) {
 	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.address, repository, tag)
 
 	res, err := http.Get(url)
@@ -39,22 +35,18 @@ func (registry *HttpClient) PullManifest(repository string, tag string) ([]byte,
 
 	defer res.Body.Close()
 
-	return body, nil
+	manifest := &schema1.SignedManifest{}
+
+	if err = manifest.UnmarshalJSON(body); err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal manifest for image %s, tag %s from Docker registry: %v", repository, tag, err)
+	}
+
+	return manifest, nil
 }
 
 func GetManifestEnv(client RegistryClient, repository string, tag string, name string) (string, error) {
 
-	body, err := client.PullManifest(repository, tag)
-
-	if err != nil {
-		return "", err
-	}
-
-	manifest := &schema1.SignedManifest{}
-
-	if err = manifest.UnmarshalJSON(body); err != nil {
-		return "", fmt.Errorf("Failed to unmarshal manifest for image %s, tag %s from Docker registry: %v", repository, tag, err)
-	}
+	manifest, err := client.PullManifest(repository, tag)
 
 	if err != nil {
 		return "", err

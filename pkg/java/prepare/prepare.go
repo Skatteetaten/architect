@@ -115,9 +115,9 @@ func fixBaseImageTag(baseImage string) (string, error) {
 		return "", err
 	}
 
-	rc := docker.NewHttpClient("http://uil0map-paas-app01:9090") // TODO Handle registry address
+	rc := docker.NewRegistryClient("http://uil0map-paas-app01:9090") // TODO Handle registry address
 
-	biv, err := docker.GetManifestEnv(rc, repo, tag, "BASE_IMAGE_VERSION")
+	biv, err := docker.GetManifestEnv(*rc, repo, tag, "BASE_IMAGE_VERSION")
 
 	if err != nil {
 		return "", err
