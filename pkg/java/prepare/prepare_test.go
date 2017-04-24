@@ -4,12 +4,26 @@ import (
 	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"testing"
 	"path/filepath"
-	//"os"
+	"os"
+	"github.com/skatteetaten/architect/pkg/docker"
+	global "github.com/skatteetaten/architect/pkg/config"
 )
 
 func TestPrepare(t *testing.T) {
 
-	dockerBuildPath, err := prepare.Prepare("foobar8", map[string]string{"VAR1": "VAL1", "VAR2": "VAL2"}, "testdata/minarch-1.2.22-Leveransepakke.zip")
+	ts, err := docker.StartMockRegistry()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer ts.Close()
+
+	cfg := global.Config{"java",global.MavenGav{},
+		global.DockerSpec{Registry:ts.URL, BaseImage:"aurora/oracle8:1"}}
+
+	dockerBuildPath, err := prepare.Prepare(cfg, map[string]string{"VAR1": "VAL1", "VAR2": "VAL2"},
+		"testdata/minarch-1.2.22-Leveransepakke.zip")
 
 	if err != nil {
 		t.Error(err)
@@ -47,6 +61,25 @@ func TestPrepare(t *testing.T) {
 		t.Errorf("Expected file %s not found", filePath)
 	}
 
-	//os.RemoveAll(dockerBuildPath)
+	os.RemoveAll(dockerBuildPath)
+
+}
+
+func TestFindRepoAndTagFromBaseImage(t *testing.T) {
+	target := "a:b:c"
+
+	s1, s2, err := prepare.FindRepoAndTagFromBaseImage(target, ":")
+
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	if s1 != "a:b" {
+		t.Errorf("Expected first element %s, got %s", "a:b", s1 )
+	}
+
+	if s2 != "c" {
+		t.Errorf("Expected last element %s, got %s", "c", s2 )
+	}
 
 }
