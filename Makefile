@@ -19,13 +19,14 @@ BIN := architect
 PKG := github.com/skatteetaten/architect
 
 # Where to push the docker image.
-REGISTRY ?= thockin
+REGISTRY ?= uil0map-paas-app01.paas.skead.no:5000
+REPOSITORY ?= aurora
 
 # Which architecture to build - see $(ALL_ARCH) for options.
 ARCH ?= amd64
 
 # This version-strategy uses git tags to set the version string
-VERSION := $(shell git describe --tags --always --dirty)
+VERSION := $$(git describe --tags --always --dirty)
 #
 # This version-strategy uses a manual value to set the version string
 #VERSION := 1.2.3
@@ -36,7 +37,8 @@ VERSION := $(shell git describe --tags --always --dirty)
 
 SRC_DIRS := cmd pkg # directories which hold app source (not vendored)
 
-ALL_ARCH := amd64 arm arm64 ppc64le
+#ALL_ARCH := amd64 arm arm64 ppc64le
+ALL_ARCH := amd64
 
 # Set default base image dynamically for each arch
 ifeq ($(ARCH),amd64)
@@ -52,14 +54,20 @@ ifeq ($(ARCH),ppc64le)
     BASEIMAGE?=ppc64le/busybox
 endif
 
-IMAGE := $(REGISTRY)/$(BIN)-$(ARCH)
+IMAGE := $(REGISTRY)/$(REPOSITORY)/$(BIN)-$(ARCH)
 
-BUILD_IMAGE ?= golang:1.8-alpine
+BUILD_IMAGE ?= golang:1.8
 
 # If you want to build all binaries, see the 'all-build' rule.
 # If you want to build all containers, see the 'all-container' rule.
 # If you want to build AND push all containers, see the 'all-push' rule.
 all: build
+
+dist: deps binary/main
+
+deps:
+	@echo "installing deps"
+	@glide install
 
 build-%:
 	@$(MAKE) --no-print-directory ARCH=$* build
@@ -81,7 +89,7 @@ build: bin/$(ARCH)/$(BIN)
 bin/$(ARCH)/$(BIN): build-dirs
 	@echo "building: $@"
 	@docker run                                                            \
-	    -ti                                                                \
+	    -i                                                                 \
 	    -u $$(id -u):$$(id -g)                                             \
 	    -v $$(pwd)/.go:/go                                                 \
 	    -v $$(pwd):/go/src/$(PKG)                                          \
@@ -97,17 +105,29 @@ bin/$(ARCH)/$(BIN): build-dirs
 	        ./build/build.sh                                               \
 	    "
 
+binary/main: binary-dir
+	@/bin/sh -c "           \
+	    ARCH=$(ARCH)        \
+	    VERSION=$(VERSION)  \
+	    PKG=$(PKG)          \
+	    ./build/build.sh    \
+	 "
+	@cp $(GOBIN)/$(BIN) binary/main
+
 DOTFILE_IMAGE = $(subst :,_,$(subst /,_,$(IMAGE))-$(VERSION))
 
-container: .container-$(DOTFILE_IMAGE) container-name
-.container-$(DOTFILE_IMAGE): bin/$(ARCH)/$(BIN) Dockerfile.in
-	@sed \
-	    -e 's|ARG_BIN|$(BIN)|g' \
-	    -e 's|ARG_ARCH|$(ARCH)|g' \
-	    -e 's|ARG_FROM|$(BASEIMAGE)|g' \
-	    Dockerfile.in > .dockerfile-$(ARCH)
-	@docker build -t $(IMAGE):$(VERSION) -f .dockerfile-$(ARCH) .
-	@docker images -q $(IMAGE):$(VERSION) > $@
+#container: .container-$(DOTFILE_IMAGE) container-name docker-build-dir
+#.container-$(DOTFILE_IMAGE): build/docker/$(BIN) Dockerfile.in
+#	@sed \
+#	    -e 's|ARG_BIN|$(BIN)|g' \
+#	    -e 's|ARG_ARCH|$(ARCH)|g' \
+#	    -e 's|ARG_FROM|$(BASEIMAGE)|g' \
+#	    Dockerfile.in > build/docker/Dockerfile
+#	#@docker build -t $(IMAGE):$(VERSION) -f .dockerfile-$(ARCH) .
+#	#@docker images -q $(IMAGE):$(VERSION) > $@
+
+binary-dir:
+	@mkdir -p binary
 
 container-name:
 	@echo "container: $(IMAGE):$(VERSION)"

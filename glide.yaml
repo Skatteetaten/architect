@@ -8,3 +8,5 @@ import:
   - client
 - package: github.com/sirupsen/logrus
   version: v0.11.5
+- package: github.com/jteeuwen/go-bindata
+  version: v3.0.7

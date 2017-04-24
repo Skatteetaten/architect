@@ -8,14 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"github.com/skatteetaten/architect/pkg/docker"
-	global "github.com/skatteetaten/architect/pkg/config"
-	"strings"
-
-)
-
-const (
-	ScriptSrcPath = "resources" // Temporary, untill a solution is found for distribution of the scripts.
+	"github.com/skatteetaten/architect/pkg/java/prepare/resources"
 )
 
 type FileGenerator interface {
@@ -51,12 +44,14 @@ func Prepare(config global.Config, env map[string]string, deliverablePath string
 	}
 
 	// Dockerfile
-	if err = addDockerfile(dockerBuildPath, meta, config.DockerSpec.BaseImage, config.DockerSpec.Registry, env); err != nil {
+	//FIX!
+	env["AURORA_VERSION"] = "0.0.1"
+	if err = addDockerfile(dockerBuildPath, meta, baseImage, env); err != nil {
 		return "", fmt.Errorf("Failed to create dockerfile: %v", err)
 	}
 
 	// Runtime scripts
-	if err := addRuntimeScripts(ScriptSrcPath, dockerBuildPath); err != nil {
+	if err := addRuntimeScripts(dockerBuildPath); err != nil {
 		return "", fmt.Errorf("Failed to add scripts: %v", err)
 	}
 
@@ -88,7 +83,7 @@ func renameApplicationDir(base string) error {
 	if err != nil {
 		return err
 	} else if len(list) == 0 {
-		return fmt.Errorf("Root folder does not exist")
+		return fmt.Errorf("Root folder does not exist %s", base)
 	}
 
 	return os.Rename(filepath.Join(base, list[0].Name()), filepath.Join(base, "application"))
@@ -160,21 +155,24 @@ func loadDeliverableMetadata(path string) (*config.DeliverableMetadata, error) {
 	return deliverableMetadata, nil
 }
 
-func addRuntimeScripts(ScriptSrcPath, dockerBuildPath string) error {
+func addRuntimeScripts(dockerBuildPath string) error {
 	scriptDirPath := filepath.Join(dockerBuildPath, "app", "bin")
 
 	if err := os.MkdirAll(scriptDirPath, 0755); err != nil {
 		return err
 	}
 
-	for _, script := range []string{"run", "run_tools.sh", "readiness_std.sh", "liveness_std.sh"} {
-		if err := Copy(filepath.Join(ScriptSrcPath, script), filepath.Join(scriptDirPath, script)); err != nil {
+	for _, asset := range resources.AssetNames() {
+		bytes := resources.MustAsset(asset)
+		err := ioutil.WriteFile(filepath.Join(scriptDirPath, asset), bytes, 0755)
+		if err != nil {
 			return err
 		}
 	}
 
 	return nil
 }
+
 
 func WriteFile(path string, generator FileGenerator) error {
 
@@ -209,43 +207,4 @@ func Exists(path string) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func Copy(srcPath, dstPath string) error {
-
-	srcFile, err := os.Open(srcPath)
-
-	if err != nil {
-		return err
-	}
-
-	defer srcFile.Close()
-
-	dstFile, err := os.Create(dstPath)
-
-	if err != nil {
-		return err
-	}
-
-	defer dstFile.Close()
-
-	_, err = io.Copy(dstFile, srcFile)
-
-	closeErr := dstFile.Close()
-
-	if err != nil {
-		return err
-	}
-
-	return closeErr
-}
-
-func FindRepoAndTagFromBaseImage (target string, sep string) (string, string, error) {
-	s := strings.Split(target, sep)
-
-	if len(s) < 2 {
-		return "", "", fmt.Errorf("Invalid base image reference: %s", target)
-	}
-
-	return strings.Join(s[:len(s)-1], sep), s[len(s)-1], nil
 }
