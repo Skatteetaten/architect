@@ -9,7 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"github.com/skatteetaten/architect/pkg/docker"
+	global "github.com/skatteetaten/architect/pkg/config"
 	"strings"
+
 )
 
 const (
@@ -20,7 +22,7 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(baseImage string, env map[string]string, deliverablePath string) (string, error) {
+func Prepare(config global.Config, env map[string]string, deliverablePath string) (string, error) {
 
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
@@ -49,7 +51,7 @@ func Prepare(baseImage string, env map[string]string, deliverablePath string) (s
 	}
 
 	// Dockerfile
-	if err = addDockerfile(dockerBuildPath, meta, baseImage, env); err != nil {
+	if err = addDockerfile(dockerBuildPath, meta, config.DockerSpec.BaseImage, config.DockerSpec.Registry, env); err != nil {
 		return "", fmt.Errorf("Failed to create dockerfile: %v", err)
 	}
 
@@ -92,8 +94,8 @@ func renameApplicationDir(base string) error {
 	return os.Rename(filepath.Join(base, list[0].Name()), filepath.Join(base, "application"))
 }
 
-func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, baseImage string, env map[string]string) error {
-	baseImage, err := fixBaseImageTag(baseImage)
+func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, baseImage string, registryAddress string, env map[string]string) error {
+	baseImage, err := fixBaseImageTag(baseImage, registryAddress)
 
 	if err != nil {
 		return err
@@ -108,21 +110,27 @@ func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, baseIma
 	return nil
 }
 
-func fixBaseImageTag(baseImage string) (string, error) {
+func fixBaseImageTag(baseImage string, registryAddress string) (string, error) {
 	repo, tag, err := FindRepoAndTagFromBaseImage(baseImage, ":")
 
 	if err != nil {
 		return "", err
 	}
 
-	rc := docker.NewRegistryClient("http://uil0map-paas-app01:9090") // TODO Handle registry address
+	registry := docker.NewRegistryClient(registryAddress)
 
-	biv, err := docker.GetManifestEnv(*rc, repo, tag, "BASE_IMAGE_VERSION")
+	manifest, err := registry.PullManifest(repo, tag)
 
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Failed to pull base image manifest from Docker registry")
+	}
+
+	biv, err := docker.GetManifestEnv(*manifest, "BASE_IMAGE_VERSION")
+
+	if err != nil {
+		return "", fmt.Errorf("Failed to extract version from base image manifest: %v", err)
 	} else if biv == "" {
-		return "", fmt.Errorf("Failed to get base image version from Docker registry")
+		return "", fmt.Errorf("Failed to extract version from base image manifest")
 	}
 
 	return fmt.Sprintf("%s:%s", repo, biv), nil

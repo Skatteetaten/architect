@@ -4,12 +4,25 @@ import (
 	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"testing"
 	"path/filepath"
-	//"os"
+	"os"
+	"github.com/skatteetaten/architect/pkg/docker"
 )
 
 func TestPrepare(t *testing.T) {
 
-	dockerBuildPath, err := prepare.Prepare("aurora/oracle8:1", map[string]string{"VAR1": "VAL1", "VAR2": "VAL2"}, "testdata/minarch-1.2.22-Leveransepakke.zip")
+	ts, err := docker.StartMockRegistry()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer ts.Close()
+
+	rc := docker.NewRegistryClient(ts.URL)
+
+	dockerBuildPath, err := prepare.Prepare("aurora/oracle8:1",
+		map[string]string{"VAR1": "VAL1", "VAR2": "VAL2"},
+		"testdata/minarch-1.2.22-Leveransepakke.zip", *rc)
 
 	if err != nil {
 		t.Error(err)
@@ -47,7 +60,7 @@ func TestPrepare(t *testing.T) {
 		t.Errorf("Expected file %s not found", filePath)
 	}
 
-	//os.RemoveAll(dockerBuildPath)
+	os.RemoveAll(dockerBuildPath)
 
 }
 
