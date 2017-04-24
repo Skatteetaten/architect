@@ -2,10 +2,11 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/skatteetaten/architect/pkg/config/api"
 	"io/ioutil"
 	"os"
+	"github.com/docker/docker/reference"
+	"github.com/pkg/errors"
 )
 
 type ConfigReader interface {
@@ -97,13 +98,38 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		return nil, errors.New("This image only supports output of kind DockerImage")
 	}
 	output := build.Spec.Output.To.Name
-	dockerSpec.Registry = output
+
+	dockerSpec.OutputRegistry, err = findOutputRegistry(output)
+	if err != nil {
+		return nil, err
+	}
+	dockerSpec.OutputRepository, err = findOutputRepository(output)
+	if err != nil {
+		return nil, err
+	}
 	c := &Config{
 		ApplicationType: JavaLeveransepakke,
 		MavenGav:        gav,
 		DockerSpec:      dockerSpec,
 	}
 	return c, nil
+}
+
+func findOutputRepository(dockerName string) (string, error) {
+	name, err := reference.ParseNamed(dockerName)
+	if err != nil {
+		return "", errors.Wrap(err, "Error parsing docker registry reference")
+	}
+	return name.RemoteName(), nil
+
+}
+
+func findOutputRegistry(dockerName string) (string, error) {
+	name, err := reference.ParseNamed(dockerName)
+	if err != nil {
+		return "", errors.Wrap(err, "Error parsing docker registry reference")
+	}
+	return name.Hostname(), nil
 }
 
 func findEnv(vars []api.EnvVar, name string) (string, error) {

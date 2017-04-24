@@ -49,7 +49,7 @@ func Prepare(config global.Config, env map[string]string, deliverablePath string
 	// Dockerfile
 	//FIX!
 	env["AURORA_VERSION"] = "0.0.1"
-	if err = addDockerfile(dockerBuildPath, meta, config.DockerSpec.BaseImage, config.DockerSpec.Registry, env); err != nil {
+	if err = addDockerfile(dockerBuildPath, meta, config.DockerSpec.BaseImage, config.DockerSpec.OutputRegistry, env); err != nil {
 		return "", fmt.Errorf("Failed to create dockerfile: %v", err)
 	}
 

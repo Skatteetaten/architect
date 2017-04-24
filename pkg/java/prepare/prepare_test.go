@@ -20,7 +20,7 @@ func TestPrepare(t *testing.T) {
 	defer ts.Close()
 
 	cfg := global.Config{"java",global.MavenGav{},
-		global.DockerSpec{Registry:ts.URL, BaseImage:"aurora/oracle8:1"}}
+		global.DockerSpec{OutputImage:ts.URL, BaseImage:"aurora/oracle8:1"}}
 
 	dockerBuildPath, err := prepare.Prepare(cfg, map[string]string{"VAR1": "VAL1", "VAR2": "VAL2"},
 		"testdata/minarch-1.2.22-Leveransepakke.zip")
