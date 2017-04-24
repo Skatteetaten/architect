@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"os"
 	"github.com/skatteetaten/architect/pkg/docker"
+	global "github.com/skatteetaten/architect/pkg/config"
 )
 
 func TestPrepare(t *testing.T) {
@@ -18,11 +19,11 @@ func TestPrepare(t *testing.T) {
 
 	defer ts.Close()
 
-	rc := docker.NewRegistryClient(ts.URL)
+	cfg := global.Config{"java",global.MavenGav{},
+		global.DockerSpec{Registry:ts.URL, BaseImage:"aurora/oracle8:1"}}
 
-	dockerBuildPath, err := prepare.Prepare("aurora/oracle8:1",
-		map[string]string{"VAR1": "VAL1", "VAR2": "VAL2"},
-		"testdata/minarch-1.2.22-Leveransepakke.zip", *rc)
+	dockerBuildPath, err := prepare.Prepare(cfg, map[string]string{"VAR1": "VAL1", "VAR2": "VAL2"},
+		"testdata/minarch-1.2.22-Leveransepakke.zip")
 
 	if err != nil {
 		t.Error(err)

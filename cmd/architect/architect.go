@@ -59,7 +59,7 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 	if err != nil {
 		logrus.Fatalf("Could not download artifact: %s", err)
 	}
-	path, err = prepare.Prepare(c.DockerSpec.BaseImage, make(map[string]string), path)
+	path, err = prepare.Prepare(*c, make(map[string]string), path)
 	if err != nil {
 		logrus.Fatalf("Error prepare artifact: %s", err)
 	}

@@ -9,6 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"github.com/skatteetaten/architect/pkg/java/prepare/resources"
+	global "github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/docker"
+	"strings"
 )
 
 type FileGenerator interface {
@@ -46,7 +49,7 @@ func Prepare(config global.Config, env map[string]string, deliverablePath string
 	// Dockerfile
 	//FIX!
 	env["AURORA_VERSION"] = "0.0.1"
-	if err = addDockerfile(dockerBuildPath, meta, baseImage, env); err != nil {
+	if err = addDockerfile(dockerBuildPath, meta, config.DockerSpec.BaseImage, config.DockerSpec.Registry, env); err != nil {
 		return "", fmt.Errorf("Failed to create dockerfile: %v", err)
 	}
 
@@ -207,4 +210,14 @@ func Exists(path string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func FindRepoAndTagFromBaseImage (target string, sep string) (string, string, error) {
+	s := strings.Split(target, sep)
+
+	if len(s) < 2 {
+		return "", "", fmt.Errorf("Invalid base image reference: %s", target)
+	}
+
+	return strings.Join(s[:len(s)-1], sep), s[len(s)-1], nil
 }
