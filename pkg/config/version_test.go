@@ -1,4 +1,4 @@
-package docker
+package config
 
 import "testing"
 

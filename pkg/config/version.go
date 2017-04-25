@@ -1,4 +1,4 @@
-package docker
+package config
 
 import (
 	extVersion "github.com/hashicorp/go-version"
@@ -23,4 +23,12 @@ func GetMinor(version string) (string, error) {
 	}
 
 	return fmt.Sprintf("%d.%d", build_version.Segments()[0],build_version.Segments()[1]), nil
+}
+
+func GetCompleteVersion() () {
+
+}
+
+func GetVersionTags() () {
+
 }
