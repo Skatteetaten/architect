@@ -11,6 +11,7 @@ type Config struct {
 	ApplicationType ApplicationType
 	MavenGav        MavenGav
 	DockerSpec      DockerSpec
+	BuilderSpec	BuilderSpec
 }
 
 type MavenGav struct {
@@ -24,4 +25,9 @@ type DockerSpec struct {
 	OutputRegistry   string
 	OutputRepository string
 	BaseImage        string
+	BaseVersion	 string
+}
+
+type BuilderSpec struct {
+	Version		string
 }

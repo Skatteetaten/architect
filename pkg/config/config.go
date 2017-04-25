@@ -90,7 +90,17 @@ func newConfig(buildConfig []byte) (*Config, error) {
 	}
 
 	if baseImageVersion, err := findEnv(customStrategy.Env, "DOCKER_BASE_VERSION"); err == nil {
-		dockerSpec.BaseImage = dockerSpec.BaseImage + ":" + baseImageVersion
+		dockerSpec.BaseVersion = baseImageVersion
+	} else {
+		return nil, err
+	}
+
+	builderSpec := BuilderSpec{}
+
+	if builderVersion, err := findEnv(customStrategy.Env, "BUILDER_VERSION"); err == nil {
+		builderSpec.Version = builderVersion
+	} else {
+		return nil, err
 	}
 
 	outputKind := build.Spec.Output.To.Kind

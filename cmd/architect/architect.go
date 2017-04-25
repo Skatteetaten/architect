@@ -59,7 +59,13 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 	if err != nil {
 		logrus.Fatalf("Could not download artifact: %s", err)
 	}
-	path, err = prepare.Prepare(*c, make(map[string]string), path)
+
+	buildInfo, err := config.NewBuildInfo(*c)
+	if err != nil {
+		logrus.Fatalf("Error in creating buildinfo: %s", err)
+	}
+
+	path, err = prepare.Prepare(*buildInfo, path)
 	if err != nil {
 		logrus.Fatalf("Error prepare artifact: %s", err)
 	}
