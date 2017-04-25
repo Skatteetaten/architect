@@ -27,10 +27,18 @@ import (
 func main() {
 	// We are called main. Assume we run in a container
 	if strings.HasSuffix(os.Args[:1][0], "main") {
-		mavenRepo := "http://aurora/nexus/service/local/artifact/maven/content"
-		logrus.Debugf("Using Maven repo on %s", mavenRepo)
-		architect.RunArchitect(config.NewInClusterConfigReader(), nexus.NewNexusDownloader(mavenRepo))
+		initializeAndRunOnOpenShift()
 	} else {
 		cmd.Execute()
 	}
+}
+func initializeAndRunOnOpenShift() {
+	if (len(os.Getenv("DEBUG")) > 0) {
+		logrus.SetLevel(logrus.DebugLevel)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
+	}
+	mavenRepo := "http://aurora/nexus/service/local/artifact/maven/content"
+	logrus.Debugf("Using Maven repo on %s", mavenRepo)
+	architect.RunArchitect(config.NewInClusterConfigReader(), nexus.NewNexusDownloader(mavenRepo))
 }
