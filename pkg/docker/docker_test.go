@@ -21,7 +21,7 @@ func TestBuildImage(t *testing.T) {
 	}
 
 	buildConfig := DockerBuildConfig{
-		Tag:         "test_image",
+		Tags:        []string{"test_image"},
 		BuildFolder: dir,
 	}
 

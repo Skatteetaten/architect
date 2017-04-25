@@ -7,6 +7,7 @@ import (
 	"os"
 	"github.com/docker/docker/reference"
 	"github.com/pkg/errors"
+	"strings"
 )
 
 type ConfigReader interface {
@@ -89,6 +90,16 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		return nil, err
 	}
 
+	if externalRegistry, err := findEnv(customStrategy.Env, "BASE_IMAGE_REGISTRY"); err == nil {
+		if strings.HasPrefix(externalRegistry, "https://") {
+			dockerSpec.ExternalDockerRegistry = externalRegistry
+		} else {
+			dockerSpec.ExternalDockerRegistry = "https://" + externalRegistry
+		}
+	} else {
+		dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
+	}
+
 	if baseImageVersion, err := findEnv(customStrategy.Env, "DOCKER_BASE_VERSION"); err == nil {
 		dockerSpec.BaseVersion = baseImageVersion
 	} else {
@@ -100,7 +111,8 @@ func newConfig(buildConfig []byte) (*Config, error) {
 	if builderVersion, err := findEnv(customStrategy.Env, "BUILDER_VERSION"); err == nil {
 		builderSpec.Version = builderVersion
 	} else {
-		return nil, err
+		builderSpec.Version = "dsjkfl"
+		//return nil, err
 	}
 
 	outputKind := build.Spec.Output.To.Kind

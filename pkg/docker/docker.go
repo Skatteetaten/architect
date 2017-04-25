@@ -79,13 +79,17 @@ func (d *DockerClient) PushImage(tag string) (error) {
 	logrus.Infof("Pushing image %s", tag)
 	push, err := d.client.ImagePush(context.Background(), tag, types.ImagePushOptions{
 		RegistryAuth: "aurora",
+
 	})
 	if err != nil {
 		return err
 	}
-	io.Copy(os.Stdout, push)
 	defer push.Close()
-
+	scanner := bufio.NewScanner(push)
+	for scanner.Scan() {
+		logline := scanner.Text()
+		logrus.Debug(logline)
+	}
 	return nil
 }
 

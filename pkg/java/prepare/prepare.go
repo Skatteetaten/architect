@@ -10,13 +10,14 @@ import (
 	"path/filepath"
 	"github.com/skatteetaten/architect/pkg/java/prepare/resources"
 	global "github.com/skatteetaten/architect/pkg/config"
+	"github.com/pkg/errors"
 )
 
 type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(buildinfo global.BuildInfo, deliverablePath string) (string, error) {
+func Prepare(config global.Config, buildinfo global.BuildInfo, deliverablePath string) (string, error) {
 
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
@@ -29,29 +30,30 @@ func Prepare(buildinfo global.BuildInfo, deliverablePath string) (string, error)
 	applicationPath, err := extractDeliverable(dockerBuildPath, deliverablePath)
 
 	if err != nil {
-		return "", fmt.Errorf("Failed to unzip deliverable: %v", err)
+		return "", errors.Errorf("Failed to unzip deliverable: %v", err)
 	}
 
 	// Load metadata
 	meta, err := loadDeliverableMetadata(filepath.Join(applicationPath, DeliveryMetadataPath))
 
 	if err != nil {
-		return "", fmt.Errorf("Failed to load deliverable metadata: %v", err)
+		return "", errors.Errorf("Failed to load deliverable metadata: %v", err)
 	}
 
 	// Prepare application
 	if err := PrepareApplication(applicationPath, meta); err != nil {
-		return "", fmt.Errorf("Failed to prepare application: %v", err)
+		return "", errors.Errorf("Failed to prepare application: %v", err)
 	}
 
 	// Dockerfile
+	//FIX!
 	if err = addDockerfile(dockerBuildPath, meta, buildinfo); err != nil {
-		return "", fmt.Errorf("Failed to create dockerfile: %v", err)
+		return "", errors.Errorf("Failed to create dockerfile: %v", err)
 	}
 
 	// Runtime scripts
 	if err := addRuntimeScripts(dockerBuildPath); err != nil {
-		return "", fmt.Errorf("Failed to add scripts: %v", err)
+		return "", errors.Errorf("Failed to add scripts: %v", err)
 	}
 
 	return dockerBuildPath, nil
@@ -66,7 +68,7 @@ func extractDeliverable(dockerBuildPath string, deliverablePath string) (string,
 	}
 
 	if err := ExtractDeliverable(deliverablePath, filepath.Join(dockerBuildPath, "app")); err != nil {
-		return "", fmt.Errorf("Failed to unzip deliverable %s: %v", deliverablePath, err)
+		return "", errors.Errorf("Failed to unzip deliverable %s: %v", deliverablePath, err)
 	}
 
 	if err := renameApplicationDir(applicationBase); err != nil {
@@ -82,7 +84,7 @@ func renameApplicationDir(base string) error {
 	if err != nil {
 		return err
 	} else if len(list) == 0 {
-		return fmt.Errorf("Root folder does not exist %s", base)
+		return errors.Errorf("Root folder does not exist %s", base)
 	}
 
 	return os.Rename(filepath.Join(base, list[0].Name()), filepath.Join(base, "application"))
@@ -90,7 +92,7 @@ func renameApplicationDir(base string) error {
 
 func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, buildinfo global.BuildInfo) error {
 	env := make(map[string]string)
-
+	env["AURORA_VERSION"] = "OYVIND_FIX"
 	dockerfile := NewDockerfile(buildinfo.BaseImage.Repository, env, meta)
 
 	if err := WriteFile(filepath.Join(basedirPath, "Dockerfile"), dockerfile); err != nil {
@@ -141,7 +143,6 @@ func addRuntimeScripts(dockerBuildPath string) error {
 
 	return nil
 }
-
 
 func WriteFile(path string, generator FileGenerator) error {
 

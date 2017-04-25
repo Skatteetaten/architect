@@ -19,8 +19,8 @@ func TestPrepare(t *testing.T) {
 
 	defer ts.Close()
 
-	cfg := global.Config{"java",global.MavenGav{},
-		global.DockerSpec{OutputImage:ts.URL, BaseImage:"aurora/oracle8:1"}}
+	cfg := global.Config{"java", global.MavenGav{},
+		global.DockerSpec{ExternalDockerRegistry:ts.URL, BaseImage:"aurora/oracle8:1"}}
 
 	dockerBuildPath, err := prepare.Prepare(cfg, map[string]string{"VAR1": "VAL1", "VAR2": "VAL2"},
 		"testdata/minarch-1.2.22-Leveransepakke.zip")
@@ -75,11 +75,11 @@ func TestFindRepoAndTagFromBaseImage(t *testing.T) {
 	}
 
 	if s1 != "a:b" {
-		t.Errorf("Expected first element %s, got %s", "a:b", s1 )
+		t.Errorf("Expected first element %s, got %s", "a:b", s1)
 	}
 
 	if s2 != "c" {
-		t.Errorf("Expected last element %s, got %s", "c", s2 )
+		t.Errorf("Expected last element %s, got %s", "c", s2)
 	}
 
 }

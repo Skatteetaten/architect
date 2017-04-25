@@ -26,6 +26,8 @@ type DockerSpec struct {
 	OutputRepository string
 	BaseImage        string
 	BaseVersion	 string
+	//This is the external docker registry where we check versions.
+	ExternalDockerRegistry string
 }
 
 type BuilderSpec struct {

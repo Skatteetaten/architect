@@ -33,7 +33,7 @@ type ImageInfo struct {
 }
 
 
-func NewBuildInfo(config Config) (BuildInfo, error) {
+func NewBuildInfo(config Config) (*BuildInfo, error) {
 	buildInfo := BuildInfo{}
 
 	buildInfo.IsSnapshot = isSnapshot(config)
@@ -52,7 +52,7 @@ func NewBuildInfo(config Config) (BuildInfo, error) {
 	}
 	buildInfo.OutputImage = *outputImage
 
-	return buildInfo, nil
+	return &buildInfo, nil
 }
 
 func createBaseImageInfo(config Config) (*ImageInfo, error) {

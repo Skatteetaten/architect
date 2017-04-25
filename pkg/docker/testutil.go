@@ -14,11 +14,11 @@ func StartMockRegistry() (*httptest.Server, error) {
 		return nil, err
 	}
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(buf)))
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Write(buf)
 	}))
-
+	ts.StartTLS()
 	return ts, nil
 }

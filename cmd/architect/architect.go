@@ -65,7 +65,7 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 		logrus.Fatalf("Error in creating buildinfo: %s", err)
 	}
 
-	path, err = prepare.Prepare(*buildInfo, path)
+	path, err = prepare.Prepare(*c,*buildInfo, path)
 	if err != nil {
 		logrus.Fatalf("Error prepare artifact: %s", err)
 	}
