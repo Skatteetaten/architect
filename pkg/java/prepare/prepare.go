@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 	"github.com/skatteetaten/architect/pkg/java/prepare/resources"
 	global "github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/docker"
-	"strings"
 	"github.com/pkg/errors"
 )
 
@@ -19,7 +17,7 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(config global.Config, env map[string]string, deliverablePath string) (string, error) {
+func Prepare(config global.Config, buildinfo global.BuildInfo, deliverablePath string) (string, error) {
 
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
@@ -49,9 +47,7 @@ func Prepare(config global.Config, env map[string]string, deliverablePath string
 
 	// Dockerfile
 	//FIX!
-	env["AURORA_VERSION"] = "0.0.1"
-	if err = addDockerfile(dockerBuildPath, meta, config.DockerSpec.BaseImage,
-		config.DockerSpec.ExternalDockerRegistry, env); err != nil {
+	if err = addDockerfile(dockerBuildPath, meta, buildinfo); err != nil {
 		return "", errors.Errorf("Failed to create dockerfile: %v", err)
 	}
 
@@ -94,46 +90,16 @@ func renameApplicationDir(base string) error {
 	return os.Rename(filepath.Join(base, list[0].Name()), filepath.Join(base, "application"))
 }
 
-func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, baseImage string, registryAddress string, env map[string]string) error {
-	baseImage, err := fixBaseImageTag(baseImage, registryAddress)
-
-	if err != nil {
-		return err
-	}
-
-	dockerfile := NewDockerfile(baseImage, env, meta)
+func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, buildinfo global.BuildInfo) error {
+	env := make(map[string]string)
+	env["AURORA_VERSION"] = "OYVIND_FIX"
+	dockerfile := NewDockerfile(buildinfo.BaseImage.Repository, env, meta)
 
 	if err := WriteFile(filepath.Join(basedirPath, "Dockerfile"), dockerfile); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func fixBaseImageTag(baseImage string, registryAddress string) (string, error) {
-	repo, tag, err := FindRepoAndTagFromBaseImage(baseImage, ":")
-
-	if err != nil {
-		return "", err
-	}
-
-	registry := docker.NewRegistryClient(registryAddress)
-
-	manifest, err := registry.PullManifest(repo, tag)
-
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to pull base image manifest from Docker registry")
-	}
-
-	biv, err := docker.GetManifestEnv(*manifest, "BASE_IMAGE_VERSION")
-
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to extract version from base image manifest: %v")
-	} else if biv == "" {
-		return "", errors.Errorf("Failed to extract version from base image manifest")
-	}
-
-	return fmt.Sprintf("%s:%s", repo, biv), nil
 }
 
 func loadDeliverableMetadata(path string) (*config.DeliverableMetadata, error) {
@@ -211,14 +177,4 @@ func Exists(path string) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func FindRepoAndTagFromBaseImage(target string, sep string) (string, string, error) {
-	s := strings.Split(target, sep)
-
-	if len(s) < 2 {
-		return "", "", fmt.Errorf("Invalid base image reference: %s", target)
-	}
-
-	return strings.Join(s[:len(s) - 1], sep), s[len(s) - 1], nil
 }
