@@ -11,8 +11,8 @@ func TestNewFileConfigReader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error when reading config: %s", err)
 	}
-	if c.DockerSpec.Registry != "docker-registry.themoon.com:5000/groupid/app" {
-		t.Errorf("Expected %s, was %s", "docker-registry.themoon.com:5000/groupid/app", c.DockerSpec.Registry)
+	if c.DockerSpec.OutputImage != "docker-registry.themoon.com:5000/groupid/app" {
+		t.Errorf("Expected %s, was %s", "docker-registry.themoon.com:5000/groupid/app", c.DockerSpec.OutputImage)
 	}
 	if c.ApplicationType != config.JavaLeveransepakke {
 		t.Errorf("Expected %s, was %s", config.JavaLeveransepakke, c.ApplicationType)

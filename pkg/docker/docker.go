@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"github.com/pkg/errors"
+	"github.com/Sirupsen/logrus"
 )
 
 type DockerClientConfig struct {
@@ -19,7 +20,7 @@ type DockerClientConfig struct {
 }
 
 type DockerBuildConfig struct {
-	Tag         string
+	Tags        []string
 	BuildFolder string
 }
 
@@ -29,7 +30,7 @@ type DockerClient struct {
 
 func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error) {
 	dockerOpt := types.ImageBuildOptions{
-		Tags:           []string{buildConfig.Tag},
+		Tags:           buildConfig.Tags,
 		SuppressOutput: false,
 	}
 	tarReader := createContextTarStreamReader(buildConfig.BuildFolder)
@@ -54,23 +55,35 @@ func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error)
 	// Get image id.
 	msg, err := JsonMapToString(bodyLine, "stream")
 
-	return strings.TrimPrefix(msg, "Successfully built "), nil
+	return strings.TrimSpace(strings.TrimPrefix(msg, "Successfully built ")), nil
 }
 
-func (d *DockerClient) TagImage(ImageID string, tags []string) (error) {
+func (d *DockerClient) PushImages(tags[] string) (error) {
 	for _, tag := range tags {
-		if err := d.client.ImageTag(context.Background(),ImageID,tag); err != nil {
-			return err
+		err := d.PushImage(tag)
+		if err != nil {
+			return errors.Wrap(err, "Error pushing image")
 		}
 	}
 	return nil
 }
 
-func (d *DockerClient) PushImage(ImageID string) (error) {
-	push, err := d.client.ImagePush(context.Background(), ImageID, types.ImagePushOptions{})
+func (d *DockerClient) TagImage(imageId string, tag string) (error) {
+	if err := d.client.ImageTag(context.Background(), imageId, tag); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DockerClient) PushImage(tag string) (error) {
+	logrus.Infof("Pushing image %s", tag)
+	push, err := d.client.ImagePush(context.Background(), tag, types.ImagePushOptions{
+		RegistryAuth: "aurora",
+	})
 	if err != nil {
 		return err
 	}
+	io.Copy(os.Stdout, push)
 	defer push.Close()
 
 	return nil
@@ -104,7 +117,7 @@ func createContextTarStreamToTarWriter(dockerBase string, writer io.Writer) erro
 		func(path string, info os.FileInfo, errfunc error) error {
 
 			var link string
-			if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			if info.Mode() & os.ModeSymlink == os.ModeSymlink {
 				var err error
 				if link, err = os.Readlink(path); err != nil {
 					return err
@@ -122,7 +135,8 @@ func createContextTarStreamToTarWriter(dockerBase string, writer io.Writer) erro
 				return err
 			}
 
-			if !info.Mode().IsRegular() { //nothing more to do for non-regular
+			if !info.Mode().IsRegular() {
+				//nothing more to do for non-regular
 				return nil
 			}
 

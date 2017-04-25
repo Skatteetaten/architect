@@ -3,7 +3,7 @@ package config
 type ApplicationType string
 
 const (
-	JavaLeveransepakke   ApplicationType = "JavaLeveransepakke"
+	JavaLeveransepakke ApplicationType = "JavaLeveransepakke"
 	NodeJsLeveransepakke ApplicationType = "NodeJsLeveranse"
 )
 
@@ -21,6 +21,7 @@ type MavenGav struct {
 }
 
 type DockerSpec struct {
-	Registry  string
-	BaseImage string
+	OutputRegistry   string
+	OutputRepository string
+	BaseImage        string
 }
