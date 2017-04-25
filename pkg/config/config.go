@@ -7,6 +7,7 @@ import (
 	"os"
 	"github.com/docker/docker/reference"
 	"github.com/pkg/errors"
+	"strings"
 )
 
 type ConfigReader interface {
@@ -90,7 +91,11 @@ func newConfig(buildConfig []byte) (*Config, error) {
 	}
 
 	if externalRegistry, err := findEnv(customStrategy.Env, "BASE_IMAGE_REGISTRY"); err == nil {
-		dockerSpec.ExternalDockerRegistry = externalRegistry
+		if strings.HasPrefix(externalRegistry, "https://") {
+			dockerSpec.ExternalDockerRegistry = externalRegistry
+		} else {
+			dockerSpec.ExternalDockerRegistry = "https://" + externalRegistry
+		}
 	} else {
 		dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
 	}
