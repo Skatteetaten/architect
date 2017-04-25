@@ -5,6 +5,7 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"io/ioutil"
 	"net/http"
+	"crypto/tls"
 )
 
 type RegistryClient struct {
@@ -18,7 +19,12 @@ func NewRegistryClient(address string) *RegistryClient {
 func (registry *RegistryClient) PullManifest(repository string, tag string) (*schema1.SignedManifest, error) {
 	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.address, repository, tag)
 
-	res, err := http.Get(url)
+	//TODO! Flytt alle HTTP metoder til felles utility-bibliotek!
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify:true},
+	}
+	client := &http.Client{Transport:tr}
+	res, err := client.Get(url)
 
 	if err != nil {
 		return nil, err

@@ -89,6 +89,12 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		return nil, err
 	}
 
+	if externalRegistry, err := findEnv(customStrategy.Env, "BASE_IMAGE_REGISTRY"); err == nil {
+		dockerSpec.ExternalDockerRegistry = externalRegistry
+	} else {
+		dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
+	}
+
 	if baseImageVersion, err := findEnv(customStrategy.Env, "DOCKER_BASE_VERSION"); err == nil {
 		dockerSpec.BaseImage = dockerSpec.BaseImage + ":" + baseImageVersion
 	}

@@ -12,6 +12,7 @@ import (
 	global "github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"strings"
+	"github.com/pkg/errors"
 )
 
 type FileGenerator interface {
@@ -31,31 +32,32 @@ func Prepare(config global.Config, env map[string]string, deliverablePath string
 	applicationPath, err := extractDeliverable(dockerBuildPath, deliverablePath)
 
 	if err != nil {
-		return "", fmt.Errorf("Failed to unzip deliverable: %v", err)
+		return "", errors.Errorf("Failed to unzip deliverable: %v", err)
 	}
 
 	// Load metadata
 	meta, err := loadDeliverableMetadata(filepath.Join(applicationPath, DeliveryMetadataPath))
 
 	if err != nil {
-		return "", fmt.Errorf("Failed to load deliverable metadata: %v", err)
+		return "", errors.Errorf("Failed to load deliverable metadata: %v", err)
 	}
 
 	// Prepare application
 	if err := PrepareApplication(applicationPath, meta); err != nil {
-		return "", fmt.Errorf("Failed to prepare application: %v", err)
+		return "", errors.Errorf("Failed to prepare application: %v", err)
 	}
 
 	// Dockerfile
 	//FIX!
 	env["AURORA_VERSION"] = "0.0.1"
-	if err = addDockerfile(dockerBuildPath, meta, config.DockerSpec.BaseImage, config.DockerSpec.OutputRegistry, env); err != nil {
-		return "", fmt.Errorf("Failed to create dockerfile: %v", err)
+	if err = addDockerfile(dockerBuildPath, meta, config.DockerSpec.BaseImage,
+		config.DockerSpec.ExternalDockerRegistry, env); err != nil {
+		return "", errors.Errorf("Failed to create dockerfile: %v", err)
 	}
 
 	// Runtime scripts
 	if err := addRuntimeScripts(dockerBuildPath); err != nil {
-		return "", fmt.Errorf("Failed to add scripts: %v", err)
+		return "", errors.Errorf("Failed to add scripts: %v", err)
 	}
 
 	return dockerBuildPath, nil
@@ -70,7 +72,7 @@ func extractDeliverable(dockerBuildPath string, deliverablePath string) (string,
 	}
 
 	if err := ExtractDeliverable(deliverablePath, filepath.Join(dockerBuildPath, "app")); err != nil {
-		return "", fmt.Errorf("Failed to unzip deliverable %s: %v", deliverablePath, err)
+		return "", errors.Errorf("Failed to unzip deliverable %s: %v", deliverablePath, err)
 	}
 
 	if err := renameApplicationDir(applicationBase); err != nil {
@@ -86,7 +88,7 @@ func renameApplicationDir(base string) error {
 	if err != nil {
 		return err
 	} else if len(list) == 0 {
-		return fmt.Errorf("Root folder does not exist %s", base)
+		return errors.Errorf("Root folder does not exist %s", base)
 	}
 
 	return os.Rename(filepath.Join(base, list[0].Name()), filepath.Join(base, "application"))
@@ -120,15 +122,15 @@ func fixBaseImageTag(baseImage string, registryAddress string) (string, error) {
 	manifest, err := registry.PullManifest(repo, tag)
 
 	if err != nil {
-		return "", fmt.Errorf("Failed to pull base image manifest from Docker registry")
+		return "", errors.Wrap(err, "Failed to pull base image manifest from Docker registry")
 	}
 
 	biv, err := docker.GetManifestEnv(*manifest, "BASE_IMAGE_VERSION")
 
 	if err != nil {
-		return "", fmt.Errorf("Failed to extract version from base image manifest: %v", err)
+		return "", errors.Wrap(err, "Failed to extract version from base image manifest: %v")
 	} else if biv == "" {
-		return "", fmt.Errorf("Failed to extract version from base image manifest")
+		return "", errors.Errorf("Failed to extract version from base image manifest")
 	}
 
 	return fmt.Sprintf("%s:%s", repo, biv), nil
@@ -176,7 +178,6 @@ func addRuntimeScripts(dockerBuildPath string) error {
 	return nil
 }
 
-
 func WriteFile(path string, generator FileGenerator) error {
 
 	file, err := os.Create(path)
@@ -212,12 +213,12 @@ func Exists(path string) (bool, error) {
 	return true, nil
 }
 
-func FindRepoAndTagFromBaseImage (target string, sep string) (string, string, error) {
+func FindRepoAndTagFromBaseImage(target string, sep string) (string, string, error) {
 	s := strings.Split(target, sep)
 
 	if len(s) < 2 {
 		return "", "", fmt.Errorf("Invalid base image reference: %s", target)
 	}
 
-	return strings.Join(s[:len(s)-1], sep), s[len(s)-1], nil
+	return strings.Join(s[:len(s) - 1], sep), s[len(s) - 1], nil
 }
