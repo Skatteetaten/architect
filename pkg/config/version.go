@@ -1,41 +1,44 @@
 package config
 
 import (
-	extVersion "github.com/hashicorp/go-version"
 	"fmt"
-	"github.com/skatteetaten/architect/pkg/docker"
+	extVersion "github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
+	"github.com/skatteetaten/architect/pkg/docker"
+	"path"
+	"strings"
 )
+
 /*
 EKSEMPEL:
 Gitt følgende URL http://uil0map-paas-app01.skead.no:9090/v2/aurora/console/tags/list
 => OutputImage Map[..]
-COMPlETE_VERSION 		= 2.0.0-b1.11.0-oracle8-1.0.2
+COMPlETE	 		= 2.0.0-b1.11.0-oracle8-1.0.2
 LATEST				= latest
 MAJOR				= 2
 MINOR				= 2.0
 PATCH				= 2.0.0
 => OutputImage.Repository	aurora/console
 => BaseImage Map[..]
-CONFIG_VERSION			= 1
-INFERRED_VERSION		= 1.0.2
+CONFIG			= 1
+INFERRED		= 1.0.2
 => BaseImage.Repository		aurora/oracle8
- */
+*/
 
 type BuildInfo struct {
-	IsSnapshot		bool
-	OutputImage		ImageInfo
-	BaseImage		ImageInfo
+	IsSnapshot  bool
+	Version     string
+	OutputImage ImageInfo
+	BaseImage   ImageInfo
 }
 
 type ImageInfo struct {
-	Repository	string
-	Version 	string
-	Tags		map[string]string
+	Repository string
+	Version    string
+	Tags       map[string]string
 }
 
-
-func NewBuildInfo(config Config, filepath string) (*BuildInfo, error) {
+func NewBuildInfo(config Config, deliverablePath string) (*BuildInfo, error) {
 	buildInfo := BuildInfo{}
 
 	buildInfo.IsSnapshot = isSnapshot(config)
@@ -46,7 +49,7 @@ func NewBuildInfo(config Config, filepath string) (*BuildInfo, error) {
 		return nil, err
 	}
 
-	outputImage, err := createOutputImageInfo(config)
+	outputImage, err := createOutputImageInfo(config, deliverablePath)
 
 	if err != nil {
 		return nil, err
@@ -55,9 +58,10 @@ func NewBuildInfo(config Config, filepath string) (*BuildInfo, error) {
 	//Create completeVersion
 	// <application-version>-<builder-version>-<baseimage-repository>-<baseimage-version>
 	// e.g. 2.0.0-b1.11.0-oracle8-1.0.2
-	completeVersion := outputImage.Version + "-" + config.BuilderSpec.Version + "-" + baseImage.Repository + "-" + baseImage.Tags["INFERRED_VERSION"]
+	completeVersion := outputImage.Version + "-" + config.BuilderSpec.Version + "-" +
+		baseImage.Repository + "-" + baseImage.Tags["INFERRED"]
 
-	outputImage.Tags["COMPlETE_VERSION"] = completeVersion
+	outputImage.Tags["COMPlETE"] = completeVersion
 
 	buildInfo.BaseImage = *baseImage
 	buildInfo.OutputImage = *outputImage
@@ -74,18 +78,16 @@ func createBaseImageInfo(config Config) (*ImageInfo, error) {
 	respositoryName := config.DockerSpec.BaseImage
 
 	versions := map[string]string{
-		"CONFIG_VERSION": 	configVersion,
-		"INFERRED_VERSION":     inferredVersion,
+		"CONFIG":   configVersion,
+		"INFERRED": inferredVersion,
 	}
 
-	return &ImageInfo{respositoryName, configVersion, versions }, nil
+	return &ImageInfo{respositoryName, configVersion, versions}, nil
 }
 
-func createOutputImageInfo(config Config) (*ImageInfo, error) {
-	imageVersion, err := getVersion(config)
-	if err != nil {
-		return nil, err
-	}
+func createOutputImageInfo(config Config, deliverablePath string) (*ImageInfo, error) {
+	b := isSnapshot(config)
+	imageVersion := getVersion(config, b, deliverablePath)
 
 	versions := make(map[string]string)
 	versions["LATEST"] = "latest"
@@ -114,7 +116,7 @@ func createOutputImageInfo(config Config) (*ImageInfo, error) {
 		"PATCH":            "2.0.0",
 	}*/
 
-	return &ImageInfo{config.DockerSpec.OutputRepository, imageVersion, versions }, nil
+	return &ImageInfo{config.DockerSpec.OutputRepository, imageVersion, versions}, nil
 }
 
 func getMajor(version string) (string, error) {
@@ -134,35 +136,32 @@ func getMinor(version string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("%d.%d", build_version.Segments()[0],build_version.Segments()[1]), nil
+	return fmt.Sprintf("%d.%d", build_version.Segments()[0], build_version.Segments()[1]), nil
 }
 
 func getCompleteVersion(config Config, version string) (string, error) {
 	return "domore", nil
 }
 
-func isSnapshot(config Config) (bool) {
+func isSnapshot(config Config) bool {
 	// sjekke config.MavenGav.Version inneholder SNAPSHOT
 	return false
 }
 
-func isSemantic(config Config) (bool) {
+func getVersion(config Config, isSnapshot bool, deliverablePath string) string {
+	if isSnapshot {
+		replacer := strings.NewReplacer(config.MavenGav.ArtifactId, "", "Leveransepakke.zip", "")
+		return replacer.Replace(path.Base(deliverablePath))
+	}
+
+	return config.MavenGav.Version
+}
+
+func isSemantic(config Config) bool {
 	return false
 }
 
-func getVersion(config Config) (string, error) {
-	//re, _ := regexp.Compile(".*SNAPSHOT.*")
-	/*
-	if [[ $VERSION =~ "SNAPSHOT"  ]]; then
-  SNAPSHOT_TAG=$VERSION
-  versionSuffix=$(echo $zipFile | sed "s/$ARTIFACT_ID-//g;s/-Leveransepakke.zip//g")
-  VERSION="SNAPSHOT-$versionSuffix"
-fi
-	 */
-	return "domore", nil
-}
-
-func GetVersionTags() () {
+func GetVersionTags() {
 
 }
 
@@ -172,17 +171,17 @@ func getBaseImageVersion(config Config) (string, error) {
 	manifest, err := registry.PullManifest(config.DockerSpec.BaseImage, config.DockerSpec.BaseVersion)
 
 	if err != nil {
-		return "", errors.Wrap(err,"Failed in getBaseImageVersion " +
+		return "", errors.Wrap(err, "Failed in getBaseImageVersion "+
 			"to pull base image manifest from Docker registry")
 	}
 
 	biv, err := docker.GetManifestEnv(*manifest, "BASE_IMAGE_VERSION")
 
 	if err != nil {
-		return "", errors.Wrap(err, "Failed in getBaseImageVersion " +
+		return "", errors.Wrap(err, "Failed in getBaseImageVersion "+
 			"to extract version from base image manifest")
 	} else if biv == "" {
-		return "", errors.Wrap(err,"Failed in getBaseImageVersion " +
+		return "", errors.Wrap(err, "Failed in getBaseImageVersion "+
 			"to extract version from base image manifest")
 	}
 
