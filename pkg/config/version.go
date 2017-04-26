@@ -4,6 +4,8 @@ import (
 	extVersion "github.com/hashicorp/go-version"
 	"fmt"
 	"github.com/skatteetaten/architect/pkg/docker"
+	"strings"
+	"path"
 )
 /*
 EKSEMPEL:
@@ -23,6 +25,7 @@ INFERRED_VERSION		= 1.0.2
 
 type BuildInfo struct {
 	IsSnapshot		bool
+	Version			string
 	OutputImage		ImageInfo
 	BaseImage		ImageInfo
 }
@@ -33,10 +36,12 @@ type ImageInfo struct {
 }
 
 
-func NewBuildInfo(config Config) (*BuildInfo, error) {
+func NewBuildInfo(config Config, deliverablePath string) (*BuildInfo, error) {
 	buildInfo := BuildInfo{}
 
 	buildInfo.IsSnapshot = isSnapshot(config)
+
+	buildInfo.Version = getVersion(config, buildInfo.IsSnapshot, deliverablePath)
 
 	baseImage, err := createBaseImageInfo(config)
 
@@ -105,16 +110,13 @@ func isSnapshot(config Config) (bool) {
 	return false
 }
 
-func getVersion(config Config) (string, error) {
-	//re, _ := regexp.Compile(".*SNAPSHOT.*")
-	/*
-	if [[ $VERSION =~ "SNAPSHOT"  ]]; then
-  SNAPSHOT_TAG=$VERSION
-  versionSuffix=$(echo $zipFile | sed "s/$ARTIFACT_ID-//g;s/-Leveransepakke.zip//g")
-  VERSION="SNAPSHOT-$versionSuffix"
-fi
-	 */
-	return "domore", nil
+func getVersion(config Config, isSnapshot bool, deliverablePath string) (string) {
+	if isSnapshot {
+		replacer := strings.NewReplacer(config.MavenGav.ArtifactId, "", "Leveransepakke.zip", "")
+		return replacer.Replace(path.Base(deliverablePath))
+	}
+
+	return config.MavenGav.Version
 }
 
 func GetVersionTags() () {

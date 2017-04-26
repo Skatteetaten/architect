@@ -4,6 +4,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/java/config"
 	"io"
 	"text/template"
+	"github.com/pkg/errors"
 )
 
 var startscriptTemplate string = `exec java {{.JvmOptions}} $JAVA_PROPERTIES_ARGS ` +
@@ -35,7 +36,7 @@ func (startscript Startscript) Write(writer io.Writer) error {
 	tmpl, err := template.New("startscript").Parse(startscriptTemplate)
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to write start script")
 	}
 
 	return tmpl.Execute(writer, startscript)
