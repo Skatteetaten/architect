@@ -2,55 +2,27 @@ package prepare_test
 
 import (
 	"bytes"
-	"github.com/skatteetaten/architect/pkg/java/config"
 	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"strings"
 	"testing"
+	"fmt"
 )
 
 func TestBuild(t *testing.T) {
-
-	const maintainer string = "tester@skatteetaten.no"
-	const k8sDescription string = "Demo application with spring boot on Openshift."
-	const openshiftTags string = "openshift,springboot"
-	const readinessUrl string = "http://ready.skead.no"
-	const envVar01 string = "1.0.95-b2.2.3-oracle8-1.4.0"
-	const envVar02 string = "1.0.95"
-
-	cfg := &config.DeliverableMetadata{
-		Docker: &struct {
-			Maintainer string            `json:"maintainer"`
-			Labels     map[string]string `json:"labels"`
-		}{
-			Maintainer: maintainer,
-			Labels: map[string]string{
-				"io.k8s.description": k8sDescription,
-				"io.openshift.tags":  openshiftTags,
-			},
-		},
-		Openshift: &struct {
-			ReadinessURL              string `json:"readinessUrl"`
-			ReadinessOnManagementPort string `json:"readinessOnManagementPort"`
-		}{
-			ReadinessURL: readinessUrl,
-		},
-	}
-
 	var buf bytes.Buffer
-	env := make(map[string]string)
-	env["ENV_VAR_01"] = envVar01
-	env["ENV_VAR_02"] = envVar02
 
-	prepare.NewDockerfile("BaseUrl", env, cfg).Write(&buf)
+	if err := prepare.NewDockerfile(meta, buildinfo, cfg).Write(&buf); err != nil {
+		t.Fatal(err)
+	}
 
 	dockerfile := buf.String()
 
-	assertContainsElement(t, dockerfile, maintainer)
-	assertContainsElement(t, dockerfile, k8sDescription)
-	assertContainsElement(t, dockerfile, openshiftTags)
-	assertContainsElement(t, dockerfile, readinessUrl)
-	assertContainsElement(t, dockerfile, envVar01)
-	assertContainsElement(t, dockerfile, envVar02)
+	assertContainsElement(t, dockerfile, fmt.Sprintf("FROM %s:%s", buildinfo.BaseImage.Repository,
+		buildinfo.BaseImage.Tags["INFERRED_VERSION"]))
+	assertContainsElement(t, dockerfile, fmt.Sprintf("MAINTAINER %s",meta_maintainer))
+	assertContainsElement(t, dockerfile, meta_k8sDescription)
+	assertContainsElement(t, dockerfile, meta_openshiftTags)
+	assertContainsElement(t, dockerfile, meta_readinessUrl)
 }
 
 func assertContainsElement(t *testing.T, target string, element string) {
