@@ -1,10 +1,13 @@
-package config
+package config_test
 
-import "testing"
+import (
+	"testing"
+	"github.com/skatteetaten/architect/pkg/config"
+)
 
-func TestGetMajor(t *testing.T) {
+/*func TestGetMajor(t *testing.T) {
 	version_test := []string{"2.3.1", "2"}
-	version, err := GetMajor(version_test[0])
+	version, err := getMajor(version_test[0])
 
 	if err != nil {
 		t.Error(err)
@@ -16,7 +19,7 @@ func TestGetMajor(t *testing.T) {
 }
 
 func TestExceptionGetMajor(t *testing.T) {
-	_, err := GetMajor("b2.3.1")
+	_, err := getMajor("b2.3.1")
 
 	if err == nil {
 		t.Error("Expected mailformed exception")
@@ -25,7 +28,7 @@ func TestExceptionGetMajor(t *testing.T) {
 
 func TestGetMinor(t *testing.T) {
 	version_test := []string{"11.34.1", "11.34"}
-	version, err := GetMinor(version_test[0])
+	version, err := getMinor(version_test[0])
 
 	if err != nil {
 		t.Error(err)
@@ -37,9 +40,19 @@ func TestGetMinor(t *testing.T) {
 }
 
 func TestExceptionGetMinor(t *testing.T) {
-	_, err := GetMinor("b5.3.1")
+	_, err := getMinor("b5.3.1")
 
 	if err == nil {
 		t.Error("Expected mailformed exception")
 	}
+}
+*/
+func TestGetCompleteVersion(t *testing.T) {
+	r := config.NewFileConfigReader("../../testdata/build.json")
+	c, err := r.ReadConfig()
+	if err != nil {
+		t.Fatalf("Error when reading config: %s", err)
+	}
+
+	GetBaseImageVersion
 }
