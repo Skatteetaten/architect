@@ -113,11 +113,9 @@ func newConfig(buildConfig []byte) (*Config, error) {
 
 	builderSpec := BuilderSpec{}
 
+	builderSpec.Version = "0.0.0"
 	if builderVersion, err := findEnv(customStrategy.Env, "BUILDER_VERSION"); err == nil {
 		builderSpec.Version = builderVersion
-	} else {
-		builderSpec.Version = "dsjkfl"
-		//return nil, err
 	}
 
 	outputKind := build.Spec.Output.To.Kind

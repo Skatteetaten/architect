@@ -62,7 +62,7 @@ func NewBuildInfo(provider docker.ManifestProvider, config Config, deliverable D
 	lastNameInRepo := getLastIndexInRepository(baseImage.Repository)
 
 	completeVersion := outputImage.Version
-	completeVersion = completeVersion + "-" + config.BuilderSpec.Version
+	completeVersion = completeVersion + "-b" + config.BuilderSpec.Version
 	completeVersion = completeVersion + "-" + lastNameInRepo
 	completeVersion = completeVersion + "-" + baseImage.Tags["INFERRED"]
 
@@ -186,8 +186,8 @@ func isSemantic(config Config) bool {
 
 func getVersion(config Config, isSnapshot bool, deliverablePath string) string {
 	if isSnapshot {
-		replacer := strings.NewReplacer(config.MavenGav.ArtifactId, "", "Leveransepakke.zip", "")
-		return replacer.Replace(path.Base(deliverablePath))
+		replacer := strings.NewReplacer(config.MavenGav.ArtifactId, "", "-Leveransepakke.zip", "")
+		return "SNAPSHOT" + replacer.Replace(path.Base(deliverablePath))
 	}
 
 	return config.MavenGav.Version

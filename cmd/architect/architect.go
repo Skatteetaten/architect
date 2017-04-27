@@ -72,11 +72,11 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 	}
 
 	logrus.Infof("Prepre successfull. Trigger docker build in %s", path)
-	//config.GetVersionTags(*buildInfo)
-	//tags := createTags([]string{"latest", "prod"}, c.DockerSpec)
-	tags := createTags(config.GetVersionTags(*buildInfo), c.DockerSpec)
+
+	tags := config.GetVersionTags(*buildInfo)
+	tagsToPush := createTags(tags, c.DockerSpec)
 	buildConf := docker.DockerBuildConfig{
-		Tags:         tags,
+		Tags:         tagsToPush,
 		BuildFolder: path,
 	}
 	client, err := docker.NewDockerClient(&docker.DockerClientConfig{})
@@ -90,7 +90,7 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 	} else {
 		logrus.Infof("Done building. Imageid: %s", imageid)
 	}
-	err = client.PushImages(tags)
+	err = client.PushImages(tagsToPush)
 	if err != nil {
 		logrus.Fatalf("Error pushing image %+v", err)
 	}
