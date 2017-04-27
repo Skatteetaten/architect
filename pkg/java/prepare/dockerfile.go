@@ -40,7 +40,7 @@ func NewDockerfile(meta *config.DeliverableMetadata, buildinfo global.BuildInfo,
 	appendReadinesEnv(env, meta)
 
 	return &Dockerfile{buildinfo.BaseImage.Repository,
-		buildinfo.BaseImage.Tags["INFERRED_VERSION"], maintainer,
+		buildinfo.BaseImage.Tags["INFERRED"], maintainer,
 		labels, env}
 }
 

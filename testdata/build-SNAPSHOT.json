@@ -1,0 +1,64 @@
+{
+  "kind": "Build",
+  "apiVersion": "v1",
+  "metadata": {
+    "labels": {
+      "affiliation": "mfp",
+      "openshift.io/build-config.name": "buildconfig-name",
+      "openshift.io/build.start-policy": "Serial"
+    },
+    "annotations": {
+      "openshift.io/build-config.name": "configname",
+      "openshift.io/build.number": "56",
+      "openshift.io/build.pod-name": "podname"
+    }
+  },
+  "spec": {
+    "serviceAccount": "builder",
+    "source": {
+      "type": "None"
+    },
+    "strategy": {
+      "type": "Custom",
+      "customStrategy": {
+        "from": {
+          "kind": "DockerImage",
+          "name": "docker-registry.themoon.com:5000/aurora/architect@sha256:jallahash"
+        },
+        "env": [
+          {
+            "name": "ARTIFACT_ID",
+            "value": "application-server"
+          },
+          {
+            "name": "GROUP_ID",
+            "value": "groupid.com"
+          },
+          {
+            "name": "VERSION",
+            "value": "develop-SNAPSHOT"
+          },
+          {
+            "name": "DOCKER_BASE_VERSION",
+            "value": "1"
+          },
+          {
+            "name": "DOCKER_BASE_NAME",
+            "value": "basename/baseapp"
+          },
+          {
+            "name": "PUSH_EXTRA_TAGS",
+            "value": "latest major minor patch"
+          }
+        ],
+        "exposeDockerSocket": true
+      }
+    },
+    "output": {
+      "to": {
+        "kind": "DockerImage",
+        "name": "docker-registry.themoon.com:5000/groupid/app"
+      }
+    }
+  }
+}

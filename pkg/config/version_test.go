@@ -1,45 +1,35 @@
-package config
+package config_test
 
-import "testing"
+import (
+	"testing"
+	"github.com/skatteetaten/architect/pkg/config"
+	"fmt"
+	"github.com/docker/distribution/manifest/schema1"
+)
 
-func TestGetMajor(t *testing.T) {
-	version_test := []string{"2.3.1", "2"}
-	version, err := GetMajor(version_test[0])
+type RegistryMock struct {}
 
+func TestGetCompleteVersion(t *testing.T) {
+	r := config.NewFileConfigReader("../../testdata/build-SNAPSHOT.json")
+	c, err := r.ReadConfig()
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("Error when reading config: %s", err)
 	}
+	buildInfo, err := config.NewBuildInfo(RegistryMock{}, *c,
+		config.Deliverable{"/tmp/tmppackage2323/meldingsproduksjon-mva-omsetningsoppgave-omvendt-avgiftsplikt-leveransepakke-bugfix-UIMVA-493-20170407.085342-2-Leveransepakke.zip"})
 
-	if version != version_test[1] {
-		t.Errorf("Expexted %s, was %s", version_test[1], version)
-	}
+	fmt.Println(buildInfo.OutputImage.Version)
+	/*for s := range config.GetVersionTags(*buildInfo) {
+		fmt.Println(s)
+	}*/
+	// the tests
+
 }
 
-func TestExceptionGetMajor(t *testing.T) {
-	_, err := GetMajor("b2.3.1")
-
-	if err == nil {
-		t.Error("Expected mailformed exception")
-	}
+func (registry RegistryMock) GetManifest(repository string, tag string) (*schema1.SignedManifest, error) {
+	return nil, nil // Do not need this
 }
 
-func TestGetMinor(t *testing.T) {
-	version_test := []string{"11.34.1", "11.34"}
-	version, err := GetMinor(version_test[0])
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	if version != version_test[1] {
-		t.Errorf("Expexted %s, was %s", version_test[1], version)
-	}
-}
-
-func TestExceptionGetMinor(t *testing.T) {
-	_, err := GetMinor("b5.3.1")
-
-	if err == nil {
-		t.Error("Expected mailformed exception")
-	}
+func (registry RegistryMock) GetManifestEnv(repository string, tag string, name string) (string, error) {
+	return "1.2.3", nil
 }

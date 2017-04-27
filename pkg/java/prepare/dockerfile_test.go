@@ -18,7 +18,7 @@ func TestBuild(t *testing.T) {
 	dockerfile := buf.String()
 
 	assertContainsElement(t, dockerfile, fmt.Sprintf("FROM %s:%s", buildinfo.BaseImage.Repository,
-		buildinfo.BaseImage.Tags["INFERRED_VERSION"]))
+		buildinfo.BaseImage.Tags["INFERRED"]))
 	assertContainsElement(t, dockerfile, fmt.Sprintf("MAINTAINER %s",meta_maintainer))
 	assertContainsElement(t, dockerfile, meta_k8sDescription)
 	assertContainsElement(t, dockerfile, meta_openshiftTags)

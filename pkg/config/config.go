@@ -2,11 +2,11 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/docker/docker/reference"
+	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config/api"
 	"io/ioutil"
 	"os"
-	"github.com/docker/docker/reference"
-	"github.com/pkg/errors"
 	"strings"
 )
 
@@ -106,13 +106,16 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		return nil, err
 	}
 
+	dockerSpec.PushExtraTags = ""
+	if pushExtraTags, err := findEnv(customStrategy.Env, "PUSH_EXTRA_TAGS"); err == nil {
+		dockerSpec.PushExtraTags = pushExtraTags
+	}
+
 	builderSpec := BuilderSpec{}
 
+	builderSpec.Version = "0.0.0"
 	if builderVersion, err := findEnv(customStrategy.Env, "BUILDER_VERSION"); err == nil {
 		builderSpec.Version = builderVersion
-	} else {
-		builderSpec.Version = "dsjkfl"
-		//return nil, err
 	}
 
 	outputKind := build.Spec.Output.To.Kind
@@ -133,6 +136,7 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		ApplicationType: JavaLeveransepakke,
 		MavenGav:        gav,
 		DockerSpec:      dockerSpec,
+		BuilderSpec:     builderSpec,
 	}
 	return c, nil
 }

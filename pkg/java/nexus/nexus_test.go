@@ -40,7 +40,7 @@ func TestDownloadFromNexusServer(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	if strings.Contains(r, zipFileName) == false {
+	if strings.Contains(r.Path, zipFileName) == false {
 		t.Error(
 			"excpected", zipFileName,
 			"got", r)
@@ -58,7 +58,7 @@ func TestNewLocalDownloader(t *testing.T) {
 	homedir := homedir.Get()
 	expected := homedir + "/.m2/repository/ske/dontexist/develop-SNAPSHOT/" +
 		"dontexist-develop-SNAPSHOT-Leveransepakke.zip"
-	if l != expected {
+	if l.Path != expected {
 		t.Errorf("Expexted %s, was %s", expected, l)
 	}
 	if err == nil {

@@ -104,7 +104,7 @@ func JsonMapToString(jsonStr string, key string) (string, error) {
 
 func NewDockerClient(config *DockerClientConfig) (*DockerClient, error) {
 	// foreloepig bypasser config biten.
-	cli, err := client.NewClient(client.DefaultDockerHost, "1.24", nil, nil)
+	cli, err := client.NewClient(client.DefaultDockerHost, "1.23", nil, nil)
 	if err != nil {
 		return nil, err
 	}
