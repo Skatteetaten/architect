@@ -34,3 +34,7 @@ type DockerSpec struct {
 type BuilderSpec struct {
 	Version		string
 }
+
+type Deliverable struct {
+	Path 		string
+}

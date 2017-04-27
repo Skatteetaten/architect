@@ -16,8 +16,8 @@ var cfg global.Config = global.Config{"java", global.MavenGav{},
 var buildinfo = global.BuildInfo{
 	false,
 	"1.2.1",
-	global.ImageInfo{"aurora/beatie", map[string]string{}},
-	global.ImageInfo{"aurora/oracle8",
+	global.ImageInfo{"aurora/beatie", "1.0.0", map[string]string{}},
+	global.ImageInfo{"aurora/oracle8", "1.0.0",
 			 map[string]string{"CONFIG_VERSION": "1", "INFERRED_VERSION": "1.2.3"}}}
 
 var meta = &config.DeliverableMetadata{
@@ -47,7 +47,7 @@ var meta_readinessUrl string = "http://ready.skead.no"
 func TestPrepare(t *testing.T) {
 
 	dockerBuildPath, err := prepare.Prepare(cfg, buildinfo,
-		"testdata/minarch-1.2.22-Leveransepakke.zip")
+		global.Deliverable{"testdata/minarch-1.2.22-Leveransepakke.zip"})
 
 	if err != nil {
 		t.Fatal(err)

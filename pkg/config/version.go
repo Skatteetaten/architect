@@ -39,18 +39,18 @@ type ImageInfo struct {
 	Tags       map[string]string
 }
 
-func NewBuildInfo(config Config, deliverablePath string) (*BuildInfo, error) {
+func NewBuildInfo(provider docker.ManifestProvider, config Config, deliverable Deliverable) (*BuildInfo, error) {
 	buildInfo := BuildInfo{}
 
 	buildInfo.IsSnapshot = isSnapshot(config)
 
-	baseImage, err := createBaseImageInfo(config)
+	baseImage, err := createBaseImageInfo(provider, config)
 
 	if err != nil {
 		return nil, err
 	}
 
-	outputImage, err := createOutputImageInfo(config, deliverablePath)
+	outputImage, err := createOutputImageInfo(config, deliverable.Path)
 
 	if err != nil {
 		return nil, err
@@ -83,8 +83,8 @@ func GetVersionTags(buildInfo BuildInfo) []string {
 	return tags
 }
 
-func createBaseImageInfo(config Config) (*ImageInfo, error) {
-	inferredVersion, err := getBaseImageVersion(config)
+func createBaseImageInfo(provider docker.ManifestProvider, config Config) (*ImageInfo, error) {
+	inferredVersion, err := getBaseImageVersion(provider, config)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error calling getBaseImageVersion in createBaseImageInfo.")
 	}
@@ -193,23 +193,15 @@ func getVersion(config Config, isSnapshot bool, deliverablePath string) string {
 	return config.MavenGav.Version
 }
 
-func getBaseImageVersion(config Config) (string, error) {
-	registry := docker.NewRegistryClient(config.DockerSpec.ExternalDockerRegistry)
-
-	manifest, err := registry.PullManifest(config.DockerSpec.BaseImage, config.DockerSpec.BaseVersion)
-
-	if err != nil {
-		return "", err
-	}
-
-	biv, err := docker.GetManifestEnv(*manifest, "BASE_IMAGE_VERSION")
+func getBaseImageVersion(provider docker.ManifestProvider, config Config) (string, error) {
+	biv, err := provider.GetManifestEnv(config.DockerSpec.BaseImage, config.DockerSpec.BaseVersion, "BASE_IMAGE_VERSION")
 
 	if err != nil {
 		return "", err
 	} else if biv == "" {
 		return "", fmt.Errorf("Failed to extract version in getBaseImageVersion, registry: %s, "+
 			"BaseImage: %s, BaseVersion: %s ",
-			registry, config.DockerSpec.BaseImage, config.DockerSpec.BaseVersion)
+			provider, config.DockerSpec.BaseImage, config.DockerSpec.BaseVersion)
 	}
 	return biv, nil
 }

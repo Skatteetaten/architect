@@ -4,7 +4,10 @@ import (
 	"testing"
 	"github.com/skatteetaten/architect/pkg/config"
 	"fmt"
+	"github.com/docker/distribution/manifest/schema1"
 )
+
+type RegistryMock struct {}
 
 func TestGetCompleteVersion(t *testing.T) {
 	r := config.NewFileConfigReader("../../testdata/build-SNAPSHOT.json")
@@ -12,7 +15,8 @@ func TestGetCompleteVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error when reading config: %s", err)
 	}
-	buildInfo, err := config.NewBuildInfo(*c, "/tmp/tmppackage2323/meldingsproduksjon-mva-omsetningsoppgave-omvendt-avgiftsplikt-leveransepakke-bugfix-UIMVA-493-20170407.085342-2-Leveransepakke.zip")
+	buildInfo, err := config.NewBuildInfo(RegistryMock{}, *c,
+		config.Deliverable{"/tmp/tmppackage2323/meldingsproduksjon-mva-omsetningsoppgave-omvendt-avgiftsplikt-leveransepakke-bugfix-UIMVA-493-20170407.085342-2-Leveransepakke.zip"})
 
 	fmt.Println(buildInfo.OutputImage.Version)
 	/*for s := range config.GetVersionTags(*buildInfo) {
@@ -20,4 +24,12 @@ func TestGetCompleteVersion(t *testing.T) {
 	}*/
 	// the tests
 
+}
+
+func (registry RegistryMock) GetManifest(repository string, tag string) (*schema1.SignedManifest, error) {
+	return nil, nil // Do not need this
+}
+
+func (registry RegistryMock) GetManifestEnv(repository string, tag string, name string) (string, error) {
+	return "1.2.3", nil
 }

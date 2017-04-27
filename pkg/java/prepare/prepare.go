@@ -17,7 +17,7 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(config global.Config, buildinfo global.BuildInfo, deliverablePath string) (string, error) {
+func Prepare(config global.Config, buildinfo global.BuildInfo, deliverable global.Deliverable) (string, error) {
 
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
@@ -27,7 +27,7 @@ func Prepare(config global.Config, buildinfo global.BuildInfo, deliverablePath s
 	}
 
 	// Unzip deliverable
-	applicationPath, err := extractDeliverable(dockerBuildPath, deliverablePath)
+	applicationPath, err := extractDeliverable(dockerBuildPath, deliverable.Path)
 
 	if err != nil {
 		return "", errors.Wrap(err,"Failed to unzip deliverable")

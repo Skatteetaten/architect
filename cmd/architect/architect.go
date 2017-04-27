@@ -55,17 +55,18 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 		logrus.Fatalf("Could not read configuration: %s", err)
 	}
 	logrus.Debugf("Config %+v", c)
-	path, err := downloader.DownloadArtifact(&c.MavenGav)
+
+	deliverable, err := downloader.DownloadArtifact(&c.MavenGav)
 	if err != nil {
 		logrus.Fatalf("Could not download artifact: %s", err)
 	}
 
-	buildInfo, err := config.NewBuildInfo(*c, path)
+	buildInfo, err := config.NewBuildInfo(docker.NewRegistryClient(c.DockerSpec.ExternalDockerRegistry), *c, *deliverable)
 	if err != nil {
 		logrus.Fatalf("Error in creating buildinfo: %s", err)
 	}
 
-	path, err = prepare.Prepare(*c,*buildInfo, path)
+	path, err := prepare.Prepare(*c, *buildInfo, *deliverable)
 	if err != nil {
 		logrus.Fatalf("Error prepare artifact: %s", err)
 	}
