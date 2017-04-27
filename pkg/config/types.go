@@ -26,6 +26,7 @@ type DockerSpec struct {
 	OutputRepository string
 	BaseImage        string
 	BaseVersion	 string
+	PushExtraTags	 string
 	//This is the external docker registry where we check versions.
 	ExternalDockerRegistry string
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"path"
+	"regexp"
 	"strings"
 )
 
@@ -58,8 +59,12 @@ func NewBuildInfo(config Config, deliverablePath string) (*BuildInfo, error) {
 	//Create completeVersion
 	// <application-version>-<builder-version>-<baseimage-repository>-<baseimage-version>
 	// e.g. 2.0.0-b1.11.0-oracle8-1.0.2
-	completeVersion := outputImage.Version + "-" + config.BuilderSpec.Version + "-" +
-		baseImage.Repository + "-" + baseImage.Tags["INFERRED"]
+	lastNameInRepo := getLastIndexInRepository(baseImage.Repository)
+
+	completeVersion := outputImage.Version
+	completeVersion = completeVersion + "-" + config.BuilderSpec.Version
+	completeVersion = completeVersion + "-" + lastNameInRepo
+	completeVersion = completeVersion + "-" + baseImage.Tags["INFERRED"]
 
 	outputImage.Tags["COMPlETE"] = completeVersion
 
@@ -67,6 +72,15 @@ func NewBuildInfo(config Config, deliverablePath string) (*BuildInfo, error) {
 	buildInfo.OutputImage = *outputImage
 
 	return &buildInfo, nil
+}
+
+func GetVersionTags(buildInfo BuildInfo) []string {
+	versions := buildInfo.OutputImage.Tags
+	tags := make([]string, 0, len(versions))
+	for _, value := range versions {
+		tags = append(tags, value)
+	}
+	return tags
 }
 
 func createBaseImageInfo(config Config) (*ImageInfo, error) {
@@ -87,25 +101,36 @@ func createBaseImageInfo(config Config) (*ImageInfo, error) {
 
 func createOutputImageInfo(config Config, deliverablePath string) (*ImageInfo, error) {
 	b := isSnapshot(config)
+
 	imageVersion := getVersion(config, b, deliverablePath)
 
 	versions := make(map[string]string)
-	versions["LATEST"] = "latest"
+
+	if strings.Contains(config.DockerSpec.PushExtraTags, "latest") {
+		versions["LATEST"] = "latest"
+	}
 
 	if isSemantic(config) {
-		majorVersion, err := getMajor(imageVersion)
-		if err != nil {
-			return nil, err
-		}
-		versions["MAJOR"] = majorVersion
+		if strings.Contains(config.DockerSpec.PushExtraTags, "major") {
+			majorVersion, err := getMajor(imageVersion)
+			if err != nil {
+				return nil, err
+			}
 
-		minorVersion, err := getMinor(imageVersion)
-		if err != nil {
-			return nil, err
+			versions["MAJOR"] = majorVersion
 		}
-		versions["MINOR"] = minorVersion
 
-		versions["PATCH"] = imageVersion
+		if strings.Contains(config.DockerSpec.PushExtraTags, "minor") {
+			minorVersion, err := getMinor(imageVersion)
+			if err != nil {
+				return nil, err
+			}
+			versions["MINOR"] = minorVersion
+		}
+
+		if strings.Contains(config.DockerSpec.PushExtraTags, "patch") {
+			versions["PATCH"] = imageVersion
+		}
 	}
 
 	/*versions := map[string]string{
@@ -123,7 +148,7 @@ func getMajor(version string) (string, error) {
 	build_version, err := extVersion.NewVersion(version)
 
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "Error in parsing major version: "+version)
 	}
 
 	return fmt.Sprintf("%d", build_version.Segments()[0]), nil
@@ -133,18 +158,29 @@ func getMinor(version string) (string, error) {
 	build_version, err := extVersion.NewVersion(version)
 
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "Error in parsing minor version: "+version)
 	}
 
 	return fmt.Sprintf("%d.%d", build_version.Segments()[0], build_version.Segments()[1]), nil
 }
 
-func getCompleteVersion(config Config, version string) (string, error) {
-	return "domore", nil
+func getLastIndexInRepository(repository string) string {
+	s := strings.Split(repository, "/")
+	return s[len(s)-1]
 }
 
 func isSnapshot(config Config) bool {
-	// sjekke config.MavenGav.Version inneholder SNAPSHOT
+	if strings.Contains(config.MavenGav.Version, "SNAPSHOT") {
+		return true
+	}
+	return false
+}
+
+func isSemantic(config Config) bool {
+	var validStr = regexp.MustCompile(`^[0-9]+.[0-9]+.[0-9]+$`)
+	if validStr.MatchString(config.MavenGav.Version) {
+		return true
+	}
 	return false
 }
 
@@ -157,33 +193,23 @@ func getVersion(config Config, isSnapshot bool, deliverablePath string) string {
 	return config.MavenGav.Version
 }
 
-func isSemantic(config Config) bool {
-	return false
-}
-
-func GetVersionTags() {
-
-}
-
 func getBaseImageVersion(config Config) (string, error) {
 	registry := docker.NewRegistryClient(config.DockerSpec.ExternalDockerRegistry)
 
 	manifest, err := registry.PullManifest(config.DockerSpec.BaseImage, config.DockerSpec.BaseVersion)
 
 	if err != nil {
-		return "", errors.Wrap(err, "Failed in getBaseImageVersion "+
-			"to pull base image manifest from Docker registry")
+		return "", err
 	}
 
 	biv, err := docker.GetManifestEnv(*manifest, "BASE_IMAGE_VERSION")
 
 	if err != nil {
-		return "", errors.Wrap(err, "Failed in getBaseImageVersion "+
-			"to extract version from base image manifest")
+		return "", err
 	} else if biv == "" {
-		return "", errors.Wrap(err, "Failed in getBaseImageVersion "+
-			"to extract version from base image manifest")
+		return "", fmt.Errorf("Failed to extract version in getBaseImageVersion, registry: %s, "+
+			"BaseImage: %s, BaseVersion: %s ",
+			registry, config.DockerSpec.BaseImage, config.DockerSpec.BaseVersion)
 	}
-
 	return biv, nil
 }
