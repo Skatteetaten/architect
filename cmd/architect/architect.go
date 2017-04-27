@@ -72,8 +72,9 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 	}
 
 	logrus.Infof("Prepre successfull. Trigger docker build in %s", path)
-
-	tags := createTags([]string{"latest", "prod"}, c.DockerSpec)
+	//config.GetVersionTags(*buildInfo)
+	//tags := createTags([]string{"latest", "prod"}, c.DockerSpec)
+	tags := createTags(config.GetVersionTags(*buildInfo), c.DockerSpec)
 	buildConf := docker.DockerBuildConfig{
 		Tags:         tags,
 		BuildFolder: path,
