@@ -36,8 +36,12 @@ func (startscript Startscript) Write(writer io.Writer) error {
 	tmpl, err := template.New("startscript").Parse(startscriptTemplate)
 
 	if err != nil {
-		return errors.Wrap(err, "Failed to write start script")
+		return errors.Wrap(err, "Failed to parse start script template")
 	}
 
-	return tmpl.Execute(writer, startscript)
+	if err = tmpl.Execute(writer, startscript); err != nil {
+		return errors.Wrap(err, "Failed to execute start script template")
+	}
+
+	return nil
 }

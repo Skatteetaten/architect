@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -17,23 +18,23 @@ func PrepareApplication(applicationPath string, meta *config.DeliverableMetadata
 	scriptPath := filepath.Join(applicationPath, "bin")
 
 	if err := os.MkdirAll(scriptPath, 0755); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to create directory")
 	}
 
 	libPath, err := findLibraryPath(applicationPath)
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to locate lib directory in application")
 	}
 
 	if meta != nil {
 		if err := addGeneratedStartscript(scriptPath, libPath, *meta); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to create default start script")
 		}
 	}
 
 	if err := prepareEffectiveStartscript(scriptPath); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to create effective start script")
 	}
 
 	return nil
@@ -44,24 +45,25 @@ func addGeneratedStartscript(scriptPath string, libPath string, meta config.Deli
 	classpath, err := Classpath(libPath)
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to get application classpath")
 	}
 
 	startscript := NewStartscript(classpath, meta)
 
 	if err = WriteFile(filepath.Join(scriptPath, "generated-start"), startscript); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to write script")
 	}
 
 	return nil
 }
 
 func prepareEffectiveStartscript(scriptPath string) error {
+	name := "os-start"
 
-	defaultScriptExists, err := Exists(filepath.Join(scriptPath, "os-start"))
+	defaultScriptExists, err := Exists(filepath.Join(scriptPath, name))
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Could not determine if %s exists", name)
 	} else if defaultScriptExists {
 		return nil
 	}
@@ -70,13 +72,13 @@ func prepareEffectiveStartscript(scriptPath string) error {
 		scriptExists, err := Exists(filepath.Join(scriptPath, altScriptName))
 
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "Could not determine if %s exists", altScriptName)
 		} else if !scriptExists {
 			continue
 		}
 
-		if err := os.Symlink(altScriptName, filepath.Join(scriptPath, "os-start")); err != nil {
-			return err
+		if err := os.Symlink(altScriptName, filepath.Join(scriptPath, name)); err != nil {
+			return errors.Wrapf(err, "Failed to create symlink %s to %s", altScriptName, name)
 		}
 
 		return nil
@@ -90,7 +92,7 @@ func Classpath(libPath string) ([]string, error) {
 	files, err := ioutil.ReadDir(libPath)
 
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to list directory")
 	}
 
 	classpath := make([]string, len(files))
@@ -110,11 +112,11 @@ func findLibraryPath(basedirPath string) (string, error) {
 		exists, err := Exists(libdirPath)
 
 		if err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "Could not determine if directory %s exists", libdirPath)
 		} else if exists {
 			return libdirPath, nil
 		}
 	}
 
-	return "", fmt.Errorf("No lib folder found")
+	return "", errors.Errorf("No lib directory found in application")
 }
