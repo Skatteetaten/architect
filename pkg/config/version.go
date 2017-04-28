@@ -187,7 +187,8 @@ func isSemantic(config Config) bool {
 func getVersion(config Config, isSnapshot bool, deliverablePath string) string {
 	if isSnapshot {
 		replacer := strings.NewReplacer(config.MavenGav.ArtifactId, "", "-Leveransepakke.zip", "")
-		return "SNAPSHOT" + replacer.Replace(path.Base(deliverablePath))
+		version := "SNAPSHOT-" + replacer.Replace(path.Base(deliverablePath))
+		return version
 	}
 
 	return config.MavenGav.Version
