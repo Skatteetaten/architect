@@ -9,7 +9,7 @@ import (
 
 type RegistryMock struct {}
 
-func TestGetCompleteVersion(t *testing.T) {
+func TestGetCompleteSNAPSHOT(t *testing.T) {
 	r := config.NewFileConfigReader("../../testdata/build-SNAPSHOT.json")
 	c, err := r.ReadConfig()
 	if err != nil {
@@ -19,11 +19,11 @@ func TestGetCompleteVersion(t *testing.T) {
 		config.Deliverable{"/tmp/tmppackage2323/meldingsproduksjon-mva-omsetningsoppgave-omvendt-avgiftsplikt-leveransepakke-bugfix-UIMVA-493-20170407.085342-2-Leveransepakke.zip"})
 
 	fmt.Println(buildInfo.OutputImage.Version)
-	/*for s := range config.GetVersionTags(*buildInfo) {
-		fmt.Println(s)
-	}*/
-	// the tests
+	fmt.Println(c.MavenGav.Version)
 
+	if buildInfo.OutputImage.Version != "SNAPSHOT-meldingsproduksjon-mva-omsetningsoppgave-omvendt-avgiftsplikt-leveransepakke-bugfix-UIMVA-493-20170407.085342-2" {
+		t.Error("SNAPSHOT name not correct")
+	}
 }
 
 func (registry RegistryMock) GetManifest(repository string, tag string) (*schema1.SignedManifest, error) {
