@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
+	"github.com/pkg/errors"
 )
 
 type DeliverableMetadata struct {
@@ -31,7 +32,9 @@ func NewDeliverableMetadata(reader io.Reader) (*DeliverableMetadata, error) {
 		return nil, err
 	}
 
-	err = json.Unmarshal(content, &meta)
+	if err = json.Unmarshal(content, &meta); err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal json metadata")
+	}
 
-	return &meta, err
+	return &meta, nil
 }

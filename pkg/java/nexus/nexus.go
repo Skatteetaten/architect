@@ -1,7 +1,6 @@
 package nexus
 
 import (
-	"fmt"
 	"github.com/docker/docker/pkg/homedir"
 	"github.com/skatteetaten/architect/pkg/config"
 	"io"
@@ -12,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"github.com/pkg/errors"
 )
 
 type Downloader interface {
@@ -41,7 +41,7 @@ func (n *LocalRepo) DownloadArtifact(c *config.MavenGav) (*config.Deliverable, e
 	path := home + "/.m2/repository/" + replacer.Replace(c.GroupId) +
 		"/" + c.ArtifactId + "/" + c.Version + "/" + c.ArtifactId + "-" + c.Version + "-Leveransepakke.zip"
 	if _, err := os.Stat(path); err != nil {
-		return &config.Deliverable{path}, err
+		return &config.Deliverable{path}, errors.Wrapf(err, "Failed to stat local artifact %s", path)
 	}
 	return &config.Deliverable{path}, nil
 }
@@ -49,40 +49,40 @@ func (n *LocalRepo) DownloadArtifact(c *config.MavenGav) (*config.Deliverable, e
 func (n *Nexus) DownloadArtifact(c *config.MavenGav) (*config.Deliverable, error) {
 	resourceUrl, err := n.createURL(c)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "Failed to create Nexus url for GAV %+v", c)
 	}
 
 	httpResponse, err := http.Get(resourceUrl)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "Failed to get artifact from Nexus %s", resourceUrl)
 	}
 	defer httpResponse.Body.Close()
 
 	contentDisposition := httpResponse.Header.Get("content-disposition")
 
 	if len(contentDisposition) <= 0 {
-		return nil, fmt.Errorf("No content-disposition in response header")
+		return nil, errors.Errorf("No content-disposition in response header")
 	}
 
 	_, params, err := mime.ParseMediaType(contentDisposition)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to parse content-disposition")
 	}
 	dir, err := ioutil.TempDir("", "package")
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to create directory for artifact")
 	}
 	fileName := filepath.Join(dir, params["filename"])
 
 	fileCreated, err := os.Create(fileName)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to create artifact file")
 	}
 	defer fileCreated.Close()
 
 	_, err = io.Copy(fileCreated, httpResponse.Body)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to write to artifact file")
 	}
 
 	return &config.Deliverable{fileName}, nil
@@ -91,7 +91,7 @@ func (n *Nexus) DownloadArtifact(c *config.MavenGav) (*config.Deliverable, error
 func (m *Nexus) createURL(n *config.MavenGav) (string, error) {
 	tmpUrl, err := url.Parse(m.baseUrl)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "Failed to parse url")
 	}
 	query := tmpUrl.Query()
 	query.Set("g", n.GroupId)

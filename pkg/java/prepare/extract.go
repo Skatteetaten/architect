@@ -2,10 +2,10 @@ package prepare
 
 import (
 	"archive/zip"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"github.com/pkg/errors"
 )
 
 func ExtractDeliverable(archivePath string, extractedDirPath string) error {
@@ -13,7 +13,7 @@ func ExtractDeliverable(archivePath string, extractedDirPath string) error {
 	zipReader, err := zip.OpenReader(archivePath)
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to open archive %s", archivePath)
 	}
 
 	defer zipReader.Close()
@@ -23,13 +23,13 @@ func ExtractDeliverable(archivePath string, extractedDirPath string) error {
 		extractedPath := filepath.Join(extractedDirPath, zipEntry.Name)
 
 		if zipEntry.FileInfo().IsDir() {
-			err = extractDirectory(extractedPath, zipEntry)
+			if err = extractDirectory(extractedPath, zipEntry); err != nil {
+				return errors.Wrapf(err, "Failed to extract directory  %s", zipEntry.Name)
+			}
 		} else {
-			err = extractRegular(extractedPath, zipEntry)
-		}
-
-		if err != nil {
-			return fmt.Errorf("Failed to extract %s: %v", zipEntry.Name, err)
+			if err = extractRegular(extractedPath, zipEntry); err != nil {
+				return errors.Wrapf(err, "Failed to extract file %s", zipEntry.Name)
+			}
 		}
 	}
 
@@ -44,7 +44,7 @@ func extractRegular(extractedPath string, zipEntry *zip.File) error {
 	sourceFile, err := zipEntry.Open()
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to open file  %s", zipEntry.Name)
 	}
 
 	defer sourceFile.Close()
@@ -53,13 +53,13 @@ func extractRegular(extractedPath string, zipEntry *zip.File) error {
 	err = fillPathGap(extractedPath)
 
 	if err != nil {
-		return err
+		return errors.Errorf("Failed to create directory tree for %s", zipEntry.Name)
 	}
 
 	extractedFile, err := os.Create(extractedPath)
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to create file")
 	}
 
 	defer extractedFile.Close()
@@ -67,7 +67,7 @@ func extractRegular(extractedPath string, zipEntry *zip.File) error {
 	err = extractedFile.Chmod(zipEntry.FileInfo().Mode())
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to change file permission")
 	}
 
 	_, err = io.Copy(extractedFile, sourceFile)
@@ -84,8 +84,12 @@ func fillPathGap(path string) error {
 	if err == nil {
 		return nil
 	} else if !os.IsNotExist(err) {
-		return err
+		return errors.Wrapf(err, "Failed to check if directory %s exists", dirPath)
 	}
 
-	return os.MkdirAll(dirPath, 0755)
+	if err = os.MkdirAll(dirPath, 0755); err != nil {
+		return errors.Wrapf(err, "Failed to create directory")
+	}
+
+	return nil
 }

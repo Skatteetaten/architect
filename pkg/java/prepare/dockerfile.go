@@ -5,6 +5,7 @@ import (
 	global "github.com/skatteetaten/architect/pkg/config"
 	"io"
 	"text/template"
+	"github.com/pkg/errors"
 )
 
 var dockerfileTemplate string = `FROM {{.BaseRepository}}:{{.BaseImageTag}}
@@ -49,10 +50,14 @@ func (dockerfile *Dockerfile) Write(writer io.Writer) error {
 	tmpl, err := template.New("dockerfile").Parse(dockerfileTemplate)
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to parse Dockerfile template")
 	}
 
-	return tmpl.Execute(writer, dockerfile)
+	if err = tmpl.Execute(writer, dockerfile); err != nil {
+		return errors.Wrap(err, "Failed to execute Dockerfile template")
+	}
+
+	return nil
 }
 
 func createEnv(buildinfo global.BuildInfo, config global.Config) (map[string]string) {
