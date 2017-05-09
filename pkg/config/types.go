@@ -29,6 +29,8 @@ type DockerSpec struct {
 	PushExtraTags	 string
 	//This is the external docker registry where we check versions.
 	ExternalDockerRegistry string
+	TagWith		string
+	RetagWith	string
 }
 
 type BuilderSpec struct {

@@ -71,7 +71,7 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 		logrus.Fatalf("Error prepare artifact: %s", err)
 	}
 
-	logrus.Infof("Prepre successfull. Trigger docker build in %s", path)
+	logrus.Infof("Prepare successful. Trigger docker build in %s", path)
 
 	tags := config.GetVersionTags(*buildInfo)
 	tagsToPush := createTags(tags, c.DockerSpec)

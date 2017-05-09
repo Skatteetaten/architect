@@ -111,6 +111,16 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		dockerSpec.PushExtraTags = pushExtraTags
 	}
 
+	dockerSpec.TagWith = ""
+	if temporaryTag, err := findEnv(customStrategy.Env, "TAG_WITH"); err == nil {
+		dockerSpec.TagWith = temporaryTag
+	}
+
+	dockerSpec.RetagWith = ""
+	if temporaryTag, err := findEnv(customStrategy.Env, "RETAG_WITH"); err == nil {
+		dockerSpec.RetagWith = temporaryTag
+	}
+
 	builderSpec := BuilderSpec{}
 
 	builderSpec.Version = "0.0.0"
