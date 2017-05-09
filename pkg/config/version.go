@@ -27,23 +27,21 @@ INFERRED		= 1.0.2
 */
 
 type BuildInfo struct {
-	IsSnapshot  bool
-	Version     string
-	OutputImage ImageInfo
-	BaseImage   ImageInfo
+	IsSnapshot  	bool
+	AppVersion  	string
+	AuroraVersion 	string
+	SnapshotVersion	string
+	OutputImage 	ImageInfo
+	BaseImage   	ImageInfo
 }
 
 type ImageInfo struct {
 	Repository	string
-	Version    	string
 	Tags       	map[string]string
-	Env 		map[string]string
 }
 
 func NewBuildInfo(provider docker.ManifestProvider, config Config, deliverable Deliverable) (*BuildInfo, error) {
-	buildInfo := BuildInfo{}
-
-	buildInfo.IsSnapshot = isSnapshot(config)
+	isSnapshot := isSnapshot(config)
 
 	baseImage, err := createBaseImageInfo(provider, config)
 
@@ -51,17 +49,33 @@ func NewBuildInfo(provider docker.ManifestProvider, config Config, deliverable D
 		return nil, err
 	}
 
-	outputImage, err := createOutputImageInfo(config, deliverable.Path, *baseImage)
+	appVersion := getVersion(config, isSnapshot, deliverable.Path)
+
+	snapshotVersion := ""
+	if isSnapshot {
+		snapshotVersion = config.MavenGav.Version
+	}
+
+	//Create completeVersion
+	// <application-version>-<builder-version>-<baseimage-repository>-<baseimage-version>
+	// e.g. 2.0.0-b1.11.0-oracle8-1.0.2
+	lastNameInRepo := getLastIndexInRepository(baseImage.Repository)
+
+	auroraVersion := appVersion
+	auroraVersion = auroraVersion + "-b" + config.BuilderSpec.Version
+	auroraVersion = auroraVersion + "-" + lastNameInRepo
+	auroraVersion = auroraVersion + "-" + baseImage.Tags["INFERRED"]
+
+	outputImage, err := createOutputImageInfo(config, auroraVersion, appVersion)
 
 	if err != nil {
 		return nil, err
 	}
 
-	buildInfo.BaseImage = *baseImage
-	buildInfo.OutputImage = *outputImage
-
-	return &buildInfo, nil
+	return &BuildInfo{ isSnapshot, appVersion, auroraVersion,
+		snapshotVersion,*outputImage, *baseImage}, nil
 }
+
 
 func GetVersionTags(buildInfo BuildInfo) []string {
 	versions := buildInfo.OutputImage.Tags
@@ -85,37 +99,27 @@ func createBaseImageInfo(provider docker.ManifestProvider, config Config) (*Imag
 		"INFERRED": inferredVersion,
 	}
 
-	return &ImageInfo{respositoryName, configVersion, versions, nil}, nil
+	return &ImageInfo{respositoryName, versions}, nil
 }
 
-func createOutputImageInfo(config Config, deliverablePath string, baseImage ImageInfo) (*ImageInfo, error) {
-	b := isSnapshot(config)
-
-
-
-	imageVersion := getVersion(config, b, deliverablePath)
-
+func createOutputImageInfo(config Config, auroraVersion string, appVersion string) (*ImageInfo, error) {
 	versions := make(map[string]string)
+
+	if isTemporary(config) {
+		versions["TAG_WITH"] = config.DockerSpec.TagWith
+		return &ImageInfo{config.DockerSpec.OutputRepository, versions}, nil
+	}
 
 	if strings.Contains(config.DockerSpec.PushExtraTags, "latest") {
 		versions["LATEST"] = "latest"
 	}
 
-	//Create completeVersion
-	// <application-version>-<builder-version>-<baseimage-repository>-<baseimage-version>
-	// e.g. 2.0.0-b1.11.0-oracle8-1.0.2
-	lastNameInRepo := getLastIndexInRepository(baseImage.Repository)
+	versions["COMPlETE"] = auroraVersion
 
-	completeVersion := Version
-	completeVersion = completeVersion + "-b" + config.BuilderSpec.Version
-	completeVersion = completeVersion + "-" + lastNameInRepo
-	completeVersion = completeVersion + "-" + baseImage.Tags["INFERRED"]
-
-	versions["COMPlETE"] = completeVersion
 
 	if isSemantic(config) {
 		if strings.Contains(config.DockerSpec.PushExtraTags, "major") {
-			majorVersion, err := getMajor(imageVersion)
+			majorVersion, err := getMajor(appVersion)
 			if err != nil {
 				return nil, err
 			}
@@ -124,7 +128,7 @@ func createOutputImageInfo(config Config, deliverablePath string, baseImage Imag
 		}
 
 		if strings.Contains(config.DockerSpec.PushExtraTags, "minor") {
-			minorVersion, err := getMinor(imageVersion)
+			minorVersion, err := getMinor(appVersion)
 			if err != nil {
 				return nil, err
 			}
@@ -132,7 +136,7 @@ func createOutputImageInfo(config Config, deliverablePath string, baseImage Imag
 		}
 
 		if strings.Contains(config.DockerSpec.PushExtraTags, "patch") {
-			versions["PATCH"] = imageVersion
+			versions["PATCH"] = appVersion
 		}
 	}
 
@@ -144,7 +148,7 @@ func createOutputImageInfo(config Config, deliverablePath string, baseImage Imag
 		"PATCH":            "2.0.0",
 	}*/
 
-	return &ImageInfo{config.DockerSpec.OutputRepository, imageVersion, versions, nil}, nil
+	return &ImageInfo{config.DockerSpec.OutputRepository, versions}, nil
 }
 
 func getMajor(version string) (string, error) {
