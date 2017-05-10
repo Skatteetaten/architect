@@ -98,46 +98,57 @@ func (registry *RegistryClient) GetManifestEnv(repository string, tag string, na
 		return "", errors.Wrap(err, "Failed to get manifest")
 	}
 
-	value, err := getManifestEnv(*manifest, name)
+	envMap, err := getEnvMapFromV1Data(manifest.History[0].V1Compatibility)
 
 	if err != nil {
-		return "", errors.Wrapf(err, "Failed to parse manifest for repository %s, tag %s", repository, tag)
+		return "", errors.Wrapf(err, "Failed to extract env variables from manifest", name)
+	}
+
+	value, ok := envMap[name]
+
+	if ! ok {
+		return "", errors.Wrapf(err, "Env variable %s not in manifest", name)
 	}
 
 	return value, nil
 }
 
-func getManifestEnv(manifest schema1.SignedManifest, name string) (string, error) {
-
-	value, err := getEnvFromV1Data(manifest.History[0].V1Compatibility, name)
+func (registry *RegistryClient) GetManifestEnvMap(repository string, tag string) (map[string]string, error) {
+	manifest, err := registry.GetManifest(repository, tag)
 
 	if err != nil {
-		return "", errors.Wrapf(err, "Failed to extract env variable %s from manifest", name)
+		return nil, errors.Wrap(err, "Failed to get manifest")
 	}
 
-	return value, nil
+	envMap, err := getEnvMapFromV1Data(manifest.History[0].V1Compatibility)
+
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to extract env variables from manifest")
+	}
+
+	return envMap, nil
 }
 
-func getEnvFromV1Data(v1data string, name string) (string, error) {
+func getEnvMapFromV1Data(v1data string) (map[string]string, error) {
 	var v1image image.V1Image
 
+	envMap := make(map[string]string)
+
 	if err := json.Unmarshal([]byte(v1data), &v1image); err != nil {
-		return "", errors.Wrapf(err, "Failed to unmarshal image from manifest")
+		return nil, errors.Wrapf(err, "Failed to unmarshal image from manifest")
 	}
 
 	for _, entry := range v1image.Config.Env {
 		key, value, err := envKeyValue(entry)
 
 		if err != nil {
-			return "", errors.Wrap(err, "Failed to read env variable")
+			return nil, errors.Wrap(err, "Failed to read env variable")
 		}
 
-		if key == name {
-			return value, nil
-		}
+		envMap[key] = value
 	}
 
-	return "", nil
+	return envMap, nil
 }
 
 func envKeyValue(target string) (string, string, error) {

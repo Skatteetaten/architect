@@ -59,7 +59,33 @@ func TestGetManifestEnv(t *testing.T) {
 	}
 
 	if actual_version != expected_version {
-		t.Errorf("Expected %s, got %s", expected_version, actual_version)
+		t.Errorf("Expected value %s, actual value is %s", expected_version, actual_version)
+	}
+}
+
+func TestGetManifestEnvMap(t *testing.T) {
+
+	server, err := startMockRegistryServer()
+
+	defer server.Close()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	target := NewRegistryClient(server.URL)
+
+	envMap, err := target.GetManifestEnvMap("aurora/oracle8", "1")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected_len := 14
+	actual_len   := len(envMap)
+
+	if expected_len != actual_len {
+		t.Errorf("Expected map size %d, actual size is %d", expected_len, actual_len)
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/java/nexus"
 	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"github.com/spf13/cobra"
+	"github.com/pkg/errors"
 )
 
 var localRepo bool
@@ -50,6 +51,8 @@ func init() {
 }
 
 func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader) {
+
+	// Read build config
 	c, err := configReader.ReadConfig()
 	if err != nil {
 		logrus.Fatalf("Could not read configuration: %s", err)
@@ -65,16 +68,20 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 }
 
 func build(cfg config.Config, downloader nexus.Downloader) {
+
+	// Download artifact
 	deliverable, err := downloader.DownloadArtifact(&cfg.MavenGav)
 	if err != nil {
 		logrus.Fatalf("Could not download artifact: %s", err)
 	}
 
+	// Derive tags
 	buildInfo, err := config.NewBuildInfo(docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry), cfg, *deliverable)
 	if err != nil {
 		logrus.Fatalf("Error in creating buildinfo: %s", err)
 	}
 
+	// Prepare output image
 	path, err := prepare.Prepare(*buildInfo, *deliverable)
 	if err != nil {
 		logrus.Fatalf("Error prepare artifact: %s", err)
@@ -82,6 +89,7 @@ func build(cfg config.Config, downloader nexus.Downloader) {
 
 	logrus.Infof("Prepare successful. Trigger docker build in %s", path)
 
+	// Build docker image and create tags
 	tags := config.GetVersionTags(*buildInfo)
 	tagsToPush := createTags(tags, cfg.DockerSpec)
 	buildConf := docker.DockerBuildConfig{
@@ -99,21 +107,58 @@ func build(cfg config.Config, downloader nexus.Downloader) {
 	} else {
 		logrus.Infof("Done building. Imageid: %s", imageid)
 	}
+
+	// Push to registry
 	err = client.PushImages(tagsToPush)
 	if err != nil {
 		logrus.Fatalf("Error pushing image %+v", err)
 	}
 }
 
-func retag(config config.Config) {
-	
+func retag(cfg config.Config) {
+
+	tag := cfg.DockerSpec.RetagWith
+	repository := cfg.DockerSpec.OutputRepository
+
+	manifestProvider := docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry)
+
+	envMap, err := manifestProvider.GetManifestEnvMap(repository, tag)
+
+	if err != nil {
+		logrus.Fatalf("Failed to retag image", err)
+	}
+
+	imageId := createReference(cfg.DockerSpec.RetagWith, cfg.DockerSpec)
+
+	client, err := docker.NewDockerClient(&docker.DockerClientConfig{})
+	if err != nil {
+		logrus.Fatalf("Error initializing Docker", err)
+	}
+
+	tagImage(*client, cfg.DockerSpec, imageId, envMap["AURORA_VERSION"])
+
+
 }
 
+func tagImage(client docker.DockerClient, dockerSpec config.DockerSpec, imageId string, tag string) error {
+	reference := createReference(tag, dockerSpec)
+	err := client.TagImage(imageId, reference)
+
+	if err != nil {
+		return errors.Wrapf(err, "Failed to tag image %s", imageId)
+	}
+
+	return nil
+}
 
 func createTags(tags []string, dockerSpec config.DockerSpec) []string {
 	output := make([]string, len(tags))
 	for i, t := range tags {
-		output[i] = dockerSpec.OutputRegistry + "/" + dockerSpec.OutputRepository + ":" + t
+		output[i] = createReference(t, dockerSpec)
 	}
 	return output
+}
+
+func createReference(tag string, dockerSpec config.DockerSpec) string {
+	return dockerSpec.OutputRegistry + "/" + dockerSpec.OutputRepository + ":" + tag
 }
