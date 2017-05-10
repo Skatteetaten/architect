@@ -114,12 +114,12 @@ func createOutputImageInfo(config Config, auroraVersion string, appVersion strin
 		versions["LATEST"] = "latest"
 	}
 
-	versions["COMPlETE"] = auroraVersion
+	versions["COMPLETE"] = auroraVersion
 
 
 	if isSemantic(config) {
 		if strings.Contains(config.DockerSpec.PushExtraTags, "major") {
-			majorVersion, err := getMajor(appVersion)
+			majorVersion, err := GetMajor(appVersion)
 			if err != nil {
 				return nil, err
 			}
@@ -128,7 +128,7 @@ func createOutputImageInfo(config Config, auroraVersion string, appVersion strin
 		}
 
 		if strings.Contains(config.DockerSpec.PushExtraTags, "minor") {
-			minorVersion, err := getMinor(appVersion)
+			minorVersion, err := GetMinor(appVersion)
 			if err != nil {
 				return nil, err
 			}
@@ -151,7 +151,7 @@ func createOutputImageInfo(config Config, auroraVersion string, appVersion strin
 	return &ImageInfo{config.DockerSpec.OutputRepository, versions}, nil
 }
 
-func getMajor(version string) (string, error) {
+func GetMajor(version string) (string, error) {
 	build_version, err := extVersion.NewVersion(version)
 
 	if err != nil {
@@ -161,7 +161,7 @@ func getMajor(version string) (string, error) {
 	return fmt.Sprintf("%d", build_version.Segments()[0]), nil
 }
 
-func getMinor(version string) (string, error) {
+func GetMinor(version string) (string, error) {
 	build_version, err := extVersion.NewVersion(version)
 
 	if err != nil {

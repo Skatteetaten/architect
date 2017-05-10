@@ -3,11 +3,9 @@ package architect
 import (
 	"github.com/Sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/java/nexus"
-	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"github.com/spf13/cobra"
-	"github.com/pkg/errors"
+	"github.com/skatteetaten/architect/pkg/java"
 )
 
 var localRepo bool
@@ -60,105 +58,9 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 	logrus.Debugf("Config %+v", c)
 
 	if c.DockerSpec.RetagWith != "" {
-		retag(*c)
+		java.Retag(*c)
 	} else {
-		build(*c, downloader)
+		java.Build(*c, downloader)
 	}
 
-}
-
-func build(cfg config.Config, downloader nexus.Downloader) {
-
-	// Download artifact
-	deliverable, err := downloader.DownloadArtifact(&cfg.MavenGav)
-	if err != nil {
-		logrus.Fatalf("Could not download artifact: %s", err)
-	}
-
-	// Derive tags
-	buildInfo, err := config.NewBuildInfo(docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry), cfg, *deliverable)
-	if err != nil {
-		logrus.Fatalf("Error in creating buildinfo: %s", err)
-	}
-
-	// Prepare output image
-	path, err := prepare.Prepare(*buildInfo, *deliverable)
-	if err != nil {
-		logrus.Fatalf("Error prepare artifact: %s", err)
-	}
-
-	logrus.Infof("Prepare successful. Trigger docker build in %s", path)
-
-	// Build docker image and create tags
-	tags := config.GetVersionTags(*buildInfo)
-	tagsToPush := createTags(tags, cfg.DockerSpec)
-	buildConf := docker.DockerBuildConfig{
-		Tags:         tagsToPush,
-		BuildFolder: path,
-	}
-	client, err := docker.NewDockerClient(&docker.DockerClientConfig{})
-	if err != nil {
-		logrus.Fatalf("Error initializing Docker", err)
-	}
-	imageid, err := client.BuildImage(buildConf)
-
-	if err != nil {
-		logrus.Fatalf("Fuckup! %+v", err)
-	} else {
-		logrus.Infof("Done building. Imageid: %s", imageid)
-	}
-
-	// Push to registry
-	err = client.PushImages(tagsToPush)
-	if err != nil {
-		logrus.Fatalf("Error pushing image %+v", err)
-	}
-}
-
-func retag(cfg config.Config) {
-
-	tag := cfg.DockerSpec.RetagWith
-	repository := cfg.DockerSpec.OutputRepository
-
-	manifestProvider := docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry)
-
-	envMap, err := manifestProvider.GetManifestEnvMap(repository, tag)
-
-	if err != nil {
-		logrus.Fatalf("Failed to retag image", err)
-	}
-
-	imageId := createReference(cfg.DockerSpec.RetagWith, cfg.DockerSpec)
-
-	client, err := docker.NewDockerClient(&docker.DockerClientConfig{})
-	if err != nil {
-		logrus.Fatalf("Error initializing Docker", err)
-	}
-
-	tagImage(*client, cfg.DockerSpec, imageId, envMap["AURORA_VERSION"])
-
-
-}
-
-func tagImage(client docker.DockerClient, dockerSpec config.DockerSpec, imageId string, tag string) error {
-	reference := createReference(tag, dockerSpec)
-	err := client.TagImage(imageId, reference)
-
-	if err != nil {
-		return errors.Wrapf(err, "Failed to tag image %s", imageId)
-	}
-
-	return nil
-}
-
-func createTags(tags []string, dockerSpec config.DockerSpec) []string {
-	output := make([]string, len(tags))
-	for i, t := range tags {
-		output[i] = createReference(t, dockerSpec)
-	}
-	return output
-}
-
-func createReference(tag string, dockerSpec config.DockerSpec) string {
-	return dockerSpec.OutputRegistry + "/" + dockerSpec.OutputRepository + ":" + tag
 }
