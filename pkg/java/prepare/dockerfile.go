@@ -8,6 +8,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const ENV_APP_VERSION = "APP_VERSION"
+const ENV_AURORA_VERSION = "AURORA_VERSION"
+const ENV_SNAPSHOT_TAG = "SNAPSHOT_TAG"
+
 var dockerfileTemplate string = `FROM {{.BaseRepository}}:{{.BaseImageTag}}
 
 MAINTAINER {{.Maintainer}}
@@ -28,7 +32,7 @@ type Dockerfile struct {
 	Env        	map[string]string
 }
 
-func NewDockerfile(meta *config.DeliverableMetadata, buildinfo global.BuildInfo, config global.Config) *Dockerfile {
+func NewDockerfile(meta *config.DeliverableMetadata, buildinfo global.BuildInfo) *Dockerfile {
 	var maintainer string
 	var labels map[string]string
 	if meta.Docker != nil {
@@ -36,7 +40,7 @@ func NewDockerfile(meta *config.DeliverableMetadata, buildinfo global.BuildInfo,
 		labels = meta.Docker.Labels
 	}
 
-	env := createEnv(buildinfo, config)
+	env := initEnv(buildinfo)
 
 	appendReadinesEnv(env, meta)
 
@@ -60,10 +64,14 @@ func (dockerfile *Dockerfile) Write(writer io.Writer) error {
 	return nil
 }
 
-func createEnv(buildinfo global.BuildInfo, config global.Config) (map[string]string) {
+func initEnv(buildinfo global.BuildInfo) (map[string]string) {
 	env := make(map[string]string)
-	env["AURORA_VERSION"] = buildinfo.OutputImage.Tags["COMPLETE_VERSION"]
-	env["APP_VERSION"] = config.MavenGav.Version
+	env[ENV_AURORA_VERSION] = buildinfo.AuroraVersion
+	env[ENV_APP_VERSION] = buildinfo.AppVersion
+
+	if buildinfo.SnapshotVersion != "" {
+		env[ENV_SNAPSHOT_TAG] = buildinfo.SnapshotVersion
+	}
 
 	return env
 }

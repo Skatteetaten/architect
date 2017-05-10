@@ -16,7 +16,7 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(config global.Config, buildinfo global.BuildInfo, deliverable global.Deliverable) (string, error) {
+func Prepare(buildinfo global.BuildInfo, deliverable global.Deliverable) (string, error) {
 
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
@@ -45,7 +45,7 @@ func Prepare(config global.Config, buildinfo global.BuildInfo, deliverable globa
 	}
 
 	// Dockerfile
-	if err = addDockerfile(dockerBuildPath, meta, buildinfo, config); err != nil {
+	if err = addDockerfile(dockerBuildPath, meta, buildinfo); err != nil {
 		return "", errors.Wrap(err,"Failed to create Dockerfile")
 	}
 
@@ -92,9 +92,9 @@ func renameApplicationDir(base string) error {
 	return nil
 }
 
-func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, buildinfo global.BuildInfo, config global.Config) error {
+func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, buildinfo global.BuildInfo) error {
 
-	dockerfile := NewDockerfile(meta, buildinfo, config)
+	dockerfile := NewDockerfile(meta, buildinfo)
 
 	if err := WriteFile(filepath.Join(basedirPath, "Dockerfile"), dockerfile); err != nil {
 		return errors.Wrap(err, "Failed to write Dockerfile")

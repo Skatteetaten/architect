@@ -11,7 +11,7 @@ import (
 func TestBuild(t *testing.T) {
 	var buf bytes.Buffer
 
-	if err := prepare.NewDockerfile(meta, buildinfo, cfg).Write(&buf); err != nil {
+	if err := prepare.NewDockerfile(meta, buildinfo).Write(&buf); err != nil {
 		t.Fatal(err)
 	}
 

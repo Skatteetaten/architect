@@ -56,17 +56,26 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 	}
 	logrus.Debugf("Config %+v", c)
 
-	deliverable, err := downloader.DownloadArtifact(&c.MavenGav)
+	if c.DockerSpec.RetagWith != "" {
+		retag(*c)
+	} else {
+		build(*c, downloader)
+	}
+
+}
+
+func build(cfg config.Config, downloader nexus.Downloader) {
+	deliverable, err := downloader.DownloadArtifact(&cfg.MavenGav)
 	if err != nil {
 		logrus.Fatalf("Could not download artifact: %s", err)
 	}
 
-	buildInfo, err := config.NewBuildInfo(docker.NewRegistryClient(c.DockerSpec.ExternalDockerRegistry), *c, *deliverable)
+	buildInfo, err := config.NewBuildInfo(docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry), cfg, *deliverable)
 	if err != nil {
 		logrus.Fatalf("Error in creating buildinfo: %s", err)
 	}
 
-	path, err := prepare.Prepare(*c, *buildInfo, *deliverable)
+	path, err := prepare.Prepare(*buildInfo, *deliverable)
 	if err != nil {
 		logrus.Fatalf("Error prepare artifact: %s", err)
 	}
@@ -74,7 +83,7 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 	logrus.Infof("Prepare successful. Trigger docker build in %s", path)
 
 	tags := config.GetVersionTags(*buildInfo)
-	tagsToPush := createTags(tags, c.DockerSpec)
+	tagsToPush := createTags(tags, cfg.DockerSpec)
 	buildConf := docker.DockerBuildConfig{
 		Tags:         tagsToPush,
 		BuildFolder: path,
@@ -95,6 +104,12 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 		logrus.Fatalf("Error pushing image %+v", err)
 	}
 }
+
+func retag(config config.Config) {
+	
+}
+
+
 func createTags(tags []string, dockerSpec config.DockerSpec) []string {
 	output := make([]string, len(tags))
 	for i, t := range tags {

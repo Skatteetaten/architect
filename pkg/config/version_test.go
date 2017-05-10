@@ -18,10 +18,9 @@ func TestGetCompleteSNAPSHOT(t *testing.T) {
 	buildInfo, err := config.NewBuildInfo(RegistryMock{}, *c,
 		config.Deliverable{"/tmp/tmppackage2323/meldingsproduksjon-mva-omsetningsoppgave-omvendt-avgiftsplikt-leveransepakke-bugfix-UIMVA-493-20170407.085342-2-Leveransepakke.zip"})
 
-	fmt.Println(buildInfo.OutputImage.Version)
 	fmt.Println(c.MavenGav.Version)
 
-	if buildInfo.OutputImage.Version != "SNAPSHOT-meldingsproduksjon-mva-omsetningsoppgave-omvendt-avgiftsplikt-leveransepakke-bugfix-UIMVA-493-20170407.085342-2" {
+	if buildInfo.AppVersion != "SNAPSHOT-meldingsproduksjon-mva-omsetningsoppgave-omvendt-avgiftsplikt-leveransepakke-bugfix-UIMVA-493-20170407.085342-2" {
 		t.Error("SNAPSHOT name not correct")
 	}
 }
