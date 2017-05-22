@@ -11,14 +11,14 @@ import (
 func TestBuild(t *testing.T) {
 	var buf bytes.Buffer
 
-	if err := prepare.NewDockerfile(meta, buildinfo, cfg).Write(&buf); err != nil {
+	if err := prepare.NewDockerfile(meta, buildinfo).Write(&buf); err != nil {
 		t.Fatal(err)
 	}
 
 	dockerfile := buf.String()
 
 	assertContainsElement(t, dockerfile, fmt.Sprintf("FROM %s:%s", buildinfo.BaseImage.Repository,
-		buildinfo.BaseImage.Tags["INFERRED"]))
+		buildinfo.BaseImage.Version))
 	assertContainsElement(t, dockerfile, fmt.Sprintf("MAINTAINER %s",meta_maintainer))
 	assertContainsElement(t, dockerfile, meta_k8sDescription)
 	assertContainsElement(t, dockerfile, meta_openshiftTags)

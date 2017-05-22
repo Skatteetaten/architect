@@ -3,16 +3,16 @@ package architect
 import (
 	"github.com/Sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/java/nexus"
-	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"github.com/spf13/cobra"
+	"github.com/skatteetaten/architect/pkg/java"
 )
 
 var localRepo bool
 var verbose bool
 
 var JavaLeveransepakke = &cobra.Command{
+
 	Use:   "build",
 	Short: "Build Docker image from Zip",
 	Long:  `TODO`,
@@ -50,55 +50,25 @@ func init() {
 }
 
 func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader) {
+
+	// Read build config
 	c, err := configReader.ReadConfig()
 	if err != nil {
 		logrus.Fatalf("Could not read configuration: %s", err)
 	}
 	logrus.Debugf("Config %+v", c)
 
-	deliverable, err := downloader.DownloadArtifact(&c.MavenGav)
-	if err != nil {
-		logrus.Fatalf("Could not download artifact: %s", err)
-	}
+	if c.DockerSpec.RetagWith != "" {
+		logrus.Info("Perform retag")
+		if err := java.Retag(*c); err != nil {
+			logrus.Fatalf("Failed to retag temporary image: %s", err)
+		}
 
-	buildInfo, err := config.NewBuildInfo(docker.NewRegistryClient(c.DockerSpec.ExternalDockerRegistry), *c, *deliverable)
-	if err != nil {
-		logrus.Fatalf("Error in creating buildinfo: %s", err)
-	}
-
-	path, err := prepare.Prepare(*c, *buildInfo, *deliverable)
-	if err != nil {
-		logrus.Fatalf("Error prepare artifact: %s", err)
-	}
-
-	logrus.Infof("Prepre successfull. Trigger docker build in %s", path)
-
-	tags := config.GetVersionTags(*buildInfo)
-	tagsToPush := createTags(tags, c.DockerSpec)
-	buildConf := docker.DockerBuildConfig{
-		Tags:         tagsToPush,
-		BuildFolder: path,
-	}
-	client, err := docker.NewDockerClient(&docker.DockerClientConfig{})
-	if err != nil {
-		logrus.Fatalf("Error initializing Docker", err)
-	}
-	imageid, err := client.BuildImage(buildConf)
-
-	if err != nil {
-		logrus.Fatalf("Fuckup! %+v", err)
 	} else {
-		logrus.Infof("Done building. Imageid: %s", imageid)
+		logrus.Info("Perform build")
+		if err := java.Build(*c, downloader); err != nil {
+			logrus.Fatalf("Failed to build image: %s", err)
+		}
 	}
-	err = client.PushImages(tagsToPush)
-	if err != nil {
-		logrus.Fatalf("Error pushing image %+v", err)
-	}
-}
-func createTags(tags []string, dockerSpec config.DockerSpec) []string {
-	output := make([]string, len(tags))
-	for i, t := range tags {
-		output[i] = dockerSpec.OutputRegistry + "/" + dockerSpec.OutputRepository + ":" + t
-	}
-	return output
+
 }

@@ -58,6 +58,16 @@ func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error)
 	return strings.TrimSpace(strings.TrimPrefix(msg, "Successfully built ")), nil
 }
 
+func (d *DockerClient) TagImages(imageId string, tags[] string) (error) {
+	for _, tag := range tags {
+		err := d.TagImage(imageId, tag)
+		if err != nil {
+			return errors.Wrap(err, "Error Tagging image")
+		}
+	}
+	return nil
+}
+
 func (d *DockerClient) PushImages(tags[] string) (error) {
 	for _, tag := range tags {
 		err := d.PushImage(tag)

@@ -7,18 +7,21 @@ import (
 	"path/filepath"
 	"os"
 	global "github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/docker"
 )
 
-var cfg global.Config = global.Config{"java", global.MavenGav{},
-					   global.DockerSpec{BaseImage:"aurora/oracle8", BaseVersion: "1"},
-					   global.BuilderSpec{}}
-
 var buildinfo = global.BuildInfo{
-	false,
-	"1.2.1",
-	global.ImageInfo{"aurora/beatie", "1.0.0", map[string]string{}},
-	global.ImageInfo{"aurora/oracle8", "1.0.0",
-			 map[string]string{"CONFIG_VERSION": "1", "INFERRED_VERSION": "1.2.3"}}}
+	Env: map[string]string{
+		docker.ENV_APP_VERSION: 	"2.0.0",
+		docker.ENV_AURORA_VERSION:   	"2.0.0-b1.11.0-oracle8-1.0.2",
+		docker.ENV_PUSH_EXTRA_TAGS: 	"latest major minor patch"},
+	OutputImage: global.OutputImageInfo{
+		Repository: 	"foo/bar",
+		TagInfo: 	global.TagInfo{[]string{"2", "2.0", "2.0.0", "2.0.0-b1.11.0-oracle8-1.2.4", "latest"}}},
+	BaseImage: global.BaseImageInfo{
+		Repository: 	"aurora/oracle8",
+		Version: 	"1.2.4" },
+}
 
 var meta = &config.DeliverableMetadata{
 	Docker: &struct {
@@ -46,7 +49,7 @@ var meta_readinessUrl string = "http://ready.skead.no"
 
 func TestPrepare(t *testing.T) {
 
-	dockerBuildPath, err := prepare.Prepare(cfg, buildinfo,
+	dockerBuildPath, err := prepare.Prepare(buildinfo,
 		global.Deliverable{"testdata/minarch-1.2.22-Leveransepakke.zip"})
 
 	if err != nil {

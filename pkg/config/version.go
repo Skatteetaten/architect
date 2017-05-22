@@ -13,135 +13,141 @@ import (
 /*
 EKSEMPEL:
 Gitt følgende URL http://uil0map-paas-app01.skead.no:9090/v2/aurora/console/tags/list
-=> OutputImage Map[..]
 COMPlETE	 		= 2.0.0-b1.11.0-oracle8-1.0.2
 LATEST				= latest
 MAJOR				= 2
 MINOR				= 2.0
 PATCH				= 2.0.0
-=> OutputImage.Repository	aurora/console
-=> BaseImage Map[..]
-CONFIG			= 1
-INFERRED		= 1.0.2
-=> BaseImage.Repository		aurora/oracle8
+OutputImage.Repository	aurora/console
+
 */
 
+type TagInfo struct {
+	VersionTags	[]string
+}
+
 type BuildInfo struct {
-	IsSnapshot  bool
-	Version     string
-	OutputImage ImageInfo
-	BaseImage   ImageInfo
+	Env 		map[string]string
+	OutputImage	OutputImageInfo
+	BaseImage   	BaseImageInfo
 }
 
-type ImageInfo struct {
-	Repository string
-	Version    string
-	Tags       map[string]string
+type OutputImageInfo struct {
+	Repository	string
+	TagInfo
 }
 
-func NewBuildInfo(provider docker.ManifestProvider, config Config, deliverable Deliverable) (*BuildInfo, error) {
-	buildInfo := BuildInfo{}
+type BaseImageInfo struct {
+	Repository	string
+	Version		string
+}
 
-	buildInfo.IsSnapshot = isSnapshot(config)
-
-	baseImage, err := createBaseImageInfo(provider, config)
+func NewTagInfo(appVersion string, auroraVersion string, extraTags string) (*TagInfo, error) {
+	versionTags, err := getVersionTags(appVersion, auroraVersion, extraTags)
 
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to initialize builder")
 	}
 
-	outputImage, err := createOutputImageInfo(config, deliverable.Path)
+	return &TagInfo{VersionTags:versionTags}, nil
+}
+
+func NewBuildInfo(cfg Config, deliverable Deliverable, provider docker.ManifestProvider) (*BuildInfo, error) {
+
+	baseImageVersion, err := getBaseImageVersion(provider, cfg)
 
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Error calling getBaseImageVersion in NewBuildInfo.")
 	}
 
-	//Create completeVersion
-	// <application-version>-<builder-version>-<baseimage-repository>-<baseimage-version>
-	// e.g. 2.0.0-b1.11.0-oracle8-1.0.2
-	lastNameInRepo := getLastIndexInRepository(baseImage.Repository)
+	appVersion := getAppVersion(cfg, deliverable.Path)
+	auroraVersion := getAuroraVersion(baseImageVersion, appVersion, cfg)
 
-	completeVersion := outputImage.Version
-	completeVersion = completeVersion + "-b" + config.BuilderSpec.Version
-	completeVersion = completeVersion + "-" + lastNameInRepo
-	completeVersion = completeVersion + "-" + baseImage.Tags["INFERRED"]
+	baseImage := createBaseImageInfo(baseImageVersion, cfg)
 
-	outputImage.Tags["COMPlETE"] = completeVersion
+	outputImage, err := createOutputImageInfo(appVersion, auroraVersion, cfg)
 
-	buildInfo.BaseImage = *baseImage
-	buildInfo.OutputImage = *outputImage
-
-	return &buildInfo, nil
-}
-
-func GetVersionTags(buildInfo BuildInfo) []string {
-	versions := buildInfo.OutputImage.Tags
-	tags := make([]string, 0, len(versions))
-	for _, value := range versions {
-		tags = append(tags, value)
-	}
-	return tags
-}
-
-func createBaseImageInfo(provider docker.ManifestProvider, config Config) (*ImageInfo, error) {
-	inferredVersion, err := getBaseImageVersion(provider, config)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error calling getBaseImageVersion in createBaseImageInfo.")
-	}
-	configVersion := config.DockerSpec.BaseVersion
-	respositoryName := config.DockerSpec.BaseImage
-
-	versions := map[string]string{
-		"CONFIG":   configVersion,
-		"INFERRED": inferredVersion,
+		return nil, errors.Wrap(err, "Failed to get information about output image")
 	}
 
-	return &ImageInfo{respositoryName, configVersion, versions}, nil
+	env := createEnv(appVersion, auroraVersion, cfg)
+
+	return &BuildInfo{Env: env, OutputImage: *outputImage, BaseImage: *baseImage}, nil
 }
 
-func createOutputImageInfo(config Config, deliverablePath string) (*ImageInfo, error) {
-	b := isSnapshot(config)
+func createOutputImageInfo(appVersion string, auroraVersion string, cfg Config) (*OutputImageInfo, error) {
+	var tags []string
+	var err error
 
-	imageVersion := getVersion(config, b, deliverablePath)
+	if ! isTemporary(cfg) {
+		tags, err = getVersionTags(auroraVersion, appVersion, cfg.DockerSpec.PushExtraTags)
 
-	versions := make(map[string]string)
-
-	if strings.Contains(config.DockerSpec.PushExtraTags, "latest") {
-		versions["LATEST"] = "latest"
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to get tags")
+		}
+	} else {
+		tags = getTemporaryTags(cfg.DockerSpec.TagWith)
 	}
 
-	if isSemantic(config) {
-		if strings.Contains(config.DockerSpec.PushExtraTags, "major") {
-			majorVersion, err := getMajor(imageVersion)
+	return &OutputImageInfo{Repository: cfg.DockerSpec.OutputRepository, TagInfo: TagInfo{VersionTags: tags}}, nil
+}
+
+func createBaseImageInfo(version string, cfg Config) *BaseImageInfo {
+	return &BaseImageInfo{Repository: cfg.DockerSpec.BaseImage, Version: version}
+}
+
+func createEnv(appVersion string, auroraVersion string, cfg Config) map[string]string {
+	env := make(map[string]string)
+
+	env[docker.ENV_APP_VERSION] 	= appVersion
+	env[docker.ENV_AURORA_VERSION] 	= auroraVersion
+	env[docker.ENV_PUSH_EXTRA_TAGS] = cfg.DockerSpec.PushExtraTags
+
+	if isSnapshot(cfg) {
+		env[docker.ENV_SNAPSHOT_TAG] = cfg.MavenGav.Version
+	}
+
+	return env
+}
+
+func getTemporaryTags(tempVersion string) []string {
+	return []string{tempVersion}
+}
+
+func getVersionTags(appVersion string, auroraVersion string, extraTags string) ([]string, error) {
+	versions := make([]string, 0, 10)
+
+	if strings.Contains(extraTags, "latest") {
+		versions = append(versions, "latest")
+	}
+
+	versions = append(versions, auroraVersion)
+
+	if isSemantic(appVersion) {
+		if strings.Contains(extraTags, "major") {
+			majorVersion, err := getMajor(appVersion)
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrap(err, "Failed to get major version")
 			}
 
-			versions["MAJOR"] = majorVersion
+			versions = append(versions, majorVersion)
 		}
 
-		if strings.Contains(config.DockerSpec.PushExtraTags, "minor") {
-			minorVersion, err := getMinor(imageVersion)
+		if strings.Contains(extraTags, "minor") {
+			minorVersion, err := getMinor(appVersion)
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrap(err, "Failed to get minor version")
 			}
-			versions["MINOR"] = minorVersion
+			versions = append(versions, minorVersion)
 		}
 
-		if strings.Contains(config.DockerSpec.PushExtraTags, "patch") {
-			versions["PATCH"] = imageVersion
+		if strings.Contains(extraTags, "patch") {
+			versions = append(versions, appVersion)
 		}
 	}
 
-	/*versions := map[string]string{
-		"COMPlETE_VERSION": "2.0.0-b1.11.0-oracle8-1.0.2",
-		"LATEST":           "latest",
-		"MAJOR":            "2",
-		"MINOR":            "2.0",
-		"PATCH":            "2.0.0",
-	}*/
-
-	return &ImageInfo{config.DockerSpec.OutputRepository, imageVersion, versions}, nil
+	return versions, nil
 }
 
 func getMajor(version string) (string, error) {
@@ -164,11 +170,6 @@ func getMinor(version string) (string, error) {
 	return fmt.Sprintf("%d.%d", build_version.Segments()[0], build_version.Segments()[1]), nil
 }
 
-func getLastIndexInRepository(repository string) string {
-	s := strings.Split(repository, "/")
-	return s[len(s)-1]
-}
-
 func isSnapshot(config Config) bool {
 	if strings.Contains(config.MavenGav.Version, "SNAPSHOT") {
 		return true
@@ -176,33 +177,58 @@ func isSnapshot(config Config) bool {
 	return false
 }
 
-func isSemantic(config Config) bool {
+func isSemantic(version string) bool {
 	var validStr = regexp.MustCompile(`^[0-9]+.[0-9]+.[0-9]+$`)
-	if validStr.MatchString(config.MavenGav.Version) {
+	if validStr.MatchString(version) {
 		return true
 	}
 	return false
 }
 
-func getVersion(config Config, isSnapshot bool, deliverablePath string) string {
-	if isSnapshot {
-		replacer := strings.NewReplacer(config.MavenGav.ArtifactId, "", "-Leveransepakke.zip", "")
-		version := "SNAPSHOT-" + replacer.Replace(path.Base(deliverablePath))
-		return version
-	}
-
-	return config.MavenGav.Version
+func isTemporary(config Config) bool {
+	return config.DockerSpec.TagWith != ""
 }
 
 func getBaseImageVersion(provider docker.ManifestProvider, config Config) (string, error) {
 	biv, err := provider.GetManifestEnv(config.DockerSpec.BaseImage, config.DockerSpec.BaseVersion, "BASE_IMAGE_VERSION")
 
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "Failed to extract version in getBaseImageVersion")
 	} else if biv == "" {
-		return "", fmt.Errorf("Failed to extract version in getBaseImageVersion, registry: %s, "+
+		return "", errors.Errorf("Failed to extract version in getBaseImageVersion, registry: %s, "+
 			"BaseImage: %s, BaseVersion: %s ",
 			provider, config.DockerSpec.BaseImage, config.DockerSpec.BaseVersion)
 	}
 	return biv, nil
+}
+
+/*
+  Create aurora version aka complete version
+  <application-version>-<builder-version>-<baseimage-repository>-<baseimage-version>
+  e.g. 2.0.0-b1.11.0-oracle8-1.0.2
+ */
+func getAuroraVersion(baseImageVersion, appVersion string, cfg Config) string {
+	builderVersion := cfg.BuilderSpec.Version
+	lastNameInRepo := getLastIndexInRepository(cfg.DockerSpec.BaseImage)
+
+	return fmt.Sprintf("%s-b%s-%s-%s", appVersion, builderVersion, lastNameInRepo, baseImageVersion)
+}
+
+/*
+  Create app version. If not snapshot build, then return version from GAV.
+  Otherwise, create new snapshot version based on deliverable.
+ */
+func getAppVersion(cfg Config, deliverablePath string) string {
+	if strings.Contains(cfg.MavenGav.Version, "SNAPSHOT")  {
+		replacer := strings.NewReplacer(cfg.MavenGav.ArtifactId, "", "-Leveransepakke.zip", "")
+		version := "SNAPSHOT-" + replacer.Replace(path.Base(deliverablePath))
+		return version
+	}
+
+	return cfg.MavenGav.Version
+}
+
+func getLastIndexInRepository(repository string) string {
+	s := strings.Split(repository, "/")
+	return s[len(s)-1]
 }

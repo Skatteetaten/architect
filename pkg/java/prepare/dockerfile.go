@@ -6,6 +6,7 @@ import (
 	"io"
 	"text/template"
 	"github.com/pkg/errors"
+	"github.com/skatteetaten/architect/pkg/docker"
 )
 
 var dockerfileTemplate string = `FROM {{.BaseRepository}}:{{.BaseImageTag}}
@@ -28,7 +29,7 @@ type Dockerfile struct {
 	Env        	map[string]string
 }
 
-func NewDockerfile(meta *config.DeliverableMetadata, buildinfo global.BuildInfo, config global.Config) *Dockerfile {
+func NewDockerfile(meta *config.DeliverableMetadata, buildinfo global.BuildInfo) *Dockerfile {
 	var maintainer string
 	var labels map[string]string
 	if meta.Docker != nil {
@@ -36,13 +37,11 @@ func NewDockerfile(meta *config.DeliverableMetadata, buildinfo global.BuildInfo,
 		labels = meta.Docker.Labels
 	}
 
-	env := createEnv(buildinfo, config)
-
-	appendReadinesEnv(env, meta)
+	appendReadinesEnv(buildinfo.Env, meta)
 
 	return &Dockerfile{buildinfo.BaseImage.Repository,
-		buildinfo.BaseImage.Tags["INFERRED"], maintainer,
-		labels, env}
+		buildinfo.BaseImage.Version, maintainer,
+		labels, buildinfo.Env}
 }
 
 func (dockerfile *Dockerfile) Write(writer io.Writer) error {
@@ -60,25 +59,17 @@ func (dockerfile *Dockerfile) Write(writer io.Writer) error {
 	return nil
 }
 
-func createEnv(buildinfo global.BuildInfo, config global.Config) (map[string]string) {
-	env := make(map[string]string)
-	env["AURORA_VERSION"] = buildinfo.OutputImage.Tags["COMPLETE_VERSION"]
-	env["APP_VERSION"] = config.MavenGav.Version
-
-	return env
-}
-
 func appendReadinesEnv(env map[string]string, meta *config.DeliverableMetadata) {
 
 	if meta.Openshift != nil {
 		if meta.Openshift.ReadinessURL != "" {
-			env["READINESS_CHECK_URL"] = meta.Openshift.ReadinessURL
+			env[docker.ENV_READINESS_CHECK_URL] = meta.Openshift.ReadinessURL
 		}
 
 		if meta.Openshift.ReadinessOnManagementPort == "" || meta.Openshift.ReadinessOnManagementPort == "true" {
-			env["READINESS_ON_MANAGEMENT_PORT"] = "true"
+			env[docker.ENV_READINESS_ON_MANAGEMENT_PORT] = "true"
 		}
 	} else if meta.Java != nil && meta.Java.ReadinessURL != "" {
-		env["READINESS_CHECK_URL"] = meta.Java.ReadinessURL
+		env[docker.ENV_READINESS_CHECK_URL] = meta.Java.ReadinessURL
 	}
 }
