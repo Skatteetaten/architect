@@ -12,6 +12,7 @@ var localRepo bool
 var verbose bool
 
 var JavaLeveransepakke = &cobra.Command{
+
 	Use:   "build",
 	Short: "Build Docker image from Zip",
 	Long:  `TODO`,
@@ -58,9 +59,16 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 	logrus.Debugf("Config %+v", c)
 
 	if c.DockerSpec.RetagWith != "" {
-		java.Retag(*c)
+		logrus.Info("Perform retag")
+		if err := java.Retag(*c); err != nil {
+			logrus.Fatalf("Failed to retag temporary image: %s", err)
+		}
+
 	} else {
-		java.Build(*c, downloader)
+		logrus.Info("Perform build")
+		if err := java.Build(*c, downloader); err != nil {
+			logrus.Fatalf("Failed to build image: %s", err)
+		}
 	}
 
 }

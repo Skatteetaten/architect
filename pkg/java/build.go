@@ -3,46 +3,48 @@ package java
 import (
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/opencontainers/runc/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/java/nexus"
 	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"github.com/pkg/errors"
-	"strings"
 )
 
 func Build(cfg config.Config, downloader nexus.Downloader) error {
 
-	// Download artifact
+	logrus.Debugf("Download deliverable for GAV %-v", cfg.MavenGav)
 	deliverable, err := downloader.DownloadArtifact(&cfg.MavenGav)
 	if err != nil {
-		return errors.Wrap(err,"Could not download artifact")
+		return errors.Wrapf(err,"Could not download deliverable %-v", cfg.MavenGav)
 	}
 
-	// Derive tags
-	buildInfo, err := config.NewBuildInfo(docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry), cfg, *deliverable)
+	logrus.Debug("Extract build info")
+	provider := docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry)
+	buildInfo, err := config.NewBuildInfo(cfg, *deliverable,  provider)
 	if err != nil {
-		return errors.Wrap(err,"Error in creating buildinfo")
+		return errors.Wrap(err,"Failed to create buildinfo")
 	}
 
-	// Prepare output image
+	logrus.Debug("Prepare output image")
 	path, err := prepare.Prepare(*buildInfo, *deliverable)
+
 	if err != nil {
 		return errors.Wrap(err,"Error prepare artifact")
 	}
 
-	logrus.Infof("Prepare successful. Trigger docker build in %s", path)
+	logrus.Debugf("Build docker image and create tags, path=%s, buildInfo=%-v", path, *buildInfo)
+	tagsToPush := createTags(buildInfo.OutputImage.VersionTags, cfg.DockerSpec)
 
-	// Build docker image and create tags
-	tags := config.GetVersionTags(*buildInfo)
-	tagsToPush := createTags(tags, cfg.DockerSpec)
 	buildConf := docker.DockerBuildConfig{
-		Tags:         tagsToPush,
+		Tags:        tagsToPush,
 		BuildFolder: path,
 	}
+
 	client, err := docker.NewDockerClient(&docker.DockerClientConfig{})
+
 	if err != nil {
 		return errors.Wrap(err,"Error initializing Docker")
 	}
+
 	imageid, err := client.BuildImage(buildConf)
 
 	if err != nil {
@@ -51,20 +53,20 @@ func Build(cfg config.Config, downloader nexus.Downloader) error {
 		logrus.Infof("Done building. Imageid: %s", imageid)
 	}
 
-	// Push to registry
+	logrus.Debug("Push images and tags")
 	err = client.PushImages(tagsToPush)
 	if err != nil {
-		return errors.Wrap(err,"Error pushing image")
+		return errors.Wrap(err,"Error pushing images")
 	}
 
 	return nil
 }
 
 func Retag(cfg config.Config) error {
-
 	tag := cfg.DockerSpec.RetagWith
 	repository := cfg.DockerSpec.OutputRepository
 
+	logrus.Debug("Get ENV from image manifest")
 	manifestProvider := docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry)
 
 	envMap, err := manifestProvider.GetManifestEnvMap(repository, tag)
@@ -73,85 +75,69 @@ func Retag(cfg config.Config) error {
 		return errors.Wrap(err,"Failed to retag image")
 	}
 
-	imageId := &docker.ImageName{cfg.DockerSpec.OutputRegistry, cfg.DockerSpec.OutputRepository,
-				     cfg.DockerSpec.RetagWith}
-
 	client, err := docker.NewDockerClient(&docker.DockerClientConfig{})
 	if err != nil {
 		return errors.Wrap(err,"Error initializing Docker")
 	}
 
-	// Push tag AURORA_VERSION
-	auroraVersion, ok := envMap["AURORA_VERSION"]
+	// Get AURORA_VERSION
+	auroraVersion, ok := envMap[docker.ENV_AURORA_VERSION]
 
 	if ! ok {
-		return errors.Errorf("Failed to extract ENV variable AURORA_VERSION from temporary image manifest")
+		return errors.Errorf("Failed to extract ENV variable %s from temporary image manifest", docker.ENV_AURORA_VERSION)
 	}
 
-	tagAndPushImage(*client, cfg.DockerSpec, imageId.String(), auroraVersion)
-
-	// Push tag APP_VERSION
-	appVersion, ok := envMap["APP_VERSION"]
+	appVersion, ok := envMap[docker.ENV_APP_VERSION]
 
 	if ! ok {
-		return errors.Errorf("Failed to extract ENV variable APP_VERSION from temporary image manifest")
+		return errors.Errorf("Failed to extract ENV variable %s from temporary image manifest", docker.ENV_APP_VERSION)
 	}
 
-	tagAndPushImage(*client, cfg.DockerSpec, imageId.String(), appVersion)
+	extratags, ok := envMap[docker.ENV_PUSH_EXTRA_TAGS]
 
-	// Push extra tags
-	extraTags, ok := envMap["PUSH_EXTRA_TAGS"]
-
-	if ok {
-		if strings.Contains(extraTags, "latest") {
-			tagAndPushImage(*client, cfg.DockerSpec, imageId.String(), "latest")
-		}
-
-		if strings.Contains(extraTags, "major") {
-			majorVersion, err := config.GetMajor(appVersion)
-
-			if err != nil {
-				return err
-			}
-			tagAndPushImage(*client, cfg.DockerSpec, imageId.String(), majorVersion)
-		}
-
-		if strings.Contains(extraTags, "minor") {
-			minorVersion, err := config.GetMinor(appVersion)
-
-			if err != nil {
-				return err
-			}
-			tagAndPushImage(*client, cfg.DockerSpec, imageId.String(), minorVersion)
-		}
-
-		if strings.Contains(extraTags, "patch") {
-			patchVersion := appVersion
-
-			tagAndPushImage(*client, cfg.DockerSpec, imageId.String(), patchVersion)
-		}
+	if ! ok {
+		return errors.Errorf("Failed to extract ENV variable %s from temporary image manifest", docker.ENV_PUSH_EXTRA_TAGS)
 	}
 
-	// Create tag SNAPSHOT_TAG
-	snapshotTag, ok := envMap["SNAPSHOT_TAG"]
+	logrus.Debugf("Extract tag info, auroraVersion=%s, appVersion=%s, extraTags=%s", auroraVersion, appVersion, extratags)
+	var tagInfo *config.TagInfo
 
-	if ok {
-		tagAndPushImage(*client, cfg.DockerSpec, imageId.String(), snapshotTag)
+	tagInfo, err = config.NewTagInfo(appVersion, auroraVersion, extratags)
+
+	imageId := &docker.ImageName{cfg.DockerSpec.OutputRegistry, cfg.DockerSpec.OutputRepository,
+				     cfg.DockerSpec.RetagWith}
+
+	tagsToPush := createTags(tagInfo.VersionTags, cfg.DockerSpec)
+
+	logrus.Debugf("Retag temporary image, versionTags=%-v", *tagInfo)
+	for _, alias := range tagsToPush {
+		err := tagAndPushImage(*client, cfg.DockerSpec, imageId.String(), alias)
+
+		if err != nil {
+			return errors.Wrap(err, "Failed to tag image")
+		}
 	}
 
 	return nil
 }
 
-func tagAndPushImage(client docker.DockerClient, dockerSpec config.DockerSpec, imageId string, tag string) error {
-	alias := &docker.ImageName{dockerSpec.OutputRegistry, dockerSpec.OutputRepository,
-				       tag}
-	err := client.TagImage(imageId, alias.String())
+func tagAndPushImage(client docker.DockerClient, dockerSpec config.DockerSpec, imageId string, alias string) error {
+
+	logrus.Infof("Tag image %s with alias %s", imageId, alias)
+
+	err := client.TagImage(imageId, alias)
 
 	if err != nil {
-		return errors.Wrapf(err, "Failed to tag image %s", imageId)
+		return errors.Wrapf(err, "Failed to tag image %s with alias %s", imageId, alias)
 	}
 
-	err = client.PushImage(alias.String())
+	logrus.Infof("Push tag %s to registry", alias)
+
+	err = client.PushImage(alias)
+
+	if err != nil {
+		return errors.Wrapf(err, "Failed to push tag %s", alias)
+	}
 
 	return nil
 }
