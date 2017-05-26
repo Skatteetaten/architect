@@ -9,6 +9,11 @@ import (
 	"github.com/skatteetaten/architect/pkg/docker"
 )
 
+// The base directory where all code is copied in the Docker image
+const DockerBasedir = "/u01"
+// The directory where the application is prepared
+const ApplicationDir = "app"
+
 var dockerfileTemplate string = `FROM {{.BaseRepository}}:{{.BaseImageTag}}
 
 MAINTAINER {{.Maintainer}}
@@ -19,7 +24,7 @@ RUN chmod -R 777 /u01/
 
 ENV {{range $key, $value := .Env}}{{$key}}="{{$value}}" {{end}}
 
-CMD ["bin/run"]`
+CMD ["/u01/bin/run"]`
 
 type Dockerfile struct {
 	BaseRepository 	string

@@ -26,7 +26,7 @@ func Prepare(buildinfo global.BuildInfo, deliverable global.Deliverable) (string
 	}
 
 	// Unzip deliverable
-	applicationPath, err := extractDeliverable(dockerBuildPath, deliverable.Path)
+	applicationPath, applicationBase, err := extractDeliverable(dockerBuildPath, deliverable.Path)
 
 	if err != nil {
 		return "", errors.Wrap(err,"Failed to extract application archive")
@@ -40,7 +40,7 @@ func Prepare(buildinfo global.BuildInfo, deliverable global.Deliverable) (string
 	}
 
 	// Prepare application
-	if err := PrepareApplication(applicationPath, meta); err != nil {
+	if err := PrepareApplication(applicationPath, applicationBase, meta); err != nil {
 		return "", errors.Wrap(err,"Failed to prepare application")
 	}
 
@@ -57,39 +57,39 @@ func Prepare(buildinfo global.BuildInfo, deliverable global.Deliverable) (string
 	return dockerBuildPath, nil
 }
 
-func extractDeliverable(dockerBuildPath string, deliverablePath string) (string, error) {
-	applicationBase := filepath.Join(dockerBuildPath, "app")
-	applicationPath := filepath.Join(applicationBase, "application")
+func extractDeliverable(dockerBuildPath string, deliverablePath string) (string, string, error) {
+	applicationBase := filepath.Join(dockerBuildPath, ApplicationDir)
 
 	if err := os.MkdirAll(applicationBase, 0755); err != nil {
-		return "", errors.Wrap(err, "Failed to create application directory in Docker context")
+		return "", "", errors.Wrap(err, "Failed to create application directory in Docker context")
 	}
 
 	if err := ExtractDeliverable(deliverablePath, filepath.Join(dockerBuildPath, "app")); err != nil {
-		return "", errors.Wrapf(err, "Failed to extract application archive")
+		return "", "", errors.Wrapf(err, "Failed to extract application archive")
 	}
 
-	if err := renameApplicationDir(applicationBase); err != nil {
-		return "", errors.Wrap(err, "Failed to rename application directory in Docker context")
+	if applicationPath, err := renameApplicationDir(applicationBase); err != nil {
+		return "", "", errors.Wrap(err, "Failed to rename application directory in Docker context")
+	} else {
+		return applicationPath, applicationBase, nil
 	}
-
-	return applicationPath, nil
 }
 
-func renameApplicationDir(base string) error {
+func renameApplicationDir(base string) (string, error) {
 	list, err := ioutil.ReadDir(base)
 
 	if err != nil {
-		return errors.Wrapf(err, "Failed to open application directory %s", base)
+		return "", errors.Wrapf(err, "Failed to open application directory %s", base)
 	} else if len(list) == 0 {
-		return errors.Errorf("Application root folder does not exist %s", base)
+		return "", errors.Errorf("Application root folder does not exist %s", base)
 	}
 
-	if err = os.Rename(filepath.Join(base, list[0].Name()), filepath.Join(base, "application")); err != nil {
-		return errors.Wrap(err, "Rename failed")
+	renamedApplicationPath := filepath.Join(base, "application")
+	if err = os.Rename(filepath.Join(base, list[0].Name()), renamedApplicationPath); err != nil {
+		return "", errors.Wrap(err, "Rename of application path to application failed")
+	} else {
+		return renamedApplicationPath, nil;
 	}
-
-	return nil
 }
 
 func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, buildinfo global.BuildInfo) error {

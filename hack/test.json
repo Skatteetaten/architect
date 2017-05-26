@@ -23,32 +23,36 @@
                 },
                 "env": [
                     {
-                        "name": "ARTIFACT_ID",
-                        "value": "openshift-console-api"
+                      "name": "BASE_IMAGE_REGISTRY",
+                      "value": "uil0paas-utv-registry01.skead.no:5000"
                     },
                     {
-                        "name": "GROUP_ID",
-                        "value": "ske.openshift.aurora.console"
+                      "name": "ARTIFACT_ID",
+                      "value": "openshift-referanse-springboot-server"
                     },
                     {
-                        "name": "VERSION",
-                        "value": "feature_AOS_1101_console_br_kunne_vise_swagger_dokumentasjon-SNAPSHOT"
+                      "name": "GROUP_ID",
+                      "value": "ske.aurora.openshift.referanse"
                     },
                     {
-                        "name": "DOCKER_BASE_VERSION",
-                        "value": "1"
+                      "name": "VERSION",
+                      "value": "1.0.2"
                     },
                     {
-                        "name": "DOCKER_BASE_NAME",
-                        "value": "aurora/oracle8"
+                      "name": "DOCKER_BASE_VERSION",
+                      "value": "1"
                     },
                     {
-                        "name": "BASE_IMAGE_REGISTRY",
-                        "value": "uil0map-paas-app01.skead.no:5000"
+                      "name": "DOCKER_BASE_NAME",
+                      "value": "aurora/oracle8"
                     },
                     {
-                        "name": "PUSH_EXTRA_TAGS",
-                        "value": "lastest major minor patch"
+                      "name": "SPLUNK_INDEX",
+                      "value": "openshift-test"
+                    },
+                    {
+                      "name": "DEBUG",
+                      "value": "1"
                     }
                 ],
                 "exposeDockerSocket": true
@@ -57,7 +61,7 @@
         "output": {
             "to": {
                 "kind": "DockerImage",
-                "name": "uil0map-paas-app01.skead.no:5000/aurora/architecttest"
+                "name": "uil0paas-utv-registry01.skead.no:5000/aurora/architecttest"
             }
         },
         "resources": {},
