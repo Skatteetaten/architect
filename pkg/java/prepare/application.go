@@ -12,6 +12,8 @@ import (
 
 const (
 	DeliveryMetadataPath = "metadata/openshift.json"
+	DefaultLivenessScript = "liveness_std.sh"
+	DefaultReadinessScript = "readiness_std.sh"
 )
 
 func PrepareApplication(applicationPath string, applicationBase string, meta *config.DeliverableMetadata) error {
@@ -38,6 +40,10 @@ func PrepareApplication(applicationPath string, applicationBase string, meta *co
 		return errors.Wrap(err, "Failed to create effective start script")
 	}
 
+	if err := prepareLivelinessAndReadynessScripts(scriptPath); err != nil {
+		return errors.Wrap(err, "Error preparing liveness and readiness scripts")
+	}
+
 	return nil
 }
 
@@ -56,6 +62,39 @@ func addGeneratedStartscript(scriptPath string, applicationBase string, libPath 
 	}
 
 	return nil
+}
+
+func prepareLivelinessAndReadynessScripts(scriptPath string) error {
+	livenessScript := filepath.Join(scriptPath, "liveness.sh")
+	livelinessExists, err := Exists(livenessScript)
+	if err != nil {
+		return errors.Wrap(err, "Could not determine if liveness-script exists");
+	}
+
+	if !livelinessExists {
+		logrus.Info("No liveness-script. Linking in default")
+		err := os.Symlink(filepath.Join(DockerBasedir, "bin", DefaultLivenessScript), livenessScript)
+		if err != nil {
+			return errors.Wrap(err, "Error linking in script");
+		}
+	}
+
+	readinessScript := filepath.Join(scriptPath, "readiness.sh")
+	readinessExists, err := Exists(readinessScript)
+	if err != nil {
+		return errors.Wrap(err, "Could not determine if liveness-script exists");
+	}
+
+	if !readinessExists {
+		logrus.Info("No readyness-script. Linking in default")
+		err := os.Symlink(filepath.Join(DockerBasedir, "bin", DefaultReadinessScript), readinessScript)
+		if err != nil {
+			return errors.Wrap(err, "Error linking in script");
+		}
+
+	}
+
+	return err
 }
 
 func prepareEffectiveStartscript(scriptPath string) error {

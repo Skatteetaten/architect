@@ -39,6 +39,11 @@ func Prepare(buildinfo global.BuildInfo, deliverable global.Deliverable) (string
 		return "", errors.Wrap(err,"Failed to read application metadata")
 	}
 
+	// Runtime scripts
+	if err := addRuntimeScripts(dockerBuildPath); err != nil {
+		return "", errors.Wrap(err, "Failed to add static content to Docker context")
+	}
+
 	// Prepare application
 	if err := PrepareApplication(applicationPath, applicationBase, meta); err != nil {
 		return "", errors.Wrap(err,"Failed to prepare application")
@@ -47,11 +52,6 @@ func Prepare(buildinfo global.BuildInfo, deliverable global.Deliverable) (string
 	// Dockerfile
 	if err = addDockerfile(dockerBuildPath, meta, buildinfo); err != nil {
 		return "", errors.Wrap(err,"Failed to create Dockerfile")
-	}
-
-	// Runtime scripts
-	if err := addRuntimeScripts(dockerBuildPath); err != nil {
-		return "", errors.Wrap(err, "Failed to add static content to Docker context")
 	}
 
 	return dockerBuildPath, nil
