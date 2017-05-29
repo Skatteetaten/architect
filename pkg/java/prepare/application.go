@@ -1,19 +1,22 @@
 package prepare
 
 import (
-	"fmt"
 	"github.com/skatteetaten/architect/pkg/java/config"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"github.com/pkg/errors"
+	"strings"
+	"github.com/Sirupsen/logrus"
 )
 
 const (
 	DeliveryMetadataPath = "metadata/openshift.json"
+	DefaultLivenessScript = "liveness_std.sh"
+	DefaultReadinessScript = "readiness_std.sh"
 )
 
-func PrepareApplication(applicationPath string, meta *config.DeliverableMetadata) error {
+func PrepareApplication(applicationPath string, applicationBase string, meta *config.DeliverableMetadata) error {
 
 	scriptPath := filepath.Join(applicationPath, "bin")
 
@@ -27,20 +30,26 @@ func PrepareApplication(applicationPath string, meta *config.DeliverableMetadata
 		return errors.Wrap(err, "Failed to locate lib directory in application")
 	}
 
-	if err := addGeneratedStartscript(scriptPath, libPath, *meta); err != nil {
-		return errors.Wrap(err, "Failed to create default start script")
+	if meta != nil {
+		if err := addGeneratedStartscript(scriptPath, applicationBase, libPath, *meta); err != nil {
+			return errors.Wrap(err, "Failed to create default start script")
+		}
 	}
 
 	if err := prepareEffectiveStartscript(scriptPath); err != nil {
 		return errors.Wrap(err, "Failed to create effective start script")
 	}
 
+	if err := prepareLivelinessAndReadynessScripts(scriptPath); err != nil {
+		return errors.Wrap(err, "Error preparing liveness and readiness scripts")
+	}
+
 	return nil
 }
 
-func addGeneratedStartscript(scriptPath string, libPath string, meta config.DeliverableMetadata) error {
+func addGeneratedStartscript(scriptPath string, applicationBase string, libPath string, meta config.DeliverableMetadata) error {
 
-	classpath, err := Classpath(libPath)
+	classpath, err := Classpath(applicationBase, libPath)
 
 	if err != nil {
 		return errors.Wrap(err, "Failed to get application classpath")
@@ -53,6 +62,39 @@ func addGeneratedStartscript(scriptPath string, libPath string, meta config.Deli
 	}
 
 	return nil
+}
+
+func prepareLivelinessAndReadynessScripts(scriptPath string) error {
+	livenessScript := filepath.Join(scriptPath, "liveness.sh")
+	livelinessExists, err := Exists(livenessScript)
+	if err != nil {
+		return errors.Wrap(err, "Could not determine if liveness-script exists");
+	}
+
+	if !livelinessExists {
+		logrus.Info("No liveness-script. Linking in default")
+		err := os.Symlink(filepath.Join(DockerBasedir, "bin", DefaultLivenessScript), livenessScript)
+		if err != nil {
+			return errors.Wrap(err, "Error linking in script");
+		}
+	}
+
+	readinessScript := filepath.Join(scriptPath, "readiness.sh")
+	readinessExists, err := Exists(readinessScript)
+	if err != nil {
+		return errors.Wrap(err, "Could not determine if liveness-script exists");
+	}
+
+	if !readinessExists {
+		logrus.Info("No readyness-script. Linking in default")
+		err := os.Symlink(filepath.Join(DockerBasedir, "bin", DefaultReadinessScript), readinessScript)
+		if err != nil {
+			return errors.Wrap(err, "Error linking in script");
+		}
+
+	}
+
+	return err
 }
 
 func prepareEffectiveStartscript(scriptPath string) error {
@@ -82,12 +124,13 @@ func prepareEffectiveStartscript(scriptPath string) error {
 		return nil
 	}
 
-	return fmt.Errorf("No start script has been defined or generated for this Leveransepakke. %s",
+	return errors.Errorf("No start script has been defined or generated for this Leveransepakke. %s",
 		"Please put a script called one of start, start.sh, os-start or os-start.sh in the bin folder.")
 }
 
-func Classpath(libPath string) ([]string, error) {
-
+// applicationDir is the temporary directory where we have the application code
+// libpath is the path to the jar files
+func Classpath(applicationDir string, libPath string) ([]string, error) {
 	files, err := ioutil.ReadDir(libPath)
 
 	if err != nil {
@@ -96,8 +139,10 @@ func Classpath(libPath string) ([]string, error) {
 
 	classpath := make([]string, len(files))
 
+	base := DockerBasedir + strings.TrimPrefix(libPath, applicationDir)
+	logrus.Info(base)
 	for index, value := range files {
-		classpath[index] = filepath.Join(libPath, value.Name())
+		classpath[index] = filepath.Join(base, value.Name())
 	}
 
 	return classpath, nil
