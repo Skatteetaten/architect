@@ -11,18 +11,24 @@ import (
 func TestBuild(t *testing.T) {
 	var buf bytes.Buffer
 
-	if err := prepare.NewDockerfile(meta, buildinfo).Write(&buf); err != nil {
+	dockerfile, err := prepare.NewDockerfile(meta, buildinfo)
+
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	dockerfile := buf.String()
+	if err := dockerfile.Write(&buf); err != nil {
+		t.Fatal(err)
+	}
 
-	assertContainsElement(t, dockerfile, fmt.Sprintf("FROM %s:%s", buildinfo.BaseImage.Repository,
+	output := buf.String()
+
+	assertContainsElement(t, output, fmt.Sprintf("FROM %s:%s", buildinfo.BaseImage.Repository,
 		buildinfo.BaseImage.Version))
-	assertContainsElement(t, dockerfile, fmt.Sprintf("MAINTAINER %s",meta_maintainer))
-	assertContainsElement(t, dockerfile, meta_k8sDescription)
-	assertContainsElement(t, dockerfile, meta_openshiftTags)
-	assertContainsElement(t, dockerfile, meta_readinessUrl)
+	assertContainsElement(t, output, fmt.Sprintf("MAINTAINER %s",meta_maintainer))
+	assertContainsElement(t, output, meta_k8sDescription)
+	assertContainsElement(t, output, meta_openshiftTags)
+	assertContainsElement(t, output, meta_readinessUrl)
 }
 
 func assertContainsElement(t *testing.T, target string, element string) {

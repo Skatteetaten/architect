@@ -27,10 +27,8 @@ func PrepareApplication(applicationPath string, meta *config.DeliverableMetadata
 		return errors.Wrap(err, "Failed to locate lib directory in application")
 	}
 
-	if meta != nil {
-		if err := addGeneratedStartscript(scriptPath, libPath, *meta); err != nil {
-			return errors.Wrap(err, "Failed to create default start script")
-		}
+	if err := addGeneratedStartscript(scriptPath, libPath, *meta); err != nil {
+		return errors.Wrap(err, "Failed to create default start script")
 	}
 
 	if err := prepareEffectiveStartscript(scriptPath); err != nil {
@@ -84,7 +82,8 @@ func prepareEffectiveStartscript(scriptPath string) error {
 		return nil
 	}
 
-	return fmt.Errorf("No start script found")
+	return fmt.Errorf("No start script has been defined or generated for this Leveransepakke. %s",
+		"Please put a script called one of start, start.sh, os-start or os-start.sh in the bin folder.")
 }
 
 func Classpath(libPath string) ([]string, error) {
