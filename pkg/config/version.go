@@ -117,7 +117,7 @@ func FilterVersionTags(appVersion string, newTags []string, repositoryTags []str
 	versions := make([]string, 0, 10)
 
 	for _, tag := range newTags {
-		if strings.Contains(tag, "latest") {
+		if strings.EqualFold(strings.TrimSpace(tag), "latest") {
 			if !excludeLatest {
 				versions = append(versions, tag)
 			}
