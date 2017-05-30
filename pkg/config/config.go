@@ -106,7 +106,7 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		return nil, err
 	}
 
-	dockerSpec.PushExtraTags = ""
+	dockerSpec.PushExtraTags = "latest,major,minor,patch"
 	if pushExtraTags, err := findEnv(customStrategy.Env, "PUSH_EXTRA_TAGS"); err == nil {
 		dockerSpec.PushExtraTags = pushExtraTags
 	}
