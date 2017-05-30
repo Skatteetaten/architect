@@ -81,7 +81,7 @@ func createOutputImageInfo(appVersion string, auroraVersion string, cfg Config) 
 	var err error
 
 	if ! isTemporary(cfg) {
-		tags, err = getVersionTags(auroraVersion, appVersion, cfg.DockerSpec.PushExtraTags)
+		tags, err = getVersionTags(appVersion, auroraVersion, cfg.DockerSpec.PushExtraTags)
 
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed to get tags")

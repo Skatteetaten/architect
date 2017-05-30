@@ -10,6 +10,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/java/prepare/resources"
 	global "github.com/skatteetaten/architect/pkg/config"
 	"github.com/pkg/errors"
+	"path"
 )
 
 type FileGenerator interface {
@@ -94,7 +95,11 @@ func renameApplicationDir(base string) (string, error) {
 
 func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, buildinfo global.BuildInfo) error {
 
-	dockerfile := NewDockerfile(meta, buildinfo)
+	dockerfile, err := NewDockerfile(meta, buildinfo)
+
+	if err != nil {
+		return errors.Wrap(err, "Failed to prepare Dockerfile")
+	}
 
 	if err := WriteFile(filepath.Join(basedirPath, "Dockerfile"), dockerfile); err != nil {
 		return errors.Wrap(err, "Failed to write Dockerfile")
@@ -103,16 +108,16 @@ func addDockerfile(basedirPath string, meta *config.DeliverableMetadata, buildin
 	return nil
 }
 
-func loadDeliverableMetadata(path string) (*config.DeliverableMetadata, error) {
-	fileExists, err := Exists(path)
+func loadDeliverableMetadata(metafile string) (*config.DeliverableMetadata, error) {
+	fileExists, err := Exists(metafile)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to check if application directory contains application metadata")
-	} else if !fileExists {
-		return nil, nil
+		return nil, errors.Wrapf(err, "Could not find %s in deliverable", path.Base(metafile))
+	} else if ! fileExists {
+		return nil, errors.Errorf("Could not find %s in deliverable", path.Base(metafile))
 	}
 
-	reader, err := os.Open(path)
+	reader, err := os.Open(metafile)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to open application metadata file")
@@ -121,7 +126,7 @@ func loadDeliverableMetadata(path string) (*config.DeliverableMetadata, error) {
 	deliverableMetadata, err := config.NewDeliverableMetadata(reader)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to load deliverable metadata")
+		return nil, errors.Wrapf(err, "Failed to load metadata from %s", path.Base(metafile))
 	}
 
 	return deliverableMetadata, nil

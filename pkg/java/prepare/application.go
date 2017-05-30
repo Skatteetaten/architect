@@ -124,7 +124,8 @@ func prepareEffectiveStartscript(scriptPath string) error {
 		return nil
 	}
 
-	return errors.New("No start script found")
+	return errors.Errorf("No start script has been defined or generated for this Leveransepakke. %s",
+		"Please put a script called one of start, start.sh, os-start or os-start.sh in the bin folder.")
 }
 
 // applicationDir is the temporary directory where we have the application code
