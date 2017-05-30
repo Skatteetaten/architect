@@ -143,6 +143,55 @@ func TestBuildInfoTemporary(t *testing.T) {
 	verifyEquals(actual.OutputImage.Repository, CFG_OUPUT_REPOSITORY, t)
 }
 
+func TestFilterTags(t *testing.T) {
+	repositoryTags := []string{"latest", "1.1.2", "1.1", "1", "1.2.1", "1.2", "1.3.0", "1.3", "2.0.0", "2.0", "2"}
+
+	newTags := []string{"latest", "1.1.1", "1.1", "1", "1.1.1-b0.0.0-oracle8-1.4.0", "someothertag"}
+
+	myTags, err := config.FilterVersionTags("1.1.1", newTags, repositoryTags)
+
+	if err != nil {
+		t.Fatalf("Failed to call FilterTags", err)
+	}
+
+	verifyTagListContent(myTags, []string{"1.1.1", "1.1.1-b0.0.0-oracle8-1.4.0", "someothertag"}, t)
+
+	newTags = []string{"latest", "1.2.2", "1.2", "1"}
+
+	myTags, err = config.FilterVersionTags("1.2.2", newTags, repositoryTags)
+
+	if err != nil {
+		t.Fatalf("Failed to call FilterTags", err)
+	}
+
+	verifyTagListContent(myTags, []string{"1.2.2", "1.2"}, t)
+
+	newTags = []string{"latest", "1.3.1", "1.3", "1"}
+
+	myTags, err = config.FilterVersionTags("1.3.1", newTags, repositoryTags)
+
+	if err != nil {
+		t.Fatalf("Failed to call FilterTags", err)
+	}
+
+	verifyTagListContent(myTags, []string{"1.3.1", "1.3", "1"}, t)
+
+	newTags = []string{"latest", "2.0.1", "2.0", "2"}
+
+	myTags, err = config.FilterVersionTags("2.0.1", newTags, repositoryTags)
+
+	if err != nil {
+		t.Fatalf("Failed to call FilterTags", err)
+	}
+
+	verifyTagListContent(myTags, []string{"2.0.1", "2.0", "2", "latest"}, t)
+}
+
+func (registry RegistryMock) GetTags(repository string) (*docker.TagsAPIResponse, error) {
+	tags := []string{"a", "b"}
+	return &docker.TagsAPIResponse{Name:"jalla", Tags:tags}, nil // Do not need this
+}
+
 func (registry RegistryMock) GetManifest(repository string, tag string) (*schema1.SignedManifest, error) {
 	return nil, nil // Do not need this
 }

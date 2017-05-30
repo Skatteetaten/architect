@@ -31,6 +31,7 @@ type DockerSpec struct {
 	ExternalDockerRegistry string
 	TagWith		string
 	RetagWith	string
+	TagOverwrite	bool
 }
 
 type BuilderSpec struct {

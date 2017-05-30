@@ -121,6 +121,13 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		dockerSpec.RetagWith = temporaryTag
 	}
 
+	dockerSpec.TagOverwrite = false;
+	if tagOverwrite, err := findEnv(customStrategy.Env, "TAG_OVERWRITE"); err == nil {
+		if strings.Contains(strings.ToLower(tagOverwrite), "true") {
+			dockerSpec.TagOverwrite = true;
+		}
+	}
+
 	builderSpec := BuilderSpec{}
 
 	builderSpec.Version = "0.0.0"

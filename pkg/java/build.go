@@ -31,8 +31,26 @@ func Build(cfg config.Config, downloader nexus.Downloader) error {
 		return errors.Wrap(err,"Error prepare artifact")
 	}
 
+	versionTags := buildInfo.OutputImage.VersionTags
+
+	if !cfg.DockerSpec.TagOverwrite {
+		logrus.Debug("Tags Overwrite diabled, filtering tags")
+
+		repositoryTags, err := provider.GetTags(cfg.DockerSpec.OutputRepository)
+
+		if err != nil {
+			return errors.Wrap(err,"Error in GetTags")
+		}
+
+		versionTags, err = config.FilterVersionTags(buildInfo.Env[docker.ENV_APP_VERSION], versionTags, repositoryTags.Tags)
+
+		if err != nil {
+			return errors.Wrap(err,"Error in FilterTags")
+		}
+	}
+
 	logrus.Debugf("Build docker image and create tags, path=%s, buildInfo=%-v", path, *buildInfo)
-	tagsToPush := createTags(buildInfo.OutputImage.VersionTags, cfg.DockerSpec)
+	tagsToPush := createTags(versionTags, cfg.DockerSpec)
 
 	buildConf := docker.DockerBuildConfig{
 		Tags:        tagsToPush,
@@ -102,12 +120,33 @@ func Retag(cfg config.Config) error {
 	logrus.Debugf("Extract tag info, auroraVersion=%s, appVersion=%s, extraTags=%s", auroraVersion, appVersion, extratags)
 	var tagInfo *config.TagInfo
 
+	provider := docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry)
+
 	tagInfo, err = config.NewTagInfo(appVersion, auroraVersion, extratags)
 
 	imageId := &docker.ImageName{cfg.DockerSpec.OutputRegistry, cfg.DockerSpec.OutputRepository,
 				     cfg.DockerSpec.RetagWith}
 
-	tagsToPush := createTags(tagInfo.VersionTags, cfg.DockerSpec)
+	versionTags := tagInfo.VersionTags
+
+	if !cfg.DockerSpec.TagOverwrite {
+		logrus.Debug("Tags Overwrite diabled, filtering tags")
+
+		repositoryTags, err := provider.GetTags(cfg.DockerSpec.OutputRepository)
+
+		if err != nil {
+			return errors.Wrap(err,"Error in GetTags")
+		}
+
+		versionTags, err = config.FilterVersionTags(appVersion, versionTags, repositoryTags.Tags)
+
+		if err != nil {
+			return errors.Wrap(err,"Error in FilterTags")
+		}
+	}
+
+
+	tagsToPush := createTags(versionTags, cfg.DockerSpec)
 
 	logrus.Debugf("Retag temporary image, versionTags=%-v", *tagInfo)
 	for _, alias := range tagsToPush {

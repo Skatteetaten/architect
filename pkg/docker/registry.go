@@ -12,13 +12,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-type ManifestProvider interface {
+type ImageInfoProvider interface {
 	GetManifest(repository string, tag string) (*schema1.SignedManifest, error)
 	GetManifestEnv(repository string, tag string, name string) (string, error)
-}
-
-type TagsProvider interface {
-	GetTags(repository string) (*tagsAPIResponse, error)
+	GetTags(repository string) (*TagsAPIResponse, error)
 }
 
 type RegistryClient struct {
@@ -29,7 +26,7 @@ func NewRegistryClient(address string) *RegistryClient {
 	return &RegistryClient{address: address}
 }
 
-type tagsAPIResponse struct {
+type TagsAPIResponse struct {
 	Name string   `json:"name"`
 	Tags []string `json:"tags"`
 }
@@ -65,10 +62,16 @@ func (registry *RegistryClient) GetManifest(repository string, tag string) (*sch
 	return manifest, nil
 }
 
-func (registry *RegistryClient) GetTags(repository string) (*tagsAPIResponse, error) {
+func (registry *RegistryClient) GetTags(repository string) (*TagsAPIResponse, error) {
 	url := fmt.Sprintf("%s/v2/%s/tags/list", registry.address, repository)
-	var tagsList tagsAPIResponse
-	res, err := http.Get(url)
+	var tagsList TagsAPIResponse
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	res, err := client.Get(url)
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to download tags for repository %s from Docker registry %s", repository, url)
