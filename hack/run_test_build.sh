@@ -5,4 +5,4 @@ BASE="$(dirname "$DIR")"
 
 CMD="${BASE}/bin/amd64/architect"
 
-exec ${CMD} build -f "$DIR/test.json" 
+exec ${CMD} build -f "$DIR/test.json" -v
