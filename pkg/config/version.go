@@ -52,9 +52,9 @@ func NewTagInfo(appVersion string, auroraVersion string, extraTags string) (*Tag
 	return &TagInfo{VersionTags:versionTags}, nil
 }
 
-func NewBuildInfo(cfg Config, deliverable Deliverable, provider docker.ManifestProvider) (*BuildInfo, error) {
+func NewBuildInfo(cfg Config, deliverable Deliverable, imageInfoProvider docker.ImageInfoProvider) (*BuildInfo, error) {
 
-	baseImageVersion, err := getBaseImageVersion(provider, cfg)
+	baseImageVersion, err := getBaseImageVersion(imageInfoProvider, cfg)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "Error calling getBaseImageVersion in NewBuildInfo.")
@@ -74,6 +74,90 @@ func NewBuildInfo(cfg Config, deliverable Deliverable, provider docker.ManifestP
 	env := createEnv(appVersion, auroraVersion, cfg)
 
 	return &BuildInfo{Env: env, OutputImage: *outputImage, BaseImage: *baseImage}, nil
+}
+
+func FilterVersionTags(appVersion string, newTags []string, repositoryTags []string) ([]string, error) {
+	if !isSemantic(appVersion) {
+		return newTags, nil
+	}
+
+	var excludeMinor, excludeMajor, excludeLatest bool = true, true, true;
+
+	minorTagName, err := getMinor(appVersion, true)
+
+	if err != nil {
+		return nil, err
+	}
+
+	excludeMinor, err = tagCompare("> " + appVersion + ", < " + minorTagName, repositoryTags)
+
+	if err != nil {
+		return nil, err
+	}
+
+	majorTagName, err := getMajor(appVersion, true)
+
+	if err != nil {
+		return nil, err
+	}
+
+	excludeMajor, err = tagCompare("> " + appVersion + ", < " + majorTagName, repositoryTags)
+
+	if err != nil {
+		return nil, err
+	}
+
+
+	excludeLatest, err = tagCompare("> " + appVersion, repositoryTags)
+
+	if err != nil {
+		return nil, err
+	}
+
+	versions := make([]string, 0, 10)
+
+	for _, tag := range newTags {
+		if strings.EqualFold(strings.TrimSpace(tag), "latest") {
+			if !excludeLatest {
+				versions = append(versions, tag)
+			}
+		} else if isMinor(tag) {
+			if !excludeMinor {
+				versions = append(versions, tag)
+			}
+		} else if isMajor(tag) {
+			if !excludeMajor {
+				versions = append(versions, tag)
+			}
+		} else {
+			versions = append(versions, tag)
+		}
+	}
+	return versions, nil
+}
+
+func tagCompare(versionConstraint string, tags []string) (bool, error) {
+	c, err := extVersion.NewConstraint(versionConstraint)
+
+	if err != nil {
+		return false, errors.Wrapf(err, "Could not create version constraint %s", versionConstraint)
+	}
+
+	for _, tag := range tags {
+		if isSemantic(tag) {
+			v, err := extVersion.NewVersion(tag)
+
+			if err != nil {
+				return false, errors.Wrapf(err, "Could not create tag constraint %s", tag)
+			}
+
+			if c.Check(v) {
+				return true, nil;
+			}
+		}
+	}
+
+	return false, nil
 }
 
 func createOutputImageInfo(appVersion string, auroraVersion string, cfg Config) (*OutputImageInfo, error) {
@@ -126,7 +210,7 @@ func getVersionTags(appVersion string, auroraVersion string, extraTags string) (
 
 	if isSemantic(appVersion) {
 		if strings.Contains(extraTags, "major") {
-			majorVersion, err := getMajor(appVersion)
+			majorVersion, err := getMajor(appVersion, false)
 			if err != nil {
 				return nil, errors.Wrap(err, "Failed to get major version")
 			}
@@ -135,7 +219,7 @@ func getVersionTags(appVersion string, auroraVersion string, extraTags string) (
 		}
 
 		if strings.Contains(extraTags, "minor") {
-			minorVersion, err := getMinor(appVersion)
+			minorVersion, err := getMinor(appVersion, false)
 			if err != nil {
 				return nil, errors.Wrap(err, "Failed to get minor version")
 			}
@@ -150,24 +234,50 @@ func getVersionTags(appVersion string, auroraVersion string, extraTags string) (
 	return versions, nil
 }
 
-func getMajor(version string) (string, error) {
+func getMajor(version string, bumpVersion bool) (string, error) {
 	build_version, err := extVersion.NewVersion(version)
 
 	if err != nil {
 		return "", errors.Wrap(err, "Error in parsing major version: "+version)
 	}
 
-	return fmt.Sprintf("%d", build_version.Segments()[0]), nil
+	versionMajor := build_version.Segments()[0]
+	if bumpVersion {
+		versionMajor += 1
+	}
+
+	return fmt.Sprintf("%d", versionMajor), nil
 }
 
-func getMinor(version string) (string, error) {
+func isMajor(version string) (bool) {
+	var validStr= regexp.MustCompile(`^[0-9]+$`)
+	if validStr.MatchString(version) {
+		return true
+	}
+	return false
+}
+
+func getMinor(version string, bumpVersion bool) (string, error) {
 	build_version, err := extVersion.NewVersion(version)
 
 	if err != nil {
 		return "", errors.Wrap(err, "Error in parsing minor version: "+version)
 	}
 
-	return fmt.Sprintf("%d.%d", build_version.Segments()[0], build_version.Segments()[1]), nil
+	versionMinor := build_version.Segments()[1]
+	if bumpVersion {
+		versionMinor += 1
+	}
+
+	return fmt.Sprintf("%d.%d", build_version.Segments()[0], versionMinor), nil
+}
+
+func isMinor(version string) (bool) {
+	var validStr= regexp.MustCompile(`^[0-9]+.[0-9]+$`)
+	if validStr.MatchString(version) {
+		return true
+	}
+	return false
 }
 
 func isSnapshot(config Config) bool {
@@ -189,7 +299,7 @@ func isTemporary(config Config) bool {
 	return config.DockerSpec.TagWith != ""
 }
 
-func getBaseImageVersion(provider docker.ManifestProvider, config Config) (string, error) {
+func getBaseImageVersion(provider docker.ImageInfoProvider, config Config) (string, error) {
 	biv, err := provider.GetManifestEnv(config.DockerSpec.BaseImage, config.DockerSpec.BaseVersion, "BASE_IMAGE_VERSION")
 
 	if err != nil {

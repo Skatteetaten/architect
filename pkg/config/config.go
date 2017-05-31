@@ -106,7 +106,7 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		return nil, err
 	}
 
-	dockerSpec.PushExtraTags = ""
+	dockerSpec.PushExtraTags = "latest,major,minor,patch"
 	if pushExtraTags, err := findEnv(customStrategy.Env, "PUSH_EXTRA_TAGS"); err == nil {
 		dockerSpec.PushExtraTags = pushExtraTags
 	}
@@ -119,6 +119,13 @@ func newConfig(buildConfig []byte) (*Config, error) {
 	dockerSpec.RetagWith = ""
 	if temporaryTag, err := findEnv(customStrategy.Env, "RETAG_WITH"); err == nil {
 		dockerSpec.RetagWith = temporaryTag
+	}
+
+	dockerSpec.TagOverwrite = false;
+	if tagOverwrite, err := findEnv(customStrategy.Env, "TAG_OVERWRITE"); err == nil {
+		if strings.Contains(strings.ToLower(tagOverwrite), "true") {
+			dockerSpec.TagOverwrite = true;
+		}
 	}
 
 	builderSpec := BuilderSpec{}

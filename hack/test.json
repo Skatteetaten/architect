@@ -47,6 +47,10 @@
                       "value": "aurora/oracle8"
                     },
                     {
+                      "name": "TAG_OVERWRITE",
+                      "value": "false"
+                    },
+                    {
                       "name": "SPLUNK_INDEX",
                       "value": "openshift-test"
                     },
