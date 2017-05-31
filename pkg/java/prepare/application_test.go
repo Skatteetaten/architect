@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"strings"
 )
 
 func TestClasspathOrder(t *testing.T) {
@@ -14,16 +15,19 @@ func TestClasspathOrder(t *testing.T) {
 	root := setupApplication(t)
 
 	// When
-	actualCp, err := prepare.Classpath(filepath.Join(root, "lib"))
+	actualCp, err := prepare.Classpath(root, filepath.Join(root, "lib"))
 
 	if err != nil {
 		t.Fatal("Failed to test classpath: ", err)
 	}
 
+	if len(actualCp) < 1  {
+		t.Fatal("Classpath has zero entries")
+	}
+
 	// Then
 	for idx, entry := range []string{"bar.jar", "bar2.jar", "foo.jar", "foobar.jar"} {
-		expectedLib := filepath.Join(root, "lib", entry)
-
+		expectedLib := filepath.Join(prepare.DockerBasedir, "lib", entry)
 		if idx >= len(actualCp) {
 			t.Error("Classpath", actualCp, "is not complete")
 			return
@@ -32,6 +36,12 @@ func TestClasspathOrder(t *testing.T) {
 		actualLib := actualCp[idx]
 		if actualLib != expectedLib {
 			t.Error("Classpath", actualCp, "is not correct, excpected", expectedLib, ", got", actualLib)
+		}
+	}
+
+	for _, entry := range actualCp {
+		if strings.HasPrefix(entry, root) {
+			t.Fatal("Class path-entries should not have root prefix")
 		}
 	}
 
@@ -44,7 +54,7 @@ func TestPrepareStartscript(t *testing.T) {
 	root := setupApplication(t)
 
 	// When
-	prepare.PrepareApplication(root, TestMeta)
+	prepare.PrepareApplication(root, root, TestMeta)
 
 	// Then
 	scriptExists, err := prepare.Exists(filepath.Join(root, "bin", "generated-start"))

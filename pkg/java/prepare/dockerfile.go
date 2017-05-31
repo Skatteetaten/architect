@@ -9,6 +9,11 @@ import (
 	"github.com/skatteetaten/architect/pkg/docker"
 )
 
+// The base directory where all code is copied in the Docker image
+const DockerBasedir = "/u01"
+// The directory where the application is prepared
+const ApplicationDir = "app"
+
 var dockerfileTemplate string = `FROM {{.BaseRepository}}:{{.BaseImageTag}}
 
 MAINTAINER {{.Maintainer}}
@@ -19,7 +24,7 @@ RUN chmod -R 777 /u01/
 
 ENV {{range $key, $value := .Env}}{{$key}}="{{$value}}" {{end}}
 
-CMD ["bin/run"]`
+CMD ["/u01/bin/run"]`
 
 type Dockerfile struct {
 	BaseRepository 	string
@@ -29,19 +34,37 @@ type Dockerfile struct {
 	Env        	map[string]string
 }
 
-func NewDockerfile(meta *config.DeliverableMetadata, buildinfo global.BuildInfo) *Dockerfile {
-	var maintainer string
-	var labels map[string]string
-	if meta.Docker != nil {
-		maintainer = meta.Docker.Maintainer
-		labels = meta.Docker.Labels
+func NewDockerfile(meta *config.DeliverableMetadata, buildinfo global.BuildInfo) (*Dockerfile, error) {
+	if meta.Docker == nil {
+		return nil, errors.Errorf("Deliverable metadata does not contain docker object")
 	}
 
-	appendReadinesEnv(buildinfo.Env, meta)
+	// Maintainer
+	maintainer := meta.Docker.Maintainer
+
+	if maintainer == "" {
+		return nil, errors.Errorf("Deliverable metadata does not contain maintainer element")
+	}
+
+	// Lables
+	var labels map[string]string = make(map[string]string)
+
+	for k, v := range meta.Docker.Labels {
+		labels[k] = v
+	}
+
+	// Env
+	var env map[string]string = make(map[string]string)
+
+	for k, v := range buildinfo.Env {
+		env[k] = v
+	}
+
+	appendReadinesEnv(env, meta)
 
 	return &Dockerfile{buildinfo.BaseImage.Repository,
 		buildinfo.BaseImage.Version, maintainer,
-		labels, buildinfo.Env}
+		labels, env}, nil
 }
 
 func (dockerfile *Dockerfile) Write(writer io.Writer) error {

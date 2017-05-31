@@ -8,8 +8,8 @@ import (
 )
 
 var startscriptTemplate string = `exec java {{.JvmOptions}} $JAVA_PROPERTIES_ARGS ` +
-	`-cp {{range $i, $value := .Classpath}}{{$value}}:{{end}} ` +
-	`$JAVA_DEBUG_ARGS -javaagent:$JOLOKIA_PATH=host=0.0.0.0,port=8778,protocol=https $JAVA_OPTS {{.MainClass}} {{.ApplicationArgs}}`
+	`-cp "{{range $i, $value := .Classpath}}{{if $i}}:{{end}}{{$value}}{{end}}" ` +
+	`$JAVA_DEBUG_ARGS -javaagent:$JOLOKIA_PATH=host=0.0.0.0,port=8778,protocol=https $JAVA_OPTS {{.MainClass}} {{.ApplicationArgs}}`
 
 type Startscript struct {
 	Classpath       []string

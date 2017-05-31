@@ -36,7 +36,7 @@
                     },
                     {
                       "name": "VERSION",
-                      "value": "1.0.3"
+                      "value": "1.0.2"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",
