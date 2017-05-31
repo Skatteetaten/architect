@@ -34,7 +34,7 @@ func Build(cfg config.Config, downloader nexus.Downloader) error {
 	versionTags := buildInfo.OutputImage.VersionTags
 
 	if !cfg.DockerSpec.TagOverwrite {
-		logrus.Debug("Tags Overwrite diabled, filtering tags")
+		logrus.Debug("Tags Overwrite disabled, filtering tags")
 
 		repositoryTags, err := provider.GetTags(cfg.DockerSpec.OutputRepository)
 
