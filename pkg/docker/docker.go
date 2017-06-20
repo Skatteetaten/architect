@@ -44,6 +44,7 @@ func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error)
 	scanner := bufio.NewScanner(build.Body)
 	for scanner.Scan() {
 		bodyLine = scanner.Text()
+		logrus.Debug(bodyLine)
 		if strings.Contains(bodyLine, "errorDetail") {
 			msg, err := JsonMapToString(bodyLine, "error")
 			if err != nil {
@@ -72,7 +73,7 @@ func (d *DockerClient) PushImages(tags[] string) (error) {
 	for _, tag := range tags {
 		err := d.PushImage(tag)
 		if err != nil {
-			return errors.Wrap(err, "Error pushing image")
+			return errors.Wrapf(err, "Failed to push %s", tag)
 		}
 	}
 	return nil
@@ -87,19 +88,28 @@ func (d *DockerClient) TagImage(imageId string, tag string) (error) {
 
 func (d *DockerClient) PushImage(tag string) (error) {
 	logrus.Infof("Pushing image %s", tag)
-	push, err := d.client.ImagePush(context.Background(), tag, types.ImagePushOptions{
-		RegistryAuth: "aurora",
+	push, err := d.client.ImagePush(context.Background(), tag, types.ImagePushOptions{RegistryAuth: "aurora"})
 
-	})
 	if err != nil {
 		return err
 	}
+
 	defer push.Close()
+
+	// ImageBuild will not return error message if build fails.
 	scanner := bufio.NewScanner(push)
 	for scanner.Scan() {
-		logline := scanner.Text()
-		logrus.Debug(logline)
+		bodyLine := scanner.Text()
+		logrus.Debug(bodyLine)
+		if strings.Contains(bodyLine, "errorDetail") {
+			msg, err := JsonMapToString(bodyLine, "error")
+			if err != nil {
+				return errors.Wrap(err, "Error mapping JSON error message. Unknown error")
+			}
+			return errors.New(msg)
+		}
 	}
+
 	return nil
 }
 
