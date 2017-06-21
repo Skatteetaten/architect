@@ -3,7 +3,7 @@ package docker
 import (
 	"archive/tar"
 	"bufio"
-	"context"
+	"golang.org/x/net/context"
 	"encoding/json"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -15,6 +15,12 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
+type DockerClientAPI interface {
+	ImageBuild(ctx context.Context, context io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error)
+	ImagePush(ctx context.Context, ref string, options types.ImagePushOptions) (io.ReadCloser, error)
+	ImageTag(ctx context.Context, image, ref string) error
+}
+
 type DockerClientConfig struct {
 	Endpoint string
 }
@@ -25,7 +31,7 @@ type DockerBuildConfig struct {
 }
 
 type DockerClient struct {
-	client client.Client
+	Client DockerClientAPI
 }
 
 func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error) {
@@ -34,7 +40,7 @@ func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error)
 		SuppressOutput: false,
 	}
 	tarReader := createContextTarStreamReader(buildConfig.BuildFolder)
-	build, err := d.client.ImageBuild(context.Background(), tarReader, dockerOpt)
+	build, err := d.Client.ImageBuild(context.Background(), tarReader, dockerOpt)
 	if err != nil {
 		return "", errors.Wrap(err, "Error building image")
 	}
@@ -80,7 +86,7 @@ func (d *DockerClient) PushImages(tags[] string) (error) {
 }
 
 func (d *DockerClient) TagImage(imageId string, tag string) (error) {
-	if err := d.client.ImageTag(context.Background(), imageId, tag); err != nil {
+	if err := d.Client.ImageTag(context.Background(), imageId, tag); err != nil {
 		return err
 	}
 	return nil
@@ -88,7 +94,7 @@ func (d *DockerClient) TagImage(imageId string, tag string) (error) {
 
 func (d *DockerClient) PushImage(tag string) (error) {
 	logrus.Infof("Pushing image %s", tag)
-	push, err := d.client.ImagePush(context.Background(), tag, types.ImagePushOptions{RegistryAuth: "aurora"})
+	push, err := d.Client.ImagePush(context.Background(), tag, types.ImagePushOptions{RegistryAuth: "aurora"})
 
 	if err != nil {
 		return err
@@ -128,7 +134,7 @@ func NewDockerClient(config *DockerClientConfig) (*DockerClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &DockerClient{client: *cli}, nil
+	return &DockerClient{Client: cli}, nil
 }
 
 func createContextTarStreamToTarWriter(dockerBase string, writer io.Writer) error {
