@@ -1,54 +1,30 @@
 package docker_test
 
 import (
-	"fmt"
+	"bytes"
+	"github.com/docker/docker/api/types"
+	"github.com/pkg/errors"
+	"github.com/skatteetaten/architect/pkg/docker"
+	"golang.org/x/net/context"
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 	"time"
-	"io"
-	"github.com/docker/docker/api/types"
-	"golang.org/x/net/context"
-	"github.com/skatteetaten/architect/pkg/docker"
-	"bytes"
-	"github.com/pkg/errors"
 )
 
 type DockerClientMock struct {
 	ImageBuildFunc func(ctx context.Context, context io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error)
-	ImagePushFunc func(ctx context.Context, ref string, options types.ImagePushOptions) (io.ReadCloser, error)
-	ImageTagFunc func(ctx context.Context, image, ref string) error
+	ImagePushFunc  func(ctx context.Context, ref string, options types.ImagePushOptions) (io.ReadCloser, error)
+	ImageTagFunc   func(ctx context.Context, image, ref string) error
 }
 
-var ImagePushSuccess = func(ctx context.Context, ref string, options types.ImagePushOptions) (io.ReadCloser, error) {
-	body := `{"status":"The push refers to a repository [registry09:5000/foo/huey]"}
-{"status":"Preparing","progressDetail":{},"id":"363011c5287c"}
-{"status":"Waiting","progressDetail":{},"id":"dbed221c3f7b"}
-{"progressDetail":{},"aux":{"Tag":"tag","Digest":"sha256:0ce54ead","Size":2611}}`
+func TestBuildImageSuccess(t *testing.T) {
+	target := getBuildTargetFromFile(t, "testdata/rsp_build_success.txt")
 
-	return ioutil.NopCloser(bytes.NewReader([]byte(body))), nil
-}
-
-var ImagePushUnauthorized = func(ctx context.Context, ref string, options types.ImagePushOptions) (io.ReadCloser, error) {
-	body := `{"status":"The push refers to a repository [registry09:5000/foo/dewey]"}
-{"status":"Preparing","progressDetail":{},"id":"363011c5287c"}
-{"status":"Waiting","progressDetail":{},"id":"dbed221c3f7b"}
-{"status":"Image push failed","progressDetail":{},"id":"363011c5287c"}
-{"errorDetail":{"message":"unauthorized: authentication required"},"error":"unauthorized: authentication required"}`
-
-	return ioutil.NopCloser(bytes.NewReader([]byte(body))), nil
-}
-
-var ImagePushError = func(ctx context.Context, ref string, options types.ImagePushOptions) (io.ReadCloser, error) {
-	return nil, errors.New("Nasty errror occurred")
-}
-
-func TestBuildImage(t *testing.T) {
-	cli, err := docker.NewDockerClient(&docker.DockerClientConfig{Endpoint: ""})
-	if err != nil {
-		t.Error(err)
-	}
+	// Uncomment to invoke Docker engine
+	//target, _ := docker.NewDockerClient(&docker.DockerClientConfig{Endpoint: ""})
 
 	dir, err := createDockerBase()
 	if err != nil {
@@ -60,41 +36,125 @@ func TestBuildImage(t *testing.T) {
 		BuildFolder: dir,
 	}
 
-	imageid, err := cli.BuildImage(buildConfig)
+	if imageid, err := target.BuildImage(buildConfig); err != nil {
+		t.Error(err)
+	} else if imageid != "6757955c1ca1" {
+		t.Errorf("Build returned unexpected image id %s", imageid)
+	}
+}
+
+func TestBuildImageIllegalDockerfile(t *testing.T) {
+	target := getBuildTargetFromFile(t, "testdata/rsp_build_illegal_dockerfile.txt")
+
+	dir, err := createDockerBase()
 	if err != nil {
 		t.Error(err)
-	} else {
-		fmt.Println("Image id created: " + imageid)
+	}
+
+	buildConfig := docker.DockerBuildConfig{
+		Tags:        []string{"test_image"},
+		BuildFolder: dir,
+	}
+
+	if _, err = target.BuildImage(buildConfig); err == nil {
+		t.Errorf("Expected error")
+	} else if !strings.Contains(err.Error(), "Unknown instruction: FOO") {
+		t.Errorf("Expected error to contain cause of error")
+	}
+}
+
+func TestBuildImageError(t *testing.T) {
+	target := getBuildTargetError(t)
+
+	dir, err := createDockerBase()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	buildConfig := docker.DockerBuildConfig{
+		Tags:        []string{"test_image"},
+		BuildFolder: dir,
+	}
+
+	if _, err = target.BuildImage(buildConfig); err == nil {
+		t.Errorf("Expected error")
 	}
 }
 
 func TestPushImageSuccess(t *testing.T) {
-	target := docker.DockerClient{Client: DockerClientMock{ImagePushFunc: ImagePushSuccess}}
-	err := target.PushImage("foo/huey")
+	target := getPushTargetFromFile(t, "testdata/rsp_push_success.txt")
+
+	err := target.PushImage("foo/bar")
 
 	if err != nil {
 		t.Errorf("Returned unexpected error")
 	}
 }
 
-func TestPushImageUnauthortized(t *testing.T) {
-	target := docker.DockerClient{Client: DockerClientMock{ImagePushFunc: ImagePushUnauthorized}}
-	err := target.PushImage("foo/dewey")
+func TestPushImageUnauthorized(t *testing.T) {
+	target := getPushTargetFromFile(t, "testdata/rsp_push_unauthorized.txt")
+
+	err := target.PushImage("foo/baz")
 
 	if err == nil {
 		t.Errorf("Expected error")
-	} else if ! strings.Contains(err.Error(), "unauthorized: authentication required") {
+	} else if !strings.Contains(err.Error(), "unauthorized: authentication required") {
 		t.Errorf("Expected error to contain cause of error")
 	}
 }
+
 func TestPushImageError(t *testing.T) {
-	target := docker.DockerClient{Client: DockerClientMock{ImagePushFunc: ImagePushError}}
-	err := target.PushImage("foo/louie")
+	target := getPushTargetError(t)
+
+	err := target.PushImage("foo/qux")
 
 	if err == nil {
 		t.Errorf("Expected error")
-	} else if ! strings.Contains(err.Error(), "Nasty errror occurred") {
+	} else if !strings.Contains(err.Error(), "Nasty errror occurred") {
 		t.Errorf("Expected error to contain cause of error")
+	}
+}
+
+func getPushTargetFromFile(t *testing.T, file string) docker.DockerClient {
+	body, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Fatal(err, "Failed to read testdata file")
+	}
+
+	return docker.DockerClient{Client: DockerClientMock{ImagePushFunc: func(ctx context.Context, ref string, options types.ImagePushOptions) (io.ReadCloser, error) {
+		return ioutil.NopCloser(bytes.NewReader([]byte(body))), nil
+	}},
+	}
+}
+
+func getPushTargetError(t *testing.T) docker.DockerClient {
+	return docker.DockerClient{Client: DockerClientMock{ImagePushFunc: func(ctx context.Context, ref string, options types.ImagePushOptions) (io.ReadCloser, error) {
+		return nil, errors.New("Nasty errror occurred")
+	}},
+	}
+}
+
+func getBuildTargetFromFile(t *testing.T, file string) docker.DockerClient {
+	body, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Fatal(err, "Failed to read testdata file")
+	}
+
+	return docker.DockerClient{Client: DockerClientMock{ImageBuildFunc: func(ctx context.Context, context io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error) {
+		return types.ImageBuildResponse{
+			Body:   ioutil.NopCloser(bytes.NewReader([]byte(body))),
+			OSType: "waldo",
+		}, nil
+	},
+	},
+	}
+}
+
+func getBuildTargetError(t *testing.T) docker.DockerClient {
+	return docker.DockerClient{Client: DockerClientMock{ImageBuildFunc: func(ctx context.Context, context io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error) {
+		return types.ImageBuildResponse{}, errors.New("Nasty errror occurred")
+	}},
 	}
 }
 

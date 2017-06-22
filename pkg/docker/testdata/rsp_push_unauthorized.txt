@@ -1,0 +1,5 @@
+{"status":"The push refers to a repository [registry09:5000/foo/baz]"}
+{"status":"Preparing","progressDetail":{},"id":"363011c5287c"}
+{"status":"Waiting","progressDetail":{},"id":"dbed221c3f7b"}
+{"status":"Image push failed","progressDetail":{},"id":"363011c5287c"}
+{"errorDetail":{"message":"unauthorized: authentication required"},"error":"unauthorized: authentication required"}

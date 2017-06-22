@@ -3,16 +3,16 @@ package docker
 import (
 	"archive/tar"
 	"bufio"
-	"golang.org/x/net/context"
 	"encoding/json"
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/pkg/errors"
-	"github.com/Sirupsen/logrus"
 )
 
 type DockerClientAPI interface {
@@ -65,7 +65,7 @@ func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error)
 	return strings.TrimSpace(strings.TrimPrefix(msg, "Successfully built ")), nil
 }
 
-func (d *DockerClient) TagImages(imageId string, tags[] string) (error) {
+func (d *DockerClient) TagImages(imageId string, tags []string) error {
 	for _, tag := range tags {
 		err := d.TagImage(imageId, tag)
 		if err != nil {
@@ -75,7 +75,7 @@ func (d *DockerClient) TagImages(imageId string, tags[] string) (error) {
 	return nil
 }
 
-func (d *DockerClient) PushImages(tags[] string) (error) {
+func (d *DockerClient) PushImages(tags []string) error {
 	for _, tag := range tags {
 		err := d.PushImage(tag)
 		if err != nil {
@@ -85,14 +85,14 @@ func (d *DockerClient) PushImages(tags[] string) (error) {
 	return nil
 }
 
-func (d *DockerClient) TagImage(imageId string, tag string) (error) {
+func (d *DockerClient) TagImage(imageId string, tag string) error {
 	if err := d.Client.ImageTag(context.Background(), imageId, tag); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *DockerClient) PushImage(tag string) (error) {
+func (d *DockerClient) PushImage(tag string) error {
 	logrus.Infof("Pushing image %s", tag)
 	push, err := d.Client.ImagePush(context.Background(), tag, types.ImagePushOptions{RegistryAuth: "aurora"})
 
@@ -147,7 +147,7 @@ func createContextTarStreamToTarWriter(dockerBase string, writer io.Writer) erro
 		func(path string, info os.FileInfo, errfunc error) error {
 
 			var link string
-			if info.Mode() & os.ModeSymlink == os.ModeSymlink {
+			if info.Mode()&os.ModeSymlink == os.ModeSymlink {
 				var err error
 				if link, err = os.Readlink(path); err != nil {
 					return err

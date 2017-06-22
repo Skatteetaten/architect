@@ -1,0 +1,4 @@
+{"stream":"Step 1 : FROM alpine:3.3\n"}
+{"stream":" ---\u003e 461b3f7c318a\n"}
+{"stream":"Step 2 : FOO \n"}
+{"errorDetail":{"message":"Unknown instruction: FOO"},"error":"Unknown instruction: FOO"}

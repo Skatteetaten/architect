@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/docker/image"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"github.com/pkg/errors"
 )
 
 type ImageInfoProvider interface {
@@ -56,7 +56,7 @@ func (registry *RegistryClient) GetManifest(repository string, tag string) (*sch
 	manifest := &schema1.SignedManifest{}
 
 	if err = manifest.UnmarshalJSON(body); err != nil {
-		return nil, errors.Wrapf(err,"Failed to unmarshal manifest for repository %s, tag %s from Docker registry %s", repository, tag, url)
+		return nil, errors.Wrapf(err, "Failed to unmarshal manifest for repository %s, tag %s from Docker registry %s", repository, tag, url)
 	}
 
 	return manifest, nil
@@ -88,7 +88,7 @@ func (registry *RegistryClient) GetTags(repository string) (*TagsAPIResponse, er
 	err = json.Unmarshal(body, &tagsList)
 
 	if err != nil {
-		return nil, errors.Wrapf(err,"Failed to unmarshal tag list for repository %s from Docker registry %s", repository, url)
+		return nil, errors.Wrapf(err, "Failed to unmarshal tag list for repository %s from Docker registry %s", repository, url)
 	}
 
 	return &tagsList, nil
@@ -109,7 +109,7 @@ func (registry *RegistryClient) GetManifestEnv(repository string, tag string, na
 
 	value, ok := envMap[name]
 
-	if ! ok {
+	if !ok {
 		return "", errors.Wrapf(err, "Env variable %s not in manifest", name)
 	}
 
