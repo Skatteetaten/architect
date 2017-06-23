@@ -8,11 +8,11 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"context"
 )
 
 type DockerClientAPI interface {
@@ -32,6 +32,15 @@ type DockerBuildConfig struct {
 
 type DockerClient struct {
 	Client DockerClientAPI
+}
+
+func NewDockerClient(config *DockerClientConfig) (*DockerClient, error) {
+	// foreloepig bypasser config biten.
+	cli, err := client.NewClient(client.DefaultDockerHost, "1.23", nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &DockerClient{Client: DockerClientProxy{*cli}}, nil
 }
 
 func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error) {
@@ -128,15 +137,6 @@ func JsonMapToString(jsonStr string, key string) (string, error) {
 	return errorMap[key].(string), nil
 }
 
-func NewDockerClient(config *DockerClientConfig) (*DockerClient, error) {
-	// foreloepig bypasser config biten.
-	cli, err := client.NewClient(client.DefaultDockerHost, "1.23", nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &DockerClient{Client: cli}, nil
-}
-
 func createContextTarStreamToTarWriter(dockerBase string, writer io.Writer) error {
 	baseDir := "./"
 
@@ -192,3 +192,4 @@ func createContextTarStreamReader(dockerBase string) io.ReadCloser {
 	}()
 	return r
 }
+

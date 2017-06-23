@@ -19,6 +19,9 @@ type FileGenerator interface {
 
 func Prepare(buildinfo global.BuildInfo, deliverable global.Deliverable) (string, error) {
 
+	// Copy token which is used for registry authentication
+
+
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
 
@@ -56,6 +59,26 @@ func Prepare(buildinfo global.BuildInfo, deliverable global.Deliverable) (string
 	}
 
 	return dockerBuildPath, nil
+}
+
+func copySecret() error {
+	exists, err := Exists("/var/run/secrets/openshift.io/push")
+
+	if err != nil {
+		return err
+	} else if ! exists {
+		return nil
+	}
+
+	exists, err = Exists("/root/.dockercfg")
+
+	if err != nil {
+		return err
+	} else if exists {
+		return nil
+	}
+
+	return CopyFile("/var/run/secrets/openshift.io/push", "/root/.dockercfg")
 }
 
 func extractDeliverable(dockerBuildPath string, deliverablePath string) (string, string, error) {
@@ -187,4 +210,12 @@ func Exists(path string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func CopyFile(srcfile string, dstfile string) error {
+	sBytes, err := ioutil.ReadFile(srcfile)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(dstfile, sBytes, 0700)
 }
