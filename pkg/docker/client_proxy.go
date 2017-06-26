@@ -7,6 +7,12 @@ import (
 	"github.com/docker/docker/api/types"
 )
 
+type DockerClientAPI interface {
+	ImageBuild(ctx context.Context, context io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error)
+	ImagePush(ctx context.Context, ref string, options types.ImagePushOptions) (io.ReadCloser, error)
+	ImageTag(ctx context.Context, image, ref string) error
+}
+
 type DockerClientProxy struct {
 	client client.Client
 }

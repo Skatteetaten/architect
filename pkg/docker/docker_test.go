@@ -5,13 +5,13 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/docker"
-	"golang.org/x/net/context"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 	"time"
+	"context"
 )
 
 type DockerClientMock struct {
@@ -85,7 +85,11 @@ func TestBuildImageError(t *testing.T) {
 func TestPushImageSuccess(t *testing.T) {
 	target := getPushTargetFromFile(t, "testdata/rsp_push_success.txt")
 
+	// Uncomment to invoke Docker engine
+	//target, _ := docker.NewDockerClient(&docker.DockerClientConfig{Endpoint: ""})
+
 	err := target.PushImage("foo/bar")
+	//err := target.PushImage("docker-registry-default.qa.paas.skead.no/aurora/architecttest:1.0.2")
 
 	if err != nil {
 		t.Errorf("Returned unexpected error")
