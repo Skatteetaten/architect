@@ -11,7 +11,6 @@ import (
 	global "github.com/skatteetaten/architect/pkg/config"
 	"github.com/pkg/errors"
 	"path"
-	"os/user"
 )
 
 type FileGenerator interface {
