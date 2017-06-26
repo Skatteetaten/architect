@@ -15,10 +15,6 @@ import (
 	"context"
 )
 
-type DockerClientConfig struct {
-	Endpoint string
-}
-
 type DockerBuildConfig struct {
 	Tags        []string
 	BuildFolder string
@@ -26,15 +22,17 @@ type DockerBuildConfig struct {
 
 type DockerClient struct {
 	Client DockerClientAPI
+	Config DockerConfig
 }
 
-func NewDockerClient(config *DockerClientConfig) (*DockerClient, error) {
-	// foreloepig bypasser config biten.
+func NewDockerClient(cfg DockerConfig) (*DockerClient, error) {
+
 	cli, err := client.NewClient(client.DefaultDockerHost, "1.23", nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &DockerClient{Client: DockerClientProxy{*cli}}, nil
+
+	return &DockerClient{Client: DockerClientProxy{*cli}, Config: cfg}, nil
 }
 
 func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error) {
@@ -68,6 +66,13 @@ func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error)
 	return strings.TrimSpace(strings.TrimPrefix(msg, "Successfully built ")), nil
 }
 
+func (d *DockerClient) TagImage(imageId string, tag string) error {
+	if err := d.Client.ImageTag(context.Background(), imageId, tag); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (d *DockerClient) TagImages(imageId string, tags []string) error {
 	for _, tag := range tags {
 		err := d.TagImage(imageId, tag)
@@ -78,25 +83,11 @@ func (d *DockerClient) TagImages(imageId string, tags []string) error {
 	return nil
 }
 
-func (d *DockerClient) PushImages(tags []string) error {
-	for _, tag := range tags {
-		err := d.PushImage(tag)
-		if err != nil {
-			return errors.Wrapf(err, "Failed to push %s", tag)
-		}
-	}
-	return nil
-}
-
-func (d *DockerClient) TagImage(imageId string, tag string) error {
-	if err := d.Client.ImageTag(context.Background(), imageId, tag); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (d *DockerClient) PushImage(tag string) error {
 	logrus.Infof("Pushing image %s", tag)
+
+	auth := getRegistryAuth(tag)
+
 	push, err := d.Client.ImagePush(context.Background(), tag, types.ImagePushOptions{RegistryAuth: "aurora"})
 
 	if err != nil {
@@ -119,6 +110,16 @@ func (d *DockerClient) PushImage(tag string) error {
 		}
 	}
 
+	return nil
+}
+
+func (d *DockerClient) PushImages(tags []string) error {
+	for _, tag := range tags {
+		err := d.PushImage(tag)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to push %s", tag)
+		}
+	}
 	return nil
 }
 
@@ -187,3 +188,6 @@ func createContextTarStreamReader(dockerBase string) io.ReadCloser {
 	return r
 }
 
+func getRegistryAuth(tag string) string {
+
+}

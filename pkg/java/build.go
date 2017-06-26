@@ -60,7 +60,7 @@ func Build(cfg config.Config, downloader nexus.Downloader) error {
 		BuildFolder: path,
 	}
 
-	client, err := docker.NewDockerClient(&docker.DockerClientConfig{})
+	client, err := docker.NewDockerClient(docker.DockerConfig{})
 
 	if err != nil {
 		return errors.Wrap(err, "Error initializing Docker")
@@ -96,7 +96,7 @@ func Retag(cfg config.Config) error {
 		return errors.Wrap(err, "Failed to retag image")
 	}
 
-	client, err := docker.NewDockerClient(&docker.DockerClientConfig{})
+	client, err := docker.NewDockerClient(docker.DockerConfig{})
 	if err != nil {
 		return errors.Wrap(err, "Error initializing Docker")
 	}
