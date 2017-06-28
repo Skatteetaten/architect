@@ -1,10 +1,10 @@
 package prepare
 
 import (
+	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/java/config"
 	"io"
 	"text/template"
-	"github.com/pkg/errors"
 )
 
 var startscriptTemplate string = `exec java {{.JvmOptions}} $JAVA_PROPERTIES_ARGS ` +

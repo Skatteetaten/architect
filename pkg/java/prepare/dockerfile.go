@@ -1,16 +1,17 @@
 package prepare
 
 import (
-	"github.com/skatteetaten/architect/pkg/java/config"
+	"github.com/pkg/errors"
 	global "github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/docker"
+	"github.com/skatteetaten/architect/pkg/java/config"
 	"io"
 	"text/template"
-	"github.com/pkg/errors"
-	"github.com/skatteetaten/architect/pkg/docker"
 )
 
 // The base directory where all code is copied in the Docker image
 const DockerBasedir = "/u01"
+
 // The directory where the application is prepared
 const ApplicationDir = "app"
 
@@ -27,11 +28,11 @@ ENV {{range $key, $value := .Env}}{{$key}}="{{$value}}" {{end}}
 CMD ["/u01/bin/run"]`
 
 type Dockerfile struct {
-	BaseRepository 	string
-	BaseImageTag	string
-	Maintainer 	string
-	Labels     	map[string]string
-	Env        	map[string]string
+	BaseRepository string
+	BaseImageTag   string
+	Maintainer     string
+	Labels         map[string]string
+	Env            map[string]string
 }
 
 func NewDockerfile(meta *config.DeliverableMetadata, buildinfo global.BuildInfo) (*Dockerfile, error) {

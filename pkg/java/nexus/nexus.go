@@ -2,6 +2,7 @@ package nexus
 
 import (
 	"github.com/docker/docker/pkg/homedir"
+	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
 	"io"
 	"io/ioutil"
@@ -11,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/pkg/errors"
 )
 
 type Downloader interface {

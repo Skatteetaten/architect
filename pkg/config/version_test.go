@@ -1,79 +1,79 @@
 package config_test
 
 import (
-	"testing"
-	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/docker/distribution/manifest/schema1"
-	"github.com/skatteetaten/architect/pkg/docker"
 	"fmt"
+	"github.com/docker/distribution/manifest/schema1"
+	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/docker"
+	"testing"
 )
 
 const (
-	CFG_APPLICATION_TYPE    	= "Java"
-	CFG_GAV_GROUP_ID         	= "bar"
-	CFG_GAV_ARTIFACT_ID      	= "foo"
-	CFG_GAV_VERSION          	= "2.4.5"
-	CFG_GAV_SNAPSHOT_VERSION 	= "2.4.6-SNAPSHOT"
-	CFG_OUTPUT_REGISTRY		= "ouput.skead.no:5000"
-	CFG_EXTERNAL_REGISTRY		= "ext.skead.no:5001"
-	CFG_OUPUT_REPOSITORY		= "aurora/foo"
-	CFG_PUSH_EXTRA_TAGS      	= "major minor patch latest"
-	CFG_BUILDER_VERSION      	= "1.11.0"
-	CFG_BASE_REPOSITORY      	= "aurora/oracle8"
-	CFG_BASE_VERSION         	= "1"
-	CFG_TAG_WITH             	= "ab543b32de"
+	CFG_APPLICATION_TYPE     = "Java"
+	CFG_GAV_GROUP_ID         = "bar"
+	CFG_GAV_ARTIFACT_ID      = "foo"
+	CFG_GAV_VERSION          = "2.4.5"
+	CFG_GAV_SNAPSHOT_VERSION = "2.4.6-SNAPSHOT"
+	CFG_OUTPUT_REGISTRY      = "ouput.skead.no:5000"
+	CFG_EXTERNAL_REGISTRY    = "ext.skead.no:5001"
+	CFG_OUPUT_REPOSITORY     = "aurora/foo"
+	CFG_PUSH_EXTRA_TAGS      = "major minor patch latest"
+	CFG_BUILDER_VERSION      = "1.11.0"
+	CFG_BASE_REPOSITORY      = "aurora/oracle8"
+	CFG_BASE_VERSION         = "1"
+	CFG_TAG_WITH             = "ab543b32de"
 )
 
 const (
-	DELIVERABLE_PATH            	= "/tmp/foo-JRA-100-Fix-20170329.115428-3-Leveransepakke.zip"
-	INFERRED_BASE_IMAGE_VERSION 	= "1.2.3"
+	DELIVERABLE_PATH            = "/tmp/foo-JRA-100-Fix-20170329.115428-3-Leveransepakke.zip"
+	INFERRED_BASE_IMAGE_VERSION = "1.2.3"
 )
 
 const (
-	APP_VERSION			= "2.4.5"
-	AURORA_VERSION			= "2.4.5-b1.11.0-oracle8-1.2.3"
-	PUSH_EXTRA_TAGS      		= "major minor patch latest"
+	APP_VERSION     = "2.4.5"
+	AURORA_VERSION  = "2.4.5-b1.11.0-oracle8-1.2.3"
+	PUSH_EXTRA_TAGS = "major minor patch latest"
 )
 
 const (
-	TAG_MAJOR    			= "2"
-	TAG_MINOR    			= "2.4"
-	TAG_PATCH    			= "2.4.5"
-	TAG_COMPLETE 			= "2.4.5-b1.11.0-oracle8-1.2.3"
-	TAG_TEMP			= "ab543b32de"
+	TAG_MAJOR    = "2"
+	TAG_MINOR    = "2.4"
+	TAG_PATCH    = "2.4.5"
+	TAG_COMPLETE = "2.4.5-b1.11.0-oracle8-1.2.3"
+	TAG_TEMP     = "ab543b32de"
 )
 
 const (
-	SNAPSHOT_APP_VERSION    	= "SNAPSHOT-201703929219"
-	SNAPSHOT_AURORA_VERSION 	= "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
-	SNAPSHOT_TAG_COMPLETE   	= "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
+	SNAPSHOT_APP_VERSION    = "SNAPSHOT-201703929219"
+	SNAPSHOT_AURORA_VERSION = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
+	SNAPSHOT_TAG_COMPLETE   = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
 )
 
-type RegistryMock struct {}
+type RegistryMock struct{}
 
 var dockerSpec = config.DockerSpec{
-	OutputRegistry: 		CFG_OUTPUT_REGISTRY,
-	PushExtraTags: 			CFG_PUSH_EXTRA_TAGS,
-	OutputRepository:		CFG_OUPUT_REPOSITORY,
-	ExternalDockerRegistry: 	CFG_EXTERNAL_REGISTRY,
-	BaseImage: 			CFG_BASE_REPOSITORY,
-	BaseVersion: 			CFG_BASE_VERSION}
+	OutputRegistry:         CFG_OUTPUT_REGISTRY,
+	PushExtraTags:          CFG_PUSH_EXTRA_TAGS,
+	OutputRepository:       CFG_OUPUT_REPOSITORY,
+	ExternalDockerRegistry: CFG_EXTERNAL_REGISTRY,
+	BaseImage:              CFG_BASE_REPOSITORY,
+	BaseVersion:            CFG_BASE_VERSION}
 
 var mavenGavRelease = config.MavenGav{
-	GroupId: 			CFG_GAV_GROUP_ID,
-	ArtifactId: 			CFG_GAV_ARTIFACT_ID,
-	Version:                        CFG_GAV_VERSION}
+	GroupId:    CFG_GAV_GROUP_ID,
+	ArtifactId: CFG_GAV_ARTIFACT_ID,
+	Version:    CFG_GAV_VERSION}
 
 var mavenGavSnapshot = config.MavenGav{
-	GroupId: 			CFG_GAV_GROUP_ID,
-	ArtifactId: 			CFG_GAV_ARTIFACT_ID,
-	Version:                        CFG_GAV_SNAPSHOT_VERSION}
+	GroupId:    CFG_GAV_GROUP_ID,
+	ArtifactId: CFG_GAV_ARTIFACT_ID,
+	Version:    CFG_GAV_SNAPSHOT_VERSION}
 
 func TestTagInfoRelease(t *testing.T) {
 	actual, err := config.NewTagInfo(APP_VERSION, AURORA_VERSION, CFG_PUSH_EXTRA_TAGS)
 
 	if err != nil {
-		t.Fatalf("Failed to create target VersionInfo", err)
+		t.Fatalf("Failed to create target VersionInfo %v", err)
 	}
 
 	expectedTags := []string{"latest", TAG_MAJOR, TAG_MINOR, TAG_PATCH, TAG_COMPLETE}
@@ -85,7 +85,7 @@ func TestTagInfoSnapshot(t *testing.T) {
 	actual, err := config.NewTagInfo(SNAPSHOT_APP_VERSION, SNAPSHOT_AURORA_VERSION, CFG_PUSH_EXTRA_TAGS)
 
 	if err != nil {
-		t.Fatalf("Failed to create target VersionInfo", err)
+		t.Fatalf("Failed to create target VersionInfo %v", err)
 	}
 
 	verifyTagListContent((*actual).VersionTags, []string{"latest", SNAPSHOT_TAG_COMPLETE}, t)
@@ -98,13 +98,13 @@ func TestBuildInfoReleaset(t *testing.T) {
 	actual, err := config.NewBuildInfo(cfg, config.Deliverable{DELIVERABLE_PATH}, RegistryMock{})
 
 	if err != nil {
-		t.Fatalf("Failed to create target BuildInfo", err)
+		t.Fatalf("Failed to create target BuildInfo %v", err)
 	}
 
 	expectedEnv := map[string]string{
-		docker.ENV_APP_VERSION: 	APP_VERSION,
-		docker.ENV_AURORA_VERSION:   	AURORA_VERSION,
-		docker.ENV_PUSH_EXTRA_TAGS: 	PUSH_EXTRA_TAGS,
+		docker.ENV_APP_VERSION:     APP_VERSION,
+		docker.ENV_AURORA_VERSION:  AURORA_VERSION,
+		docker.ENV_PUSH_EXTRA_TAGS: PUSH_EXTRA_TAGS,
 	}
 
 	expectedTags := []string{"latest", TAG_MAJOR, TAG_MINOR, TAG_PATCH, TAG_COMPLETE}
@@ -125,13 +125,13 @@ func TestBuildInfoTemporary(t *testing.T) {
 	actual, err := config.NewBuildInfo(cfg, config.Deliverable{DELIVERABLE_PATH}, RegistryMock{})
 
 	if err != nil {
-		t.Fatalf("Failed to create BuildInfo", err)
+		t.Fatalf("Failed to create BuildInfo %v", err)
 	}
 
 	expectedEnv := map[string]string{
-		docker.ENV_APP_VERSION: 	APP_VERSION,
-		docker.ENV_AURORA_VERSION:   	AURORA_VERSION,
-		docker.ENV_PUSH_EXTRA_TAGS: 	PUSH_EXTRA_TAGS,
+		docker.ENV_APP_VERSION:     APP_VERSION,
+		docker.ENV_AURORA_VERSION:  AURORA_VERSION,
+		docker.ENV_PUSH_EXTRA_TAGS: PUSH_EXTRA_TAGS,
 	}
 
 	expectedTags := []string{TAG_TEMP}
@@ -151,7 +151,7 @@ func TestFilterTags(t *testing.T) {
 	myTags, err := config.FilterVersionTags("1.1.1", newTags, repositoryTags)
 
 	if err != nil {
-		t.Fatalf("Failed to call FilterTags", err)
+		t.Fatalf("Failed to call FilterTags %v", err)
 	}
 
 	verifyTagListContent(myTags, []string{"1.1.1", "1.1.1-b0.0.0-oracle8-1.4.0", "someothertag"}, t)
@@ -161,7 +161,7 @@ func TestFilterTags(t *testing.T) {
 	myTags, err = config.FilterVersionTags("1.2.2", newTags, repositoryTags)
 
 	if err != nil {
-		t.Fatalf("Failed to call FilterTags", err)
+		t.Fatalf("Failed to call FilterTags %v", err)
 	}
 
 	verifyTagListContent(myTags, []string{"1.2.2", "1.2"}, t)
@@ -171,7 +171,7 @@ func TestFilterTags(t *testing.T) {
 	myTags, err = config.FilterVersionTags("1.3.1", newTags, repositoryTags)
 
 	if err != nil {
-		t.Fatalf("Failed to call FilterTags", err)
+		t.Fatalf("Failed to call FilterTags %v", err)
 	}
 
 	verifyTagListContent(myTags, []string{"1.3.1", "1.3", "1"}, t)
@@ -181,7 +181,7 @@ func TestFilterTags(t *testing.T) {
 	myTags, err = config.FilterVersionTags("2.0.1", newTags, repositoryTags)
 
 	if err != nil {
-		t.Fatalf("Failed to call FilterTags", err)
+		t.Fatalf("Failed to call FilterTags %v", err)
 	}
 
 	verifyTagListContent(myTags, []string{"2.0.1", "2.0", "2", "latest"}, t)
@@ -189,7 +189,7 @@ func TestFilterTags(t *testing.T) {
 
 func (registry RegistryMock) GetTags(repository string) (*docker.TagsAPIResponse, error) {
 	tags := []string{"a", "b"}
-	return &docker.TagsAPIResponse{Name:"jalla", Tags:tags}, nil // Do not need this
+	return &docker.TagsAPIResponse{Name: "jalla", Tags: tags}, nil // Do not need this
 }
 
 func (registry RegistryMock) GetManifest(repository string, tag string) (*schema1.SignedManifest, error) {
@@ -219,7 +219,7 @@ func verifyEnvMapContent(actualMap map[string]string, expectedMap map[string]str
 func verifyEnvMapContains(actualMap map[string]string, key string, expected string, t *testing.T) {
 	actual, ok := actualMap[key]
 
-	if ! ok {
+	if !ok {
 		t.Errorf("Env map does not contain variable %s", key)
 		return
 	}
@@ -239,8 +239,8 @@ func verifyTagListContent(actualList []string, expectedList []string, t *testing
 	}
 }
 
-func verifyContainsTag(actual []string, expected string, t *testing.T)  {
-	if ! contains(actual, expected) {
+func verifyContainsTag(actual []string, expected string, t *testing.T) {
+	if !contains(actual, expected) {
 		t.Errorf("Expected tag %s does not exist", expected)
 	}
 }

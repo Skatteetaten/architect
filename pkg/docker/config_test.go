@@ -1,9 +1,9 @@
 package docker_test
 
 import (
-	"testing"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"strings"
+	"testing"
 )
 
 func TestReadConfigSingleRegistry(t *testing.T) {
@@ -25,7 +25,7 @@ func TestReadConfigSingleRegistry(t *testing.T) {
 
 	auth, ok := cfg.Auths["foo-registry"]
 
-	if ! ok {
+	if !ok {
 		t.Errorf("Failed to read valid json config")
 	} else if auth.Auth != "b3rb3xc0was7=" {
 		t.Errorf("Unexpected token %s", auth.Auth)
@@ -56,10 +56,46 @@ func TestReadConfigMultipleRegistries(t *testing.T) {
 
 	auth, ok := cfg.Auths["bar-registry"]
 
-	if ! ok {
+	if !ok {
 		t.Errorf("Failed to read valid json config")
 	} else if auth.Auth != "au3rwp0kgisxz" {
 		t.Errorf("Unexpected token %s", auth.Auth)
+	}
+
+}
+
+func TestGetCredentials(t *testing.T) {
+	// auth is "foo:barpw" base64 encoded
+	config_json := `{
+	"auths": {
+		"the-registry": {
+			"auth": "Zm9vOmJhcnB3Cg==",
+			"email": "john.doe@foo.no"
+		}
+	}
+}`
+
+	expected_user := "foo"
+	expected_password := "barpw"
+
+	cfg, err := docker.ReadConfig(strings.NewReader(config_json))
+
+	if err != nil || cfg == nil {
+		t.Errorf("Failed to read valid json config: %v", err)
+	}
+
+	cred, err := cfg.GetCredentials("the-registry")
+
+	if err != nil {
+		t.Errorf("Failed to extract credentials: %v", err)
+	}
+
+	if cred.User != expected_user {
+		t.Errorf("Expected user %s, actual was %s", expected_user, cred.User)
+	}
+
+	if cred.Password != expected_password {
+		t.Errorf("Expected password %s, actual was %s", expected_password, cred.Password)
 	}
 
 }

@@ -2,6 +2,7 @@ package docker_test
 
 import (
 	"bytes"
+	"context"
 	"github.com/docker/docker/api/types"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/docker"
@@ -11,7 +12,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"context"
 )
 
 type DockerClientMock struct {
@@ -88,7 +88,7 @@ func TestPushImageSuccess(t *testing.T) {
 	// Uncomment to invoke Docker engine
 	//target, _ := docker.NewDockerClient(&docker.DockerClientConfig{Endpoint: ""})
 
-	err := target.PushImage("foo/bar")
+	err := target.PushImage("foo/bar", "paswd")
 	//err := target.PushImage("docker-registry-default.qa.paas.skead.no/aurora/architecttest:1.0.2")
 
 	if err != nil {
@@ -99,7 +99,7 @@ func TestPushImageSuccess(t *testing.T) {
 func TestPushImageUnauthorized(t *testing.T) {
 	target := getPushTargetFromFile(t, "testdata/rsp_push_unauthorized.txt")
 
-	err := target.PushImage("foo/baz")
+	err := target.PushImage("foo/baz", "paswd")
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -111,7 +111,7 @@ func TestPushImageUnauthorized(t *testing.T) {
 func TestPushImageError(t *testing.T) {
 	target := getPushTargetError(t)
 
-	err := target.PushImage("foo/qux")
+	err := target.PushImage("foo/qux", "paswd")
 
 	if err == nil {
 		t.Errorf("Expected error")

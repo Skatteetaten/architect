@@ -3,9 +3,9 @@ package architect
 import (
 	"github.com/Sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/java"
 	"github.com/skatteetaten/architect/pkg/java/nexus"
 	"github.com/spf13/cobra"
-	"github.com/skatteetaten/architect/pkg/java"
 )
 
 var localRepo bool
@@ -56,7 +56,13 @@ func RunArchitect(configReader config.ConfigReader, downloader nexus.Downloader)
 	if err != nil {
 		logrus.Fatalf("Could not read configuration: %s", err)
 	}
+
 	logrus.Debugf("Config %+v", c)
+
+	err = configReader.AddRegistryCredentials(c)
+	if err != nil {
+		logrus.Fatalf("Could not read configuration: %s", err)
+	}
 
 	if c.DockerSpec.RetagWith != "" {
 		logrus.Info("Perform retag")

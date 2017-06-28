@@ -3,17 +3,26 @@ package docker
 import (
 	"archive/tar"
 	"bufio"
+	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"io"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
-	"context"
 )
+
+type RegistryCredentials struct {
+	Username      string `json:"username,omitempty"`
+	Password      string `json:"password,omitempty"`
+	Serveraddress string `json:"serveraddress,omitempty"`
+}
 
 type DockerBuildConfig struct {
 	Tags        []string
@@ -22,17 +31,16 @@ type DockerBuildConfig struct {
 
 type DockerClient struct {
 	Client DockerClientAPI
-	Config DockerConfig
 }
 
-func NewDockerClient(cfg DockerConfig) (*DockerClient, error) {
-
+func NewDockerClient() (*DockerClient, error) {
 	cli, err := client.NewClient(client.DefaultDockerHost, "1.23", nil, nil)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return &DockerClient{Client: DockerClientProxy{*cli}, Config: cfg}, nil
+	return &DockerClient{Client: DockerClientProxy{*cli}}, nil
 }
 
 func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error) {
@@ -83,12 +91,12 @@ func (d *DockerClient) TagImages(imageId string, tags []string) error {
 	return nil
 }
 
-func (d *DockerClient) PushImage(tag string) error {
+func (d *DockerClient) PushImage(tag, credentials string) error {
 	logrus.Infof("Pushing image %s", tag)
 
-	auth := getRegistryAuth(tag)
+	pushOptions := createImagePushOptions(credentials)
 
-	push, err := d.Client.ImagePush(context.Background(), tag, types.ImagePushOptions{RegistryAuth: "aurora"})
+	push, err := d.Client.ImagePush(context.Background(), tag, pushOptions)
 
 	if err != nil {
 		return err
@@ -113,9 +121,9 @@ func (d *DockerClient) PushImage(tag string) error {
 	return nil
 }
 
-func (d *DockerClient) PushImages(tags []string) error {
+func (d *DockerClient) PushImages(tags []string, credentials string) error {
 	for _, tag := range tags {
-		err := d.PushImage(tag)
+		err := d.PushImage(tag, credentials)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to push %s", tag)
 		}
@@ -130,6 +138,43 @@ func JsonMapToString(jsonStr string, key string) (string, error) {
 	}
 	errorMap := f.(map[string]interface{})
 	return errorMap[key].(string), nil
+}
+
+func (n ImageName) String() string {
+	if n.Registry == "" {
+		return fmt.Sprintf("%s:%s", n.Repository, n.Tag)
+	}
+
+	return fmt.Sprintf("%s/%s:%s", n.Registry, n.Repository, n.Tag)
+}
+
+func (rc RegistryCredentials) Encode() (string, error) {
+	ser, err := json.Marshal(rc)
+
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to serialize credentials to json")
+	}
+
+	return base64.StdEncoding.EncodeToString(ser), nil
+}
+
+func GetDockerConfigPath() (string, error) {
+	usr, err := user.Current()
+
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(usr.HomeDir, ".dockercfg"), nil
+}
+
+func createImagePushOptions(credentials string) types.ImagePushOptions {
+
+	if credentials == "" {
+		return types.ImagePushOptions{RegistryAuth: "aurora"}
+	}
+
+	return types.ImagePushOptions{RegistryAuth: credentials}
 }
 
 func createContextTarStreamToTarWriter(dockerBase string, writer io.Writer) error {
@@ -186,8 +231,4 @@ func createContextTarStreamReader(dockerBase string) io.ReadCloser {
 		w.CloseWithError(createContextTarStreamToTarWriter(dockerBase, w))
 	}()
 	return r
-}
-
-func getRegistryAuth(tag string) string {
-
 }

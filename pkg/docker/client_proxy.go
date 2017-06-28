@@ -1,10 +1,10 @@
 package docker
 
 import (
-	"io"
-	"github.com/docker/docker/client"
 	"context"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
+	"io"
 )
 
 type DockerClientAPI interface {

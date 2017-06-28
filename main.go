@@ -15,13 +15,13 @@
 package main
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/skatteetaten/architect/cmd"
-	"os"
-	"strings"
 	"github.com/skatteetaten/architect/cmd/architect"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/java/nexus"
-	"github.com/Sirupsen/logrus"
+	"os"
+	"strings"
 )
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 	}
 }
 func initializeAndRunOnOpenShift() {
-	if (len(os.Getenv("DEBUG")) > 0) {
+	if len(os.Getenv("DEBUG")) > 0 {
 		logrus.SetLevel(logrus.DebugLevel)
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)

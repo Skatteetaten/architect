@@ -2,9 +2,11 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/reference"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config/api"
+	"github.com/skatteetaten/architect/pkg/docker"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -12,6 +14,7 @@ import (
 
 type ConfigReader interface {
 	ReadConfig() (*Config, error)
+	AddRegistryCredentials(config *Config) error
 }
 
 type InClusterConfigReader struct {
@@ -34,17 +37,32 @@ func (m *FileConfigReader) ReadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newConfig(dat)
 
+	return newConfig(dat)
+}
+
+func (m *FileConfigReader) AddRegistryCredentials(config *Config) error {
+	dockerConfigPath, err := docker.GetDockerConfigPath()
+
+	if err != nil {
+		return err
+	}
+
+	return addRegistryCredentials(config, dockerConfigPath)
 }
 
 func (m *InClusterConfigReader) ReadConfig() (*Config, error) {
 	buildConfig := os.Getenv("BUILD")
+
 	if len(buildConfig) == 0 {
 		return nil, errors.New("Expected a build config environment variable to be present.")
 	}
-	return newConfig([]byte(buildConfig))
 
+	return newConfig([]byte(buildConfig))
+}
+
+func (m *InClusterConfigReader) AddRegistryCredentials(config *Config) error {
+	return addRegistryCredentials(config, "/var/run/secrets/openshift.io/push/.dockercfg")
 }
 
 func newConfig(buildConfig []byte) (*Config, error) {
@@ -121,10 +139,10 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		dockerSpec.RetagWith = temporaryTag
 	}
 
-	dockerSpec.TagOverwrite = false;
+	dockerSpec.TagOverwrite = false
 	if tagOverwrite, err := findEnv(customStrategy.Env, "TAG_OVERWRITE"); err == nil {
 		if strings.Contains(strings.ToLower(tagOverwrite), "true") {
-			dockerSpec.TagOverwrite = true;
+			dockerSpec.TagOverwrite = true
 		}
 	}
 
@@ -156,6 +174,53 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		BuilderSpec:     builderSpec,
 	}
 	return c, nil
+}
+
+func addRegistryCredentials(cfg *Config, dockerConfigPath string) error {
+	_, err := os.Stat(dockerConfigPath)
+
+	if err != nil {
+		if os.IsNotExist(err) {
+			logrus.Infof("Will not load registry credentials. %s not found.", dockerConfigPath)
+			return nil
+		}
+
+		return err
+	}
+
+	dockerConfigReader, err := os.Open(dockerConfigPath)
+
+	if err != nil {
+		return err
+	}
+
+	dockerConfig, err := docker.ReadConfig(dockerConfigReader)
+
+	if err != nil {
+		return err
+	}
+
+	basicCredentials, err := dockerConfig.GetCredentials(cfg.DockerSpec.OutputRegistry)
+
+	if err != nil {
+		return err
+	} else if basicCredentials == nil {
+		logrus.Infof("Will not load registry credentials. No entry for %s in %s.", cfg.DockerSpec.OutputRegistry, dockerConfigPath)
+		return nil
+	}
+
+	registryCredentials := docker.RegistryCredentials{basicCredentials.User, basicCredentials.Password,
+		cfg.DockerSpec.OutputRegistry}
+
+	encodedCredentials, err := registryCredentials.Encode()
+
+	if err != nil {
+		return err
+	}
+
+	cfg.DockerSpec.OutputRegistryCredentials = encodedCredentials
+
+	return err
 }
 
 func findOutputRepository(dockerName string) (string, error) {

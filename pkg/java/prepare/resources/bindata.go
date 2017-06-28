@@ -224,11 +224,11 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"bindata.go": bindataGo,
-	"liveness_std.sh": liveness_stdSh,
+	"bindata.go":       bindataGo,
+	"liveness_std.sh":  liveness_stdSh,
 	"readiness_std.sh": readiness_stdSh,
-	"run": run,
-	"run_tools.sh": run_toolsSh,
+	"run":              run,
+	"run_tools.sh":     run_toolsSh,
 }
 
 // AssetDir returns the file names below a certain
@@ -270,12 +270,13 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
-	"bindata.go": &bintree{bindataGo, map[string]*bintree{}},
-	"liveness_std.sh": &bintree{liveness_stdSh, map[string]*bintree{}},
+	"bindata.go":       &bintree{bindataGo, map[string]*bintree{}},
+	"liveness_std.sh":  &bintree{liveness_stdSh, map[string]*bintree{}},
 	"readiness_std.sh": &bintree{readiness_stdSh, map[string]*bintree{}},
-	"run": &bintree{run, map[string]*bintree{}},
-	"run_tools.sh": &bintree{run_toolsSh, map[string]*bintree{}},
+	"run":              &bintree{run, map[string]*bintree{}},
+	"run_tools.sh":     &bintree{run_toolsSh, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory
@@ -324,4 +325,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-

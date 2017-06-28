@@ -2,15 +2,15 @@ package prepare
 
 import (
 	"bufio"
+	"github.com/pkg/errors"
+	global "github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/java/config"
+	"github.com/skatteetaten/architect/pkg/java/prepare/resources"
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
-	"github.com/skatteetaten/architect/pkg/java/prepare/resources"
-	global "github.com/skatteetaten/architect/pkg/config"
-	"github.com/pkg/errors"
 	"path"
+	"path/filepath"
 )
 
 type FileGenerator interface {
@@ -23,21 +23,21 @@ func Prepare(buildinfo global.BuildInfo, deliverable global.Deliverable) (string
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
 
 	if err != nil {
-		return "", errors.Wrap(err,"Failed to create root folder of Docker context")
+		return "", errors.Wrap(err, "Failed to create root folder of Docker context")
 	}
 
 	// Unzip deliverable
 	applicationPath, applicationBase, err := extractDeliverable(dockerBuildPath, deliverable.Path)
 
 	if err != nil {
-		return "", errors.Wrap(err,"Failed to extract application archive")
+		return "", errors.Wrap(err, "Failed to extract application archive")
 	}
 
 	// Load metadata
 	meta, err := loadDeliverableMetadata(filepath.Join(applicationPath, DeliveryMetadataPath))
 
 	if err != nil {
-		return "", errors.Wrap(err,"Failed to read application metadata")
+		return "", errors.Wrap(err, "Failed to read application metadata")
 	}
 
 	// Runtime scripts
@@ -47,12 +47,12 @@ func Prepare(buildinfo global.BuildInfo, deliverable global.Deliverable) (string
 
 	// Prepare application
 	if err := PrepareApplication(applicationPath, applicationBase, meta); err != nil {
-		return "", errors.Wrap(err,"Failed to prepare application")
+		return "", errors.Wrap(err, "Failed to prepare application")
 	}
 
 	// Dockerfile
 	if err = addDockerfile(dockerBuildPath, meta, buildinfo); err != nil {
-		return "", errors.Wrap(err,"Failed to create Dockerfile")
+		return "", errors.Wrap(err, "Failed to create Dockerfile")
 	}
 
 	return dockerBuildPath, nil
@@ -89,7 +89,7 @@ func renameApplicationDir(base string) (string, error) {
 	if err = os.Rename(filepath.Join(base, list[0].Name()), renamedApplicationPath); err != nil {
 		return "", errors.Wrap(err, "Rename of application path to application failed")
 	} else {
-		return renamedApplicationPath, nil;
+		return renamedApplicationPath, nil
 	}
 }
 
@@ -113,7 +113,7 @@ func loadDeliverableMetadata(metafile string) (*config.DeliverableMetadata, erro
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not find %s in deliverable", path.Base(metafile))
-	} else if ! fileExists {
+	} else if !fileExists {
 		return nil, errors.Errorf("Could not find %s in deliverable", path.Base(metafile))
 	}
 
