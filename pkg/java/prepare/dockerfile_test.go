@@ -2,10 +2,10 @@ package prepare_test
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"strings"
 	"testing"
-	"fmt"
 )
 
 func TestBuild(t *testing.T) {
@@ -25,7 +25,7 @@ func TestBuild(t *testing.T) {
 
 	assertContainsElement(t, output, fmt.Sprintf("FROM %s:%s", buildinfo.BaseImage.Repository,
 		buildinfo.BaseImage.Version))
-	assertContainsElement(t, output, fmt.Sprintf("MAINTAINER %s",meta_maintainer))
+	assertContainsElement(t, output, fmt.Sprintf("MAINTAINER %s", meta_maintainer))
 	assertContainsElement(t, output, meta_k8sDescription)
 	assertContainsElement(t, output, meta_openshiftTags)
 	assertContainsElement(t, output, meta_readinessUrl)

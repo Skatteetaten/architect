@@ -23,23 +23,23 @@ OutputImage.Repository	aurora/console
 */
 
 type TagInfo struct {
-	VersionTags	[]string
+	VersionTags []string
 }
 
 type BuildInfo struct {
-	Env 		map[string]string
-	OutputImage	OutputImageInfo
-	BaseImage   	BaseImageInfo
+	Env         map[string]string
+	OutputImage OutputImageInfo
+	BaseImage   BaseImageInfo
 }
 
 type OutputImageInfo struct {
-	Repository	string
+	Repository string
 	TagInfo
 }
 
 type BaseImageInfo struct {
-	Repository	string
-	Version		string
+	Repository string
+	Version    string
 }
 
 func NewTagInfo(appVersion string, auroraVersion string, extraTags string) (*TagInfo, error) {
@@ -49,7 +49,7 @@ func NewTagInfo(appVersion string, auroraVersion string, extraTags string) (*Tag
 		return nil, errors.Wrap(err, "Failed to initialize builder")
 	}
 
-	return &TagInfo{VersionTags:versionTags}, nil
+	return &TagInfo{VersionTags: versionTags}, nil
 }
 
 func NewBuildInfo(cfg Config, deliverable Deliverable, imageInfoProvider docker.ImageInfoProvider) (*BuildInfo, error) {
@@ -81,7 +81,7 @@ func FilterVersionTags(appVersion string, newTags []string, repositoryTags []str
 		return newTags, nil
 	}
 
-	var excludeMinor, excludeMajor, excludeLatest bool = true, true, true;
+	var excludeMinor, excludeMajor, excludeLatest bool = true, true, true
 
 	minorTagName, err := getMinor(appVersion, true)
 
@@ -89,7 +89,7 @@ func FilterVersionTags(appVersion string, newTags []string, repositoryTags []str
 		return nil, err
 	}
 
-	excludeMinor, err = tagCompare("> " + appVersion + ", < " + minorTagName, repositoryTags)
+	excludeMinor, err = tagCompare("> "+appVersion+", < "+minorTagName, repositoryTags)
 
 	if err != nil {
 		return nil, err
@@ -101,14 +101,13 @@ func FilterVersionTags(appVersion string, newTags []string, repositoryTags []str
 		return nil, err
 	}
 
-	excludeMajor, err = tagCompare("> " + appVersion + ", < " + majorTagName, repositoryTags)
+	excludeMajor, err = tagCompare("> "+appVersion+", < "+majorTagName, repositoryTags)
 
 	if err != nil {
 		return nil, err
 	}
 
-
-	excludeLatest, err = tagCompare("> " + appVersion, repositoryTags)
+	excludeLatest, err = tagCompare("> "+appVersion, repositoryTags)
 
 	if err != nil {
 		return nil, err
@@ -152,7 +151,7 @@ func tagCompare(versionConstraint string, tags []string) (bool, error) {
 			}
 
 			if c.Check(v) {
-				return true, nil;
+				return true, nil
 			}
 		}
 	}
@@ -164,7 +163,7 @@ func createOutputImageInfo(appVersion string, auroraVersion string, cfg Config) 
 	var tags []string
 	var err error
 
-	if ! isTemporary(cfg) {
+	if !isTemporary(cfg) {
 		tags, err = getVersionTags(appVersion, auroraVersion, cfg.DockerSpec.PushExtraTags)
 
 		if err != nil {
@@ -184,8 +183,8 @@ func createBaseImageInfo(version string, cfg Config) *BaseImageInfo {
 func createEnv(appVersion string, auroraVersion string, cfg Config) map[string]string {
 	env := make(map[string]string)
 
-	env[docker.ENV_APP_VERSION] 	= appVersion
-	env[docker.ENV_AURORA_VERSION] 	= auroraVersion
+	env[docker.ENV_APP_VERSION] = appVersion
+	env[docker.ENV_AURORA_VERSION] = auroraVersion
 	env[docker.ENV_PUSH_EXTRA_TAGS] = cfg.DockerSpec.PushExtraTags
 
 	if isSnapshot(cfg) {
@@ -249,8 +248,8 @@ func getMajor(version string, bumpVersion bool) (string, error) {
 	return fmt.Sprintf("%d", versionMajor), nil
 }
 
-func isMajor(version string) (bool) {
-	var validStr= regexp.MustCompile(`^[0-9]+$`)
+func isMajor(version string) bool {
+	var validStr = regexp.MustCompile(`^[0-9]+$`)
 	if validStr.MatchString(version) {
 		return true
 	}
@@ -272,8 +271,8 @@ func getMinor(version string, bumpVersion bool) (string, error) {
 	return fmt.Sprintf("%d.%d", build_version.Segments()[0], versionMinor), nil
 }
 
-func isMinor(version string) (bool) {
-	var validStr= regexp.MustCompile(`^[0-9]+.[0-9]+$`)
+func isMinor(version string) bool {
+	var validStr = regexp.MustCompile(`^[0-9]+.[0-9]+$`)
 	if validStr.MatchString(version) {
 		return true
 	}
@@ -316,7 +315,7 @@ func getBaseImageVersion(provider docker.ImageInfoProvider, config Config) (stri
   Create aurora version aka complete version
   <application-version>-<builder-version>-<baseimage-repository>-<baseimage-version>
   e.g. 2.0.0-b1.11.0-oracle8-1.0.2
- */
+*/
 func getAuroraVersion(baseImageVersion, appVersion string, cfg Config) string {
 	builderVersion := cfg.BuilderSpec.Version
 	lastNameInRepo := getLastIndexInRepository(cfg.DockerSpec.BaseImage)
@@ -327,9 +326,9 @@ func getAuroraVersion(baseImageVersion, appVersion string, cfg Config) string {
 /*
   Create app version. If not snapshot build, then return version from GAV.
   Otherwise, create new snapshot version based on deliverable.
- */
+*/
 func getAppVersion(cfg Config, deliverablePath string) string {
-	if strings.Contains(cfg.MavenGav.Version, "SNAPSHOT")  {
+	if strings.Contains(cfg.MavenGav.Version, "SNAPSHOT") {
 		replacer := strings.NewReplacer(cfg.MavenGav.ArtifactId, "", "-Leveransepakke.zip", "")
 		version := "SNAPSHOT-" + replacer.Replace(path.Base(deliverablePath))
 		return version

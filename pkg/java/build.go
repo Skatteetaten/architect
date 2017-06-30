@@ -60,7 +60,7 @@ func Build(cfg config.Config, downloader nexus.Downloader) error {
 		BuildFolder: path,
 	}
 
-	client, err := docker.NewDockerClient(&docker.DockerClientConfig{})
+	client, err := docker.NewDockerClient()
 
 	if err != nil {
 		return errors.Wrap(err, "Error initializing Docker")
@@ -75,7 +75,7 @@ func Build(cfg config.Config, downloader nexus.Downloader) error {
 	}
 
 	logrus.Debug("Push images and tags")
-	err = client.PushImages(tagsToPush)
+	err = client.PushImages(tagsToPush, cfg.DockerSpec.OutputRegistryCredentials)
 	if err != nil {
 		return errors.Wrap(err, "Error pushing images")
 	}
@@ -96,7 +96,7 @@ func Retag(cfg config.Config) error {
 		return errors.Wrap(err, "Failed to retag image")
 	}
 
-	client, err := docker.NewDockerClient(&docker.DockerClientConfig{})
+	client, err := docker.NewDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "Error initializing Docker")
 	}
@@ -177,7 +177,7 @@ func tagAndPushImage(client docker.DockerClient, dockerSpec config.DockerSpec, i
 
 	logrus.Infof("Push tag %s to registry", alias)
 
-	err = client.PushImage(alias)
+	err = client.PushImage(alias, dockerSpec.OutputRegistryCredentials)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to push tag %s", alias)

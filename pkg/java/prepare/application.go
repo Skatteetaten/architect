@@ -1,18 +1,18 @@
 package prepare
 
 import (
+	"github.com/Sirupsen/logrus"
+	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/java/config"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"github.com/pkg/errors"
 	"strings"
-	"github.com/Sirupsen/logrus"
 )
 
 const (
-	DeliveryMetadataPath = "metadata/openshift.json"
-	DefaultLivenessScript = "liveness_std.sh"
+	DeliveryMetadataPath   = "metadata/openshift.json"
+	DefaultLivenessScript  = "liveness_std.sh"
 	DefaultReadinessScript = "readiness_std.sh"
 )
 
@@ -68,28 +68,28 @@ func prepareLivelinessAndReadynessScripts(scriptPath string) error {
 	livenessScript := filepath.Join(scriptPath, "liveness.sh")
 	livelinessExists, err := Exists(livenessScript)
 	if err != nil {
-		return errors.Wrap(err, "Could not determine if liveness-script exists");
+		return errors.Wrap(err, "Could not determine if liveness-script exists")
 	}
 
 	if !livelinessExists {
 		logrus.Info("No liveness-script. Linking in default")
 		err := os.Symlink(filepath.Join(DockerBasedir, "bin", DefaultLivenessScript), livenessScript)
 		if err != nil {
-			return errors.Wrap(err, "Error linking in script");
+			return errors.Wrap(err, "Error linking in script")
 		}
 	}
 
 	readinessScript := filepath.Join(scriptPath, "readiness.sh")
 	readinessExists, err := Exists(readinessScript)
 	if err != nil {
-		return errors.Wrap(err, "Could not determine if liveness-script exists");
+		return errors.Wrap(err, "Could not determine if liveness-script exists")
 	}
 
 	if !readinessExists {
 		logrus.Info("No readyness-script. Linking in default")
 		err := os.Symlink(filepath.Join(DockerBasedir, "bin", DefaultReadinessScript), readinessScript)
 		if err != nil {
-			return errors.Wrap(err, "Error linking in script");
+			return errors.Wrap(err, "Error linking in script")
 		}
 
 	}

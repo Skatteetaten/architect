@@ -2,9 +2,9 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
-	"github.com/pkg/errors"
 )
 
 type DeliverableMetadata struct {

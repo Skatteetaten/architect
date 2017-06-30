@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"testing"
 	"strings"
+	"testing"
 )
 
 func TestClasspathOrder(t *testing.T) {
@@ -21,7 +21,7 @@ func TestClasspathOrder(t *testing.T) {
 		t.Fatal("Failed to test classpath: ", err)
 	}
 
-	if len(actualCp) < 1  {
+	if len(actualCp) < 1 {
 		t.Fatal("Classpath has zero entries")
 	}
 

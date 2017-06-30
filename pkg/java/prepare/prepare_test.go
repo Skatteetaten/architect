@@ -1,26 +1,26 @@
 package prepare_test
 
 import (
-	"github.com/skatteetaten/architect/pkg/java/prepare"
-	"github.com/skatteetaten/architect/pkg/java/config"
-	"testing"
-	"path/filepath"
-	"os"
 	global "github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/docker"
+	"github.com/skatteetaten/architect/pkg/java/config"
+	"github.com/skatteetaten/architect/pkg/java/prepare"
+	"os"
+	"path/filepath"
+	"testing"
 )
 
 var buildinfo = global.BuildInfo{
 	Env: map[string]string{
-		docker.ENV_APP_VERSION: 	"2.0.0",
-		docker.ENV_AURORA_VERSION:   	"2.0.0-b1.11.0-oracle8-1.0.2",
-		docker.ENV_PUSH_EXTRA_TAGS: 	"latest major minor patch"},
+		docker.ENV_APP_VERSION:     "2.0.0",
+		docker.ENV_AURORA_VERSION:  "2.0.0-b1.11.0-oracle8-1.0.2",
+		docker.ENV_PUSH_EXTRA_TAGS: "latest major minor patch"},
 	OutputImage: global.OutputImageInfo{
-		Repository: 	"foo/bar",
-		TagInfo: 	global.TagInfo{[]string{"2", "2.0", "2.0.0", "2.0.0-b1.11.0-oracle8-1.2.4", "latest"}}},
+		Repository: "foo/bar",
+		TagInfo:    global.TagInfo{[]string{"2", "2.0", "2.0.0", "2.0.0-b1.11.0-oracle8-1.2.4", "latest"}}},
 	BaseImage: global.BaseImageInfo{
-		Repository: 	"aurora/oracle8",
-		Version: 	"1.2.4" },
+		Repository: "aurora/oracle8",
+		Version:    "1.2.4"},
 }
 
 var meta = &config.DeliverableMetadata{

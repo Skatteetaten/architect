@@ -82,7 +82,7 @@ func TestGetManifestEnvMap(t *testing.T) {
 	}
 
 	expected_len := 14
-	actual_len   := len(envMap)
+	actual_len := len(envMap)
 
 	if expected_len != actual_len {
 		t.Errorf("Expected map size %d, actual size is %d", expected_len, actual_len)
@@ -99,8 +99,8 @@ func TestGetTags(t *testing.T) {
 	}
 
 	expectedTags := []string{"latest", "develop-SNAPSHOT",
-				 "develop-SNAPSHOT-9be2b9ca43a024415947a6c262e183406dbb090b",
-				 "2.0.0", "1.3.0", "1.2.1", "1.1.2", "1.1", "1.2", "1.3", "2.0", "2", "1"}
+		"develop-SNAPSHOT-9be2b9ca43a024415947a6c262e183406dbb090b",
+		"2.0.0", "1.3.0", "1.2.1", "1.1.2", "1.1", "1.2", "1.3", "2.0", "2", "1"}
 
 	target := NewRegistryClient(server.URL)
 
@@ -119,8 +119,8 @@ func verifyTagListContent(actualList []string, expectedList []string, t *testing
 	}
 }
 
-func verifyContainsTag(actual []string, expected string, t *testing.T)  {
-	if ! contains(actual, expected) {
+func verifyContainsTag(actual []string, expected string, t *testing.T) {
+	if !contains(actual, expected) {
 		t.Errorf("Expected tag %s does not exist", expected)
 	}
 }

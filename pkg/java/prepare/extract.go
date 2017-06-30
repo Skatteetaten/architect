@@ -2,10 +2,10 @@ package prepare
 
 import (
 	"archive/zip"
+	"github.com/pkg/errors"
 	"io"
 	"os"
 	"path/filepath"
-	"github.com/pkg/errors"
 )
 
 func ExtractDeliverable(archivePath string, extractedDirPath string) error {
