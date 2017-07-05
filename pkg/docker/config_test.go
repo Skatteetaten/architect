@@ -99,3 +99,57 @@ func TestGetCredentials(t *testing.T) {
 	}
 
 }
+
+func TestMultipleCredentialsInOldFormat(t *testing.T) {
+	config_json := `{
+		"the-registry": {
+			"auth": "Zm9vOmJhcnB3Cg==",
+			"email": "john.doe@foo.no"
+		},
+		"the-other-registry": {
+			"auth": "bXk6cGFzcwo=",
+			"email": "john.doe@foo.no"
+		}
+	}`
+
+	cfg, err := docker.ReadConfig(strings.NewReader(config_json))
+
+	if err != nil || cfg == nil {
+		t.Errorf("Failed to read valid json config: %v", err)
+	}
+
+	expected_user := "foo"
+	expected_password := "barpw"
+
+	cred, err := cfg.GetCredentials("the-registry")
+
+	if err != nil {
+		t.Errorf("Failed to extract credentials: %v", err)
+	}
+
+	if cred.User != expected_user {
+		t.Errorf("Expected user %s, actual was %s", expected_user, cred.User)
+	}
+
+	if cred.Password != expected_password {
+		t.Errorf("Expected password %s, actual was %s", expected_password, cred.Password)
+	}
+
+	expected_user = "my"
+	expected_password = "pass"
+
+	cred, err = cfg.GetCredentials("the-other-registry")
+
+	if err != nil {
+		t.Errorf("Failed to extract credentials: %v", err)
+	}
+
+	if cred.User != expected_user {
+		t.Errorf("Expected user %s, actual was %s", expected_user, cred.User)
+	}
+
+	if cred.Password != expected_password {
+		t.Errorf("Expected password %s, actual was %s", expected_password, cred.Password)
+	}
+
+}
