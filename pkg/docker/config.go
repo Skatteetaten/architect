@@ -39,6 +39,14 @@ func ReadConfig(reader io.Reader) (*DockerConfig, error) {
 		return nil, errors.Wrap(err, "Failed to unmarshal Docker config json")
 	}
 
+	if len(cfg.Auths) > 0 {
+		return cfg, nil
+	}
+
+	if err := json.Unmarshal(content, &cfg.Auths); err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal Docker config using older json format")
+	}
+
 	return cfg, nil
 }
 
