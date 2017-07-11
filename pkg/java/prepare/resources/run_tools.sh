@@ -54,30 +54,6 @@ EOF
     fi
 }
 
-function set_java_opts_memory_from_bytes() {
-  CONTAINER_MEMORY_IN_BYTES=$1;
-
-  if [ "$CONTAINER_MEMORY_IN_BYTES" -lt "10000000" ];then
-    return
-  fi
-
-  DEFAULT_MEMORY_CEILING=$((2**40-1))
-  if (( "${CONTAINER_MEMORY_IN_BYTES}" >= "${DEFAULT_MEMORY_CEILING}" )); then
-    return
-  fi
-
-  if [ -z $CONTAINER_HEAP_PERCENT ]; then
-      CONTAINER_HEAP_PERCENT=0.80
-  fi
-
-  CONTAINER_MEMORY_IN_MB=$((${CONTAINER_MEMORY_IN_BYTES}/1024**2))
-  CONTAINER_HEAP_MAX=$(echo "${CONTAINER_MEMORY_IN_MB} ${CONTAINER_HEAP_PERCENT}" | awk '{ printf "%d", $1 * $2 }')
-
-
-  export JAVA_OPTS="-Xmx${CONTAINER_HEAP_MAX}m"
-
-}
-
 
 function load_aurora_config() {
   local SYMLINK_FOLDER=$1
@@ -151,3 +127,18 @@ function find_config_version() {
   done
   return -1
 }
+
+create_splunk_stanza "$SPLUNK_INDEX" $HOME/logs/application.splunk "$SPLUNK_STANZA"
+
+if [ -z "$HTTP_PORT" ]; then
+  export HTTP_PORT="8080"
+fi
+
+if [ -z "$DEPLOY_TYPE" ]; then
+  export DEPLOY_TYPE="OpenShift"
+fi
+
+CONFIG_BASEDIR=$HOME/config
+SYMLINK_DIR=$HOME
+
+load_aurora_config $SYMLINK_DIR $CONFIG_BASEDIR $AURORA_VERSION $APP_VERSION

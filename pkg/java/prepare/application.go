@@ -73,7 +73,7 @@ func prepareLivelinessAndReadynessScripts(scriptPath string) error {
 
 	if !livelinessExists {
 		logrus.Info("No liveness-script. Linking in default")
-		err := os.Symlink(filepath.Join(DockerBasedir, "bin", DefaultLivenessScript), livenessScript)
+		err := os.Symlink(filepath.Join(DockerBasedir, "architect", DefaultLivenessScript), livenessScript)
 		if err != nil {
 			return errors.Wrap(err, "Error linking in script")
 		}
@@ -87,7 +87,7 @@ func prepareLivelinessAndReadynessScripts(scriptPath string) error {
 
 	if !readinessExists {
 		logrus.Info("No readyness-script. Linking in default")
-		err := os.Symlink(filepath.Join(DockerBasedir, "bin", DefaultReadinessScript), readinessScript)
+		err := os.Symlink(filepath.Join(DockerBasedir, "architect", DefaultReadinessScript), readinessScript)
 		if err != nil {
 			return errors.Wrap(err, "Error linking in script")
 		}
@@ -98,7 +98,7 @@ func prepareLivelinessAndReadynessScripts(scriptPath string) error {
 }
 
 func prepareEffectiveStartscript(scriptPath string) error {
-	name := "os-start"
+	name := "start"
 
 	defaultScriptExists, err := Exists(filepath.Join(scriptPath, name))
 
@@ -108,7 +108,7 @@ func prepareEffectiveStartscript(scriptPath string) error {
 		return nil
 	}
 
-	for _, altScriptName := range []string{"os-start.sh", "generated-start", "start", "start.sh"} {
+	for _, altScriptName := range []string{"start.sh", "start", "generated-start"} {
 		scriptExists, err := Exists(filepath.Join(scriptPath, altScriptName))
 
 		if err != nil {
@@ -125,7 +125,7 @@ func prepareEffectiveStartscript(scriptPath string) error {
 	}
 
 	return errors.Errorf("No start script has been defined or generated for this Leveransepakke. %s",
-		"Please put a script called one of start, start.sh, os-start or os-start.sh in the bin folder.")
+		"Please put a script called one of start, start.sh, in the bin folder.")
 }
 
 // applicationDir is the temporary directory where we have the application code

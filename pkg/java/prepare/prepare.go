@@ -50,7 +50,11 @@ func Prepare(buildinfo global.BuildInfo, deliverable global.Deliverable) (string
 		return "", errors.Wrap(err, "Failed to prepare application")
 	}
 
+	//ADD env pointing to logback file
+	buildinfo.Env["LOGBACK_FILE"] = "$HOME/architect/logback.xml"
+
 	// Dockerfile
+
 	if err = addDockerfile(dockerBuildPath, meta, buildinfo); err != nil {
 		return "", errors.Wrap(err, "Failed to create Dockerfile")
 	}
@@ -133,7 +137,7 @@ func loadDeliverableMetadata(metafile string) (*config.DeliverableMetadata, erro
 }
 
 func addRuntimeScripts(dockerBuildPath string) error {
-	scriptDirPath := filepath.Join(dockerBuildPath, "app", "bin")
+	scriptDirPath := filepath.Join(dockerBuildPath, "app", "architect")
 
 	if err := os.MkdirAll(scriptDirPath, 0755); err != nil {
 		return errors.Wrap(err, "Failed to create resource folder")

@@ -57,8 +57,8 @@ func TestPrepare(t *testing.T) {
 	}
 
 	// Test image scripts
-	for _, script := range []string{"run", "run_tools.sh", "liveness_std.sh", "readiness_std.sh"} {
-		scripPath := filepath.Join(dockerBuildPath, "app", "bin", script)
+	for _, script := range []string{"logback.xml", "run_tools.sh", "liveness_std.sh", "readiness_std.sh"} {
+		scripPath := filepath.Join(dockerBuildPath, "app", "architect", script)
 		scriptExists, err := prepare.Exists(scripPath)
 
 		if err != nil {

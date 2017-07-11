@@ -63,7 +63,7 @@ func TestPrepareStartscript(t *testing.T) {
 		t.Error("Failed to generate startscript")
 	}
 
-	linkExists, err := prepare.Exists(filepath.Join(root, "bin", "os-start"))
+	linkExists, err := prepare.Exists(filepath.Join(root, "bin", "start"))
 
 	if err != nil || !linkExists {
 		t.Error("Failed to generate link to startscript")

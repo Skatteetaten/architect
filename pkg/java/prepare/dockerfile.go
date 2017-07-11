@@ -20,12 +20,11 @@ var dockerfileTemplate string = `FROM {{.BaseRepository}}:{{.BaseImageTag}}
 MAINTAINER {{.Maintainer}}
 LABEL {{range $key, $value := .Labels}}{{$key}}="{{$value}}" {{end}}
 
-COPY ./app /u01
-RUN chmod -R 777 /u01/
+COPY ./app $HOME
+RUN chmod -R 777 $HOME
 
 ENV {{range $key, $value := .Env}}{{$key}}="{{$value}}" {{end}}
-
-CMD ["/u01/bin/run"]`
+`
 
 type Dockerfile struct {
 	BaseRepository string

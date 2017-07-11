@@ -40,11 +40,11 @@
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",
-                      "value": "1"
+                      "value": "latest"
                     },
                     {
                       "name": "DOCKER_BASE_NAME",
-                      "value": "aurora/oracle8"
+                      "value": "aurora/wingnut"
                     },
                     {
                       "name": "TAG_OVERWRITE",
