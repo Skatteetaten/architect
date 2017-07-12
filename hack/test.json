@@ -28,15 +28,15 @@
                     },
                     {
                       "name": "ARTIFACT_ID",
-                      "value": "openshift-referanse-springboot-server"
+                      "value": "aos-simple"
                     },
                     {
                       "name": "GROUP_ID",
-                      "value": "ske.aurora.openshift.referanse"
+                      "value": "ske.aurora.openshift.demo"
                     },
                     {
                       "name": "VERSION",
-                      "value": "1.0.2"
+                      "value": "2.1.0"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",
@@ -53,10 +53,6 @@
                     {
                       "name": "SPLUNK_INDEX",
                       "value": "openshift-test"
-                    },
-                    {
-                      "name": "DEBUG",
-                      "value": "1"
                     }
                 ],
                 "exposeDockerSocket": true

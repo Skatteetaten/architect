@@ -21,7 +21,10 @@ MAINTAINER {{.Maintainer}}
 LABEL {{range $key, $value := .Labels}}{{$key}}="{{$value}}" {{end}}
 
 COPY ./app $HOME
-RUN chmod -R 777 $HOME
+RUN chmod -R 777 $HOME && \
+	ln -s $HOME/logs $HOME/application/logs && \
+	rm $TRUST_STORE && \
+	ln -s $HOME/architect/cacerts $TRUST_STORE
 
 ENV {{range $key, $value := .Env}}{{$key}}="{{$value}}" {{end}}
 `

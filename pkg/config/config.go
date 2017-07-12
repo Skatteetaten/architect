@@ -75,24 +75,30 @@ func newConfig(buildConfig []byte) (*Config, error) {
 	if customStrategy == nil {
 		return nil, errors.New("Expected strategy to be custom strategy. Thats the only one supported.")
 	}
+
+	env := make(map[string]string)
+	for _, e := range customStrategy.Env {
+		env[e.Name] = e.Value
+	}
+
 	gav := MavenGav{}
-	if artifactId, err := findEnv(customStrategy.Env, "ARTIFACT_ID"); err == nil {
+	if artifactId, err := findEnv(env, "ARTIFACT_ID"); err == nil {
 		gav.ArtifactId = artifactId
 	} else {
 		return nil, err
 	}
-	if groupId, err := findEnv(customStrategy.Env, "GROUP_ID"); err == nil {
+	if groupId, err := findEnv(env, "GROUP_ID"); err == nil {
 		gav.GroupId = groupId
 	} else {
 		return nil, err
 	}
-	if version, err := findEnv(customStrategy.Env, "VERSION"); err == nil {
+	if version, err := findEnv(env, "VERSION"); err == nil {
 		gav.Version = version
 	} else {
 		return nil, err
 	}
 
-	if version, err := findEnv(customStrategy.Env, "VERSION"); err == nil {
+	if version, err := findEnv(env, "VERSION"); err == nil {
 		gav.Version = version
 	} else {
 		return nil, err
@@ -100,15 +106,15 @@ func newConfig(buildConfig []byte) (*Config, error) {
 
 	dockerSpec := DockerSpec{}
 
-	if baseImage, err := findEnv(customStrategy.Env, "DOCKER_BASE_IMAGE"); err == nil {
+	if baseImage, err := findEnv(env, "DOCKER_BASE_IMAGE"); err == nil {
 		dockerSpec.BaseImage = baseImage
-	} else if baseImage, err := findEnv(customStrategy.Env, "DOCKER_BASE_NAME"); err == nil {
+	} else if baseImage, err := findEnv(env, "DOCKER_BASE_NAME"); err == nil {
 		dockerSpec.BaseImage = baseImage
 	} else {
 		return nil, err
 	}
 
-	if externalRegistry, err := findEnv(customStrategy.Env, "BASE_IMAGE_REGISTRY"); err == nil {
+	if externalRegistry, err := findEnv(env, "BASE_IMAGE_REGISTRY"); err == nil {
 		if strings.HasPrefix(externalRegistry, "https://") {
 			dockerSpec.ExternalDockerRegistry = externalRegistry
 		} else {
@@ -118,29 +124,29 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
 	}
 
-	if baseImageVersion, err := findEnv(customStrategy.Env, "DOCKER_BASE_VERSION"); err == nil {
+	if baseImageVersion, err := findEnv(env, "DOCKER_BASE_VERSION"); err == nil {
 		dockerSpec.BaseVersion = baseImageVersion
 	} else {
 		return nil, err
 	}
 
 	dockerSpec.PushExtraTags = "latest,major,minor,patch"
-	if pushExtraTags, err := findEnv(customStrategy.Env, "PUSH_EXTRA_TAGS"); err == nil {
+	if pushExtraTags, err := findEnv(env, "PUSH_EXTRA_TAGS"); err == nil {
 		dockerSpec.PushExtraTags = pushExtraTags
 	}
 
 	dockerSpec.TagWith = ""
-	if temporaryTag, err := findEnv(customStrategy.Env, "TAG_WITH"); err == nil {
+	if temporaryTag, err := findEnv(env, "TAG_WITH"); err == nil {
 		dockerSpec.TagWith = temporaryTag
 	}
 
 	dockerSpec.RetagWith = ""
-	if temporaryTag, err := findEnv(customStrategy.Env, "RETAG_WITH"); err == nil {
+	if temporaryTag, err := findEnv(env, "RETAG_WITH"); err == nil {
 		dockerSpec.RetagWith = temporaryTag
 	}
 
 	dockerSpec.TagOverwrite = false
-	if tagOverwrite, err := findEnv(customStrategy.Env, "TAG_OVERWRITE"); err == nil {
+	if tagOverwrite, err := findEnv(env, "TAG_OVERWRITE"); err == nil {
 		if strings.Contains(strings.ToLower(tagOverwrite), "true") {
 			dockerSpec.TagOverwrite = true
 		}
@@ -149,7 +155,7 @@ func newConfig(buildConfig []byte) (*Config, error) {
 	builderSpec := BuilderSpec{}
 
 	builderSpec.Version = "0.0.0"
-	if builderVersion, err := findEnv(customStrategy.Env, "BUILDER_VERSION"); err == nil {
+	if builderVersion, err := findEnv(env, "BUILDER_VERSION"); err == nil {
 		builderSpec.Version = builderVersion
 	}
 
@@ -240,11 +246,10 @@ func findOutputRegistry(dockerName string) (string, error) {
 	return name.Hostname(), nil
 }
 
-func findEnv(vars []api.EnvVar, name string) (string, error) {
-	for _, e := range vars {
-		if e.Name == name {
-			return e.Value, nil
-		}
+func findEnv(env map[string]string, name string) (string, error) {
+	value, ok := env[name]
+	if ok {
+		return value, nil
 	}
 	return "", errors.New("No env variable with name " + name)
 }

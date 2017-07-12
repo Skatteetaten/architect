@@ -186,7 +186,7 @@ func createEnv(appVersion string, auroraVersion string, cfg Config) map[string]s
 	env[docker.ENV_APP_VERSION] = appVersion
 	env[docker.ENV_AURORA_VERSION] = auroraVersion
 	env[docker.ENV_PUSH_EXTRA_TAGS] = cfg.DockerSpec.PushExtraTags
-	env[docker.TZ] = "Europe/Oslo" //TODO: Should we make this configurable somehwere ENV var perhaps?
+	env[docker.TZ] = "Europe/Oslo"
 
 	if isSnapshot(cfg) {
 		env[docker.ENV_SNAPSHOT_TAG] = cfg.MavenGav.Version
