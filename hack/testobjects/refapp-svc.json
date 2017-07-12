@@ -1,0 +1,33 @@
+{
+    "kind": "Service",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "refapp",
+        "labels": {
+            "affiliation": "aurora",
+            "generated-aurora-objects-version": "3.7.0",
+            "template": "aurora-frontend-deploy-3.0"
+        },
+        "annotations": {
+            "prometheus.io/path": "/prometheus",
+            "prometheus.io/port": "8080",
+            "prometheus.io/scheme": "http",
+            "prometheus.io/scrape": "false"
+        }
+    },
+    "spec": {
+        "ports": [
+            {
+                "name": "http",
+                "protocol": "TCP",
+                "port": 80,
+                "targetPort": 8080
+            }
+        ],
+        "selector": {
+            "name": "refapp"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+    }
+}

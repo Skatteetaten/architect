@@ -1,16 +1,13 @@
 package prepare
 
 import (
-	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/java/config"
-	"io"
-	"text/template"
+	"github.com/skatteetaten/architect/pkg/util"
 )
 
 var startscriptTemplate string = `source $HOME/architect/run_tools.sh
-    java {{.JvmOptions}} ` +
-	`-cp "{{range $i, $value := .Classpath}}{{if $i}}:{{end}}{{$value}}{{end}}" ` +
-	`$JAVA_OPTS {{.MainClass}} {{.ApplicationArgs}}`
+java {{.JvmOptions}} -cp "{{range $i, $value := .Classpath}}{{if $i}}:{{end}}{{$value}}{{end}}" $JAVA_OPTS {{.MainClass}} {{.ApplicationArgs}}
+`
 
 type Startscript struct {
 	Classpath       []string
@@ -19,7 +16,7 @@ type Startscript struct {
 	ApplicationArgs string
 }
 
-func NewStartscript(classpath []string, meta config.DeliverableMetadata) *Startscript {
+func newStartScript(classpath []string, meta config.DeliverableMetadata) util.WriterFunc {
 	var jvmOptions string
 	var mainClass string
 	var applicationArgs string
@@ -29,20 +26,8 @@ func NewStartscript(classpath []string, meta config.DeliverableMetadata) *Starts
 		applicationArgs = meta.Java.ApplicationArgs
 	}
 
-	return &Startscript{classpath, jvmOptions, mainClass, applicationArgs}
-}
-
-func (startscript Startscript) Write(writer io.Writer) error {
-
-	tmpl, err := template.New("startscript").Parse(startscriptTemplate)
-
-	if err != nil {
-		return errors.Wrap(err, "Failed to parse start script template")
-	}
-
-	if err = tmpl.Execute(writer, startscript); err != nil {
-		return errors.Wrap(err, "Failed to execute start script template")
-	}
-
-	return nil
+	return util.NewTemplateWriter(
+		&Startscript{classpath, jvmOptions, mainClass, applicationArgs},
+		"generatedStartScript",
+		startscriptTemplate)
 }

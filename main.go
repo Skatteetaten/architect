@@ -20,6 +20,7 @@ import (
 	"github.com/skatteetaten/architect/cmd/architect"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/java/nexus"
+	"github.com/skatteetaten/architect/pkg/nodejs/npm"
 	"os"
 	"strings"
 )
@@ -40,5 +41,10 @@ func initializeAndRunOnOpenShift() {
 	}
 	mavenRepo := "http://aurora/nexus/service/local/artifact/maven/content"
 	logrus.Debugf("Using Maven repo on %s", mavenRepo)
-	architect.RunArchitect(config.NewInClusterConfigReader(), nexus.NewNexusDownloader(mavenRepo))
+	runConfig := architect.RunConfiguration{
+		ConfigReader:    config.NewInClusterConfigReader(),
+		NexusDownloader: nexus.NewNexusDownloader(mavenRepo),
+		NpmDownloader:   npm.NewRemoteRegistry("http://aurora/npm/repository/npm-internal"),
+	}
+	architect.RunArchitect(runConfig)
 }

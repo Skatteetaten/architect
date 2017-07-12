@@ -2,11 +2,9 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/reference"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config/api"
-	"github.com/skatteetaten/architect/pkg/docker"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -14,7 +12,6 @@ import (
 
 type ConfigReader interface {
 	ReadConfig() (*Config, error)
-	AddRegistryCredentials(config *Config) error
 }
 
 type InClusterConfigReader struct {
@@ -41,16 +38,6 @@ func (m *FileConfigReader) ReadConfig() (*Config, error) {
 	return newConfig(dat)
 }
 
-func (m *FileConfigReader) AddRegistryCredentials(config *Config) error {
-	dockerConfigPath, err := docker.GetDockerConfigPath()
-
-	if err != nil {
-		return err
-	}
-
-	return addRegistryCredentials(config, dockerConfigPath)
-}
-
 func (m *InClusterConfigReader) ReadConfig() (*Config, error) {
 	buildConfig := os.Getenv("BUILD")
 
@@ -59,10 +46,6 @@ func (m *InClusterConfigReader) ReadConfig() (*Config, error) {
 	}
 
 	return newConfig([]byte(buildConfig))
-}
-
-func (m *InClusterConfigReader) AddRegistryCredentials(config *Config) error {
-	return addRegistryCredentials(config, "/var/run/secrets/openshift.io/push/.dockercfg")
 }
 
 func newConfig(buildConfig []byte) (*Config, error) {
@@ -81,27 +64,56 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		env[e.Name] = e.Value
 	}
 
-	gav := MavenGav{}
-	if artifactId, err := findEnv(env, "ARTIFACT_ID"); err == nil {
-		gav.ArtifactId = artifactId
-	} else {
-		return nil, err
-	}
-	if groupId, err := findEnv(env, "GROUP_ID"); err == nil {
-		gav.GroupId = groupId
-	} else {
-		return nil, err
-	}
-	if version, err := findEnv(env, "VERSION"); err == nil {
-		gav.Version = version
-	} else {
-		return nil, err
+	var applicationType ApplicationType = JavaLeveransepakke
+	if appType, err := findEnv(env, "APPLICATION_TYPE"); err == nil {
+		if strings.ToUpper(appType) == "NODEJS" {
+			applicationType = NodeJsLeveransepakke
+		}
 	}
 
-	if version, err := findEnv(env, "VERSION"); err == nil {
-		gav.Version = version
+	var gav *MavenGav = nil
+	var nodegav *NodeJSGav = nil
+	var snapshot bool
+	if applicationType == JavaLeveransepakke {
+		gav = &MavenGav{}
+		if artifactId, err := findEnv(env, "ARTIFACT_ID"); err == nil {
+			gav.ArtifactId = artifactId
+		} else {
+			return nil, err
+		}
+		if groupId, err := findEnv(env, "GROUP_ID"); err == nil {
+			gav.GroupId = groupId
+		} else {
+			return nil, err
+		}
+		if version, err := findEnv(env, "VERSION"); err == nil {
+			gav.Version = version
+			snapshot = strings.HasSuffix(version, "SNAPSHOT")
+		} else {
+			return nil, err
+		}
+		if classifier, err := findEnv(env, "CLASSIFIER"); err == nil {
+			gav.Classifier = classifier
+		} else {
+			gav.Classifier = "Leveransepakke"
+		}
 	} else {
-		return nil, err
+		nodegav = &NodeJSGav{}
+		if groupId, err := findEnv(env, "NPM_NAME"); err == nil {
+			nodegav.NpmName = groupId
+		} else {
+			return nil, err
+		}
+		if v, err := findEnv(env, "VERSION"); err == nil {
+			nodegav.Version = v
+		} else {
+			return nil, err
+		}
+		if v, err := findEnv(env, "SNAPSHOT"); err == nil {
+			snapshot = strings.ToUpper(v) == "TRUE"
+		} else {
+			snapshot = false
+		}
 	}
 
 	dockerSpec := DockerSpec{}
@@ -130,9 +142,10 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		return nil, err
 	}
 
-	dockerSpec.PushExtraTags = "latest,major,minor,patch"
 	if pushExtraTags, err := findEnv(env, "PUSH_EXTRA_TAGS"); err == nil {
-		dockerSpec.PushExtraTags = pushExtraTags
+		dockerSpec.PushExtraTags = ParseExtraTags(pushExtraTags)
+	} else {
+		dockerSpec.PushExtraTags = ParseExtraTags("latest,major,minor,patch")
 	}
 
 	dockerSpec.TagWith = ""
@@ -177,59 +190,31 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		return nil, err
 	}
 	c := &Config{
-		ApplicationType: JavaLeveransepakke,
+		ApplicationType: applicationType,
 		MavenGav:        gav,
+		NodeJSGav:       nodegav,
+		Snapshot:        snapshot,
 		DockerSpec:      dockerSpec,
 		BuilderSpec:     builderSpec,
 	}
 	return c, nil
 }
 
-func addRegistryCredentials(cfg *Config, dockerConfigPath string) error {
-	_, err := os.Stat(dockerConfigPath)
-
-	if err != nil {
-		if os.IsNotExist(err) {
-			logrus.Infof("Will not load registry credentials. %s not found.", dockerConfigPath)
-			return nil
-		}
-
-		return err
+func ParseExtraTags(i string) PushExtraTags {
+	p := PushExtraTags{}
+	if strings.Contains(i, "major") {
+		p.Major = true
 	}
-
-	dockerConfigReader, err := os.Open(dockerConfigPath)
-
-	if err != nil {
-		return err
+	if strings.Contains(i, "minor") {
+		p.Minor = true
 	}
-
-	dockerConfig, err := docker.ReadConfig(dockerConfigReader)
-
-	if err != nil {
-		return err
+	if strings.Contains(i, "patch") {
+		p.Patch = true
 	}
-
-	basicCredentials, err := dockerConfig.GetCredentials(cfg.DockerSpec.OutputRegistry)
-
-	if err != nil {
-		return err
-	} else if basicCredentials == nil {
-		logrus.Infof("Will not load registry credentials. No entry for %s in %s.", cfg.DockerSpec.OutputRegistry, dockerConfigPath)
-		return nil
+	if strings.Contains(i, "latest") {
+		p.Latest = true
 	}
-
-	registryCredentials := docker.RegistryCredentials{basicCredentials.User, basicCredentials.Password,
-		cfg.DockerSpec.OutputRegistry}
-
-	encodedCredentials, err := registryCredentials.Encode()
-
-	if err != nil {
-		return err
-	}
-
-	cfg.DockerSpec.OutputRegistryCredentials = encodedCredentials
-
-	return err
+	return p
 }
 
 func findOutputRepository(dockerName string) (string, error) {

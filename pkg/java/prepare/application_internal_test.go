@@ -1,7 +1,10 @@
-package prepare_test
+package prepare
 
 import (
-	"github.com/skatteetaten/architect/pkg/java/prepare"
+	"bytes"
+	"github.com/skatteetaten/architect/pkg/java/config"
+	"github.com/skatteetaten/architect/pkg/util"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,7 +18,7 @@ func TestClasspathOrder(t *testing.T) {
 	root := setupApplication(t)
 
 	// When
-	actualCp, err := prepare.Classpath(root, filepath.Join(root, "lib"))
+	actualCp, err := generateClasspath(root, filepath.Join(root, "lib"))
 
 	if err != nil {
 		t.Fatal("Failed to test classpath: ", err)
@@ -27,7 +30,7 @@ func TestClasspathOrder(t *testing.T) {
 
 	// Then
 	for idx, entry := range []string{"bar.jar", "bar2.jar", "foo.jar", "foobar.jar"} {
-		expectedLib := filepath.Join(prepare.DockerBasedir, "lib", entry)
+		expectedLib := filepath.Join(DockerBasedir, "lib", entry)
 		if idx >= len(actualCp) {
 			t.Error("Classpath", actualCp, "is not complete")
 			return
@@ -54,20 +57,19 @@ func TestPrepareStartscript(t *testing.T) {
 	root := setupApplication(t)
 
 	// When
-	prepare.PrepareApplication(root, root, TestMeta)
+	err := prepareEffectiveScripts(root, &config.DeliverableMetadata{})
 
+	assert.NoError(t, err)
 	// Then
-	scriptExists, err := prepare.Exists(filepath.Join(root, "bin", "generated-start"))
+	scriptExists, err := Exists(filepath.Join(root, "bin", "generated-start"))
 
-	if err != nil || !scriptExists {
-		t.Error("Failed to generate startscript")
-	}
+	assert.NoError(t, err)
+	assert.True(t, scriptExists, "Failed to generate startscript")
 
-	linkExists, err := prepare.Exists(filepath.Join(root, "bin", "start"))
+	linkExists, err := Exists(filepath.Join(root, "bin", "start"))
 
-	if err != nil || !linkExists {
-		t.Error("Failed to generate link to startscript")
-	}
+	assert.NoError(t, err)
+	assert.True(t, linkExists, "Failed to generate link to startscript")
 
 	//deleteApplication(root)
 }
@@ -106,4 +108,15 @@ func setupApplication(t *testing.T) string {
 
 func deleteApplication(root string) error {
 	return os.RemoveAll(root)
+}
+
+func testFileWriter(files map[string]string) util.FileWriter {
+	return func(writer util.WriterFunc, filename string) error {
+		buffer := new(bytes.Buffer)
+		err := writer(buffer)
+		if err == nil {
+			files[filename] = buffer.String()
+		}
+		return err
+	}
 }

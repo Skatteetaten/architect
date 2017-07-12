@@ -43,5 +43,6 @@ PACKAGES=$(go list ./... | grep "architect/pkg\|architect$\|architect/cmd" | xar
 go install                                                         \
     -installsuffix "static"                                        \
     -ldflags "-X ${PKG}/pkg/version.VERSION=${VERSION}" \
+    -gcflags='-B -l' \
     ${PACKAGES}
 

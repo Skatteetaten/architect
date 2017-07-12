@@ -6,9 +6,18 @@ import:
   version: 1.13.x
   subpackages:
   - client
-- package: github.com/sirupsen/logrus
+- package: github.com/Sirupsen/logrus
   version: v0.11.5
 - package: github.com/jteeuwen/go-bindata
   version: v3.0.7
 - package: github.com/hashicorp/go-version
   version: 03c5bf6be031b6dd45afec16b1cf94fc8938bc77
+- package: github.com/stretchr/testify
+  version: ~1.1.4
+  subpackages:
+  - assert
+- package: github.com/pkg/errors
+  version: ~0.8.0
+- package: github.com/docker/distribution
+  version: v2.6.1
+- package: github.com/spf13/pflag

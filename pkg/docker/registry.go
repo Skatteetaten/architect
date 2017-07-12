@@ -13,16 +13,16 @@ import (
 )
 
 type ImageInfoProvider interface {
-	GetManifest(repository string, tag string) (*schema1.SignedManifest, error)
-	GetManifestEnv(repository string, tag string, name string) (string, error)
+	GetCompleteBaseImageVersion(repository string, tag string) (string, error)
 	GetTags(repository string) (*TagsAPIResponse, error)
+	GetManifestEnvMap(repository string, tag string) (map[string]string, error)
 }
 
 type RegistryClient struct {
 	address string
 }
 
-func NewRegistryClient(address string) *RegistryClient {
+func NewRegistryClient(address string) ImageInfoProvider {
 	return &RegistryClient{address: address}
 }
 
@@ -31,7 +31,7 @@ type TagsAPIResponse struct {
 	Tags []string `json:"tags"`
 }
 
-func (registry *RegistryClient) GetManifest(repository string, tag string) (*schema1.SignedManifest, error) {
+func (registry *RegistryClient) getManifest(repository string, tag string) (*schema1.SignedManifest, error) {
 	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.address, repository, tag)
 
 	//TODO! Flytt alle HTTP metoder til felles utility-bibliotek!
@@ -94,42 +94,36 @@ func (registry *RegistryClient) GetTags(repository string) (*TagsAPIResponse, er
 	return &tagsList, nil
 }
 
-func (registry *RegistryClient) GetManifestEnv(repository string, tag string, name string) (string, error) {
-	manifest, err := registry.GetManifest(repository, tag)
-
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to get manifest")
-	}
-
-	envMap, err := getEnvMapFromV1Data(manifest.History[0].V1Compatibility)
-
-	if err != nil {
-		return "", errors.Wrapf(err, "Failed to extract env variables from manifest", name)
-	}
-
-	value, ok := envMap[name]
-
-	if !ok {
-		return "", errors.Wrapf(err, "Env variable %s not in manifest", name)
-	}
-
-	return value, nil
-}
-
 func (registry *RegistryClient) GetManifestEnvMap(repository string, tag string) (map[string]string, error) {
-	manifest, err := registry.GetManifest(repository, tag)
+	manifest, err := registry.getManifest(repository, tag)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get manifest")
 	}
 
-	envMap, err := getEnvMapFromV1Data(manifest.History[0].V1Compatibility)
+	return getEnvMapFromV1Data(manifest.History[0].V1Compatibility)
+}
+
+func (registry *RegistryClient) GetCompleteBaseImageVersion(repository string, tag string) (string, error) {
+
+	envMap, err := registry.GetManifestEnvMap(repository, tag)
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to extract env variables from manifest")
+		return "", errors.Wrap(err, "Unable to get environment map")
 	}
 
-	return envMap, nil
+	value, ok := envMap["BASE_IMAGE_VERSION"]
+
+	if !ok {
+		return "", errors.Wrapf(err, "Env variable %s not in manifest", "BASE_IMAGE_VERSION")
+	}
+
+	if value == "" {
+		return "", errors.Errorf("Failed to extract version in getBaseImageVersion, registry: %s, "+
+			"BaseImage: %s, BaseVersion: %s ",
+			registry, repository, tag)
+	}
+	return value, nil
 }
 
 func getEnvMapFromV1Data(v1data string) (map[string]string, error) {

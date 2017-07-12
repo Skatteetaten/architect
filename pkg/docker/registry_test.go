@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,54 +14,20 @@ const tag = "1"
 
 const expected_version = "1.7.0"
 
-func TestPullManifest(t *testing.T) {
-
-	server, err := startMockRegistryServer("testdata/manifest.json")
-
-	defer server.Close()
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	target := NewRegistryClient(server.URL)
-
-	manifest, err := target.GetManifest(repository, tag)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if manifest.Name != repository {
-		t.Errorf("Expected %s, got %s", repository, manifest.Name)
-	}
-
-	if manifest.Tag != tag {
-		t.Errorf("Expected %s, got %s", tag, manifest.Tag)
-	}
-}
-
 func TestGetManifestEnv(t *testing.T) {
 
 	server, err := startMockRegistryServer("testdata/manifest.json")
 
 	defer server.Close()
 
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL)
 
-	actual_version, err := target.GetManifestEnv("aurora/oracle8", "1", "BASE_IMAGE_VERSION")
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if actual_version != expected_version {
-		t.Errorf("Expected value %s, actual value is %s", expected_version, actual_version)
-	}
+	manifestEnvMap, err := target.GetManifestEnvMap("aurora/oracle8", "1")
+	assert.NoError(t, err)
+	actualVersion := manifestEnvMap["BASE_IMAGE_VERSION"]
+	assert.Equal(t, actualVersion, expected_version)
 }
 
 func TestGetManifestEnvMap(t *testing.T) {
@@ -69,24 +36,17 @@ func TestGetManifestEnvMap(t *testing.T) {
 
 	defer server.Close()
 
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL)
 
 	envMap, err := target.GetManifestEnvMap("aurora/oracle8", "1")
 
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	expected_len := 14
 	actual_len := len(envMap)
-
-	if expected_len != actual_len {
-		t.Errorf("Expected map size %d, actual size is %d", expected_len, actual_len)
-	}
+	assert.Equal(t, expected_len, actual_len)
 }
 
 func TestGetTags(t *testing.T) {
@@ -94,9 +54,7 @@ func TestGetTags(t *testing.T) {
 
 	defer server.Close()
 
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	expectedTags := []string{"latest", "develop-SNAPSHOT",
 		"develop-SNAPSHOT-9be2b9ca43a024415947a6c262e183406dbb090b",
@@ -105,6 +63,8 @@ func TestGetTags(t *testing.T) {
 	target := NewRegistryClient(server.URL)
 
 	tags, err := target.GetTags("aurora/oracle8")
+
+	assert.NoError(t, err)
 
 	verifyTagListContent(tags.Tags, expectedTags, t)
 }
