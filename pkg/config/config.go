@@ -154,9 +154,12 @@ func newConfig(buildConfig []byte) (*Config, error) {
 
 	builderSpec := BuilderSpec{}
 
-	builderSpec.Version = "0.0.0"
-	if builderVersion, err := findEnv(env, "BUILDER_VERSION"); err == nil {
+	if builderVersion, present := os.LookupEnv("APP_VERSION"); present {
 		builderSpec.Version = builderVersion
+	} else {
+		//We set it to local for local builds.
+		//Running on OpenShift will have APP_VERSION as environment variable
+		builderSpec.Version = "local"
 	}
 
 	outputKind := build.Spec.Output.To.Kind
