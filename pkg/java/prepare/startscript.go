@@ -7,9 +7,10 @@ import (
 	"text/template"
 )
 
-var startscriptTemplate string = `exec java {{.JvmOptions}} $JAVA_PROPERTIES_ARGS ` +
+var startscriptTemplate string = `source $HOME/architect/run_tools.sh
+    java {{.JvmOptions}} ` +
 	`-cp "{{range $i, $value := .Classpath}}{{if $i}}:{{end}}{{$value}}{{end}}" ` +
-	`$JAVA_DEBUG_ARGS -javaagent:$JOLOKIA_PATH=host=0.0.0.0,port=8778,protocol=https $JAVA_OPTS {{.MainClass}} {{.ApplicationArgs}}`
+	`$JAVA_OPTS {{.MainClass}} {{.ApplicationArgs}}`
 
 type Startscript struct {
 	Classpath       []string
