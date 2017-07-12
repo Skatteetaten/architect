@@ -7,6 +7,7 @@ const (
 	ENV_PUSH_EXTRA_TAGS              = "PUSH_EXTRA_TAGS"
 	ENV_READINESS_CHECK_URL          = "READINESS_CHECK_URL"
 	ENV_READINESS_ON_MANAGEMENT_PORT = "READINESS_ON_MANAGEMENT_PORT"
+	TZ                               = "TZ"
 )
 
 type ImageName struct {
