@@ -50,9 +50,6 @@ func Prepare(buildinfo global.BuildInfo, deliverable global.Deliverable) (string
 		return "", errors.Wrap(err, "Failed to prepare application")
 	}
 
-	//ADD env pointing to logback file
-	buildinfo.Env["LOGBACK_FILE"] = "$HOME/architect/logback.xml"
-
 	// Dockerfile
 
 	if err = addDockerfile(dockerBuildPath, meta, buildinfo); err != nil {

@@ -60,7 +60,7 @@ func NewDockerfile(meta *config.DeliverableMetadata, buildinfo global.BuildInfo)
 		env[k] = v
 	}
 
-	appendReadinesEnv(env, meta)
+	appendArchitectEnv(env, meta)
 
 	return &Dockerfile{buildinfo.BaseImage.Repository,
 		buildinfo.BaseImage.Version, maintainer,
@@ -82,7 +82,7 @@ func (dockerfile *Dockerfile) Write(writer io.Writer) error {
 	return nil
 }
 
-func appendReadinesEnv(env map[string]string, meta *config.DeliverableMetadata) {
+func appendArchitectEnv(env map[string]string, meta *config.DeliverableMetadata) {
 
 	if meta.Openshift != nil {
 		if meta.Openshift.ReadinessURL != "" {
@@ -95,4 +95,6 @@ func appendReadinesEnv(env map[string]string, meta *config.DeliverableMetadata) 
 	} else if meta.Java != nil && meta.Java.ReadinessURL != "" {
 		env[docker.ENV_READINESS_CHECK_URL] = meta.Java.ReadinessURL
 	}
+
+	env["LOGBACK_FILE"] = "$HOME/architect/logback.xml"
 }
