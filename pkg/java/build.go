@@ -24,7 +24,7 @@ func Build(cfg config.Config, downloader nexus.Downloader) error {
 		return errors.Wrap(err, "Failed to create buildinfo")
 	}
 
-	logrus.Debug("Prepare output image")
+	logrus.Debugf("Prepare output image %s", buildInfo)
 	path, err := prepare.Prepare(*buildInfo, *deliverable)
 
 	if err != nil {
@@ -52,6 +52,7 @@ func Build(cfg config.Config, downloader nexus.Downloader) error {
 		}
 	}
 
+	logrus.Debugf("Tags to push are  %s", versionTags)
 	logrus.Debugf("Build docker image and create tags, path=%s, buildInfo=%-v", path, *buildInfo)
 	tagsToPush := createTags(versionTags, cfg.DockerSpec)
 
@@ -149,6 +150,11 @@ func Retag(cfg config.Config) error {
 				"versionTags=%v, repositoryTags=%v",
 				appVersion, versionTags, repositoryTags.Tags)
 		}
+	}
+
+	snapshotTag, ok := envMap["SNAPSHOT_TAG"]
+	if ok {
+		versionTags = append(versionTags, snapshotTag)
 	}
 
 	tagsToPush := createTags(versionTags, cfg.DockerSpec)
