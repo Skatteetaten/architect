@@ -31,7 +31,7 @@ fi
 
 if [ ! -z "$READINESS_CHECK_URL" ]; then
   HEALTH_URL="http://localhost:${PORT}${READINESS_CHECK_URL}"
-  wget -s "$HEALTH_URL" &> /dev/null
+  wget --spider "$HEALTH_URL" &> /dev/null
 
 ## Sample code using CURL with http code
 #HTTP_CODE=`curl -m 10 -sL -w "%{http_code}" "${HEALTH_URL}" -o /dev/null`
