@@ -88,7 +88,7 @@ func TestTagInfoSnapshot(t *testing.T) {
 		t.Fatalf("Failed to create target VersionInfo %v", err)
 	}
 
-	verifyTagListContent((*actual).VersionTags, []string{"latest", SNAPSHOT_TAG_COMPLETE}, t)
+	verifyTagListContent((*actual).VersionTags, []string{SNAPSHOT_TAG_COMPLETE}, t)
 }
 
 func TestBuildInfoReleaset(t *testing.T) {

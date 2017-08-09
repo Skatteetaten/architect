@@ -28,15 +28,19 @@
                     },
                     {
                       "name": "ARTIFACT_ID",
-                      "value": "aos-simple"
+                      "value": "sprocket"
                     },
                     {
                       "name": "GROUP_ID",
-                      "value": "ske.aurora.openshift.demo"
+                      "value": "ske.aurora.openshift"
+                    },
+                    {
+                      "name" : "RETAG_WITH",
+                      "value": "1234-FOO"
                     },
                     {
                       "name": "VERSION",
-                      "value": "2.1.0"
+                      "value": "feature_sommerfikser-SNAPSHOT"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",

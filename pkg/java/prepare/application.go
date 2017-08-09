@@ -72,7 +72,7 @@ func prepareLivelinessAndReadynessScripts(scriptPath string) error {
 	}
 
 	if !livelinessExists {
-		logrus.Info("No liveness-script. Linking in default")
+		logrus.Debug("No liveness-script. Linking in default")
 		err := os.Symlink(filepath.Join(DockerBasedir, "architect", DefaultLivenessScript), livenessScript)
 		if err != nil {
 			return errors.Wrap(err, "Error linking in script")
@@ -86,7 +86,7 @@ func prepareLivelinessAndReadynessScripts(scriptPath string) error {
 	}
 
 	if !readinessExists {
-		logrus.Info("No readyness-script. Linking in default")
+		logrus.Debug("No readyness-script. Linking in default")
 		err := os.Symlink(filepath.Join(DockerBasedir, "architect", DefaultReadinessScript), readinessScript)
 		if err != nil {
 			return errors.Wrap(err, "Error linking in script")
@@ -140,7 +140,6 @@ func Classpath(applicationDir string, libPath string) ([]string, error) {
 	classpath := make([]string, len(files))
 
 	base := DockerBasedir + strings.TrimPrefix(libPath, applicationDir)
-	logrus.Info(base)
 	for index, value := range files {
 		classpath[index] = filepath.Join(base, value.Name())
 	}

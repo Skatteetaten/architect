@@ -166,6 +166,11 @@ func createOutputImageInfo(appVersion string, auroraVersion string, cfg Config) 
 	if !isTemporary(cfg) {
 		tags, err = getVersionTags(appVersion, auroraVersion, cfg.DockerSpec.PushExtraTags)
 
+		//TODO: This should really be inside getVersionTags. Refactor
+		if isSnapshot(cfg) {
+			tags = append(tags, cfg.MavenGav.Version)
+		}
+
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed to get tags")
 		}
@@ -202,13 +207,14 @@ func getTemporaryTags(tempVersion string) []string {
 func getVersionTags(appVersion string, auroraVersion string, extraTags string) ([]string, error) {
 	versions := make([]string, 0, 10)
 
-	if strings.Contains(extraTags, "latest") {
-		versions = append(versions, "latest")
-	}
-
 	versions = append(versions, auroraVersion)
 
 	if isSemantic(appVersion) {
+
+		if strings.Contains(extraTags, "latest") {
+			versions = append(versions, "latest")
+		}
+
 		if strings.Contains(extraTags, "major") {
 			majorVersion, err := getMajor(appVersion, false)
 			if err != nil {
@@ -331,7 +337,7 @@ func getAuroraVersion(baseImageVersion, appVersion string, cfg Config) string {
 func getAppVersion(cfg Config, deliverablePath string) string {
 	if strings.Contains(cfg.MavenGav.Version, "SNAPSHOT") {
 		replacer := strings.NewReplacer(cfg.MavenGav.ArtifactId, "", "-Leveransepakke.zip", "")
-		version := "SNAPSHOT-" + replacer.Replace(path.Base(deliverablePath))
+		version := "SNAPSHOT" + replacer.Replace(path.Base(deliverablePath))
 		return version
 	}
 
