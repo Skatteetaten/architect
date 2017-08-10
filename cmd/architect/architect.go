@@ -10,6 +10,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/nodejs/prepare"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/retag"
+	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +20,7 @@ var verbose bool
 type RunConfiguration struct {
 	NexusDownloader         nexus.Downloader
 	NpmDownloader           npm.Downloader
-	ConfigReader            config.ConfigReader
+	Config                  *config.Config
 	RegistryCredentialsFunc func(string) (*docker.RegistryCredentials, error)
 }
 
@@ -42,10 +43,28 @@ var JavaLeveransepakke = &cobra.Command{
 			logrus.Debugf("Using config from %s", conf)
 			configReader = config.NewFileConfigReader(conf)
 		}
+
+		// Read build config
+		c, err := configReader.ReadConfig()
+		if err != nil {
+			logrus.Fatalf("Could not read configuration: %s", err)
+		}
+
+		var binaryInput string
+		if c.BinaryBuild {
+			binaryInput, err = util.ExtractBinaryFromStdIn()
+			if err != nil {
+				logrus.Fatalf("Could not read binary input", err)
+			}
+		}
+
 		if localRepo {
 			logrus.Debugf("Using local maven repo")
 			nexusDownloader = nexus.NewLocalDownloader()
 			npmDownloader = npm.NewLocalRegistry(".")
+		} else if c.BinaryBuild {
+			nexusDownloader = nexus.NewLocalDownloader() //TODO: Wont work with binary input
+			npmDownloader = npm.NewBinaryBuildRegistry(binaryInput, c.NodeJsApplication.Version)
 		} else {
 			mavenRepo := "http://aurora/nexus/service/local/artifact/maven/content"
 			logrus.Debugf("Using Maven repo on %s", mavenRepo)
@@ -55,7 +74,7 @@ var JavaLeveransepakke = &cobra.Command{
 
 		RunArchitect(RunConfiguration{
 			NexusDownloader:         nexusDownloader,
-			ConfigReader:            configReader,
+			Config:                  c,
 			NpmDownloader:           npmDownloader,
 			RegistryCredentialsFunc: docker.LocalRegistryCredentials(),
 		})
@@ -70,13 +89,7 @@ func init() {
 }
 
 func RunArchitect(configuration RunConfiguration) {
-
-	// Read build config
-	c, err := configuration.ConfigReader.ReadConfig()
-	if err != nil {
-		logrus.Fatalf("Could not read configuration: %s", err)
-	}
-
+	c := configuration.Config
 	logrus.Debugf("Config %+v", c)
 
 	registryCredentials, err := configuration.RegistryCredentialsFunc(c.DockerSpec.OutputRegistry)

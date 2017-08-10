@@ -48,7 +48,7 @@
                     },
                     {
                       "name": "TAG_OVERWRITE",
-                      "value": "false"
+                      "value": "true"
                     },
                     {
                       "name": "SPLUNK_INDEX",

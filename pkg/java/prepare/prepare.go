@@ -3,6 +3,7 @@ package prepare
 import (
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	deliverable "github.com/skatteetaten/architect/pkg/java/config"
 	"github.com/skatteetaten/architect/pkg/java/nexus"
@@ -15,10 +16,10 @@ import (
 	"path/filepath"
 )
 
-func createEnv(auroraVersion *config.AuroraVersions, pushextratags config.PushExtraTags) map[string]string {
+func createEnv(auroraVersion *runtime.AuroraVersion, pushextratags config.PushExtraTags) map[string]string {
 	env := make(map[string]string)
 	env[docker.ENV_APP_VERSION] = string(auroraVersion.GetAppVersion())
-	env[docker.ENV_AURORA_VERSION] = auroraVersion.GetAuroraVersion()
+	env[docker.ENV_AURORA_VERSION] = auroraVersion.GetCompleteVersion()
 	env[docker.ENV_PUSH_EXTRA_TAGS] = pushextratags.ToStringValue()
 	env[docker.TZ] = "Europe/Oslo"
 
@@ -33,7 +34,7 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(dockerSpec config.DockerSpec, auroraVersions *config.AuroraVersions, deliverable nexus.Deliverable) (string, error) {
+func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable *nexus.Deliverable, baseImage *runtime.BaseImage) (string, error) {
 
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
@@ -70,7 +71,7 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *config.AuroraVersions
 	// Dockerfile
 	fileWriter := util.NewFileWriter(dockerBuildPath)
 
-	if err = fileWriter(NewDockerfile(dockerSpec, auroraVersions, meta), "Dockerfile"); err != nil {
+	if err = fileWriter(NewDockerfile(dockerSpec, auroraVersions, meta, baseImage), "Dockerfile"); err != nil {
 		return "", errors.Wrap(err, "Failed to create Dockerfile")
 	}
 

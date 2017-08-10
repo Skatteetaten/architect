@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"io"
 	"os"
 	"os/user"
@@ -25,8 +26,9 @@ type RegistryCredentials struct {
 }
 
 type DockerBuildConfig struct {
-	Tags        []string
-	BuildFolder string
+	AuroraVersion    *runtime.AuroraVersion
+	DockerRepository string ///TODO: Refactor? We need to have to different for nodejs
+	BuildFolder      string
 }
 
 type DockerClient struct {
@@ -43,12 +45,11 @@ func NewDockerClient() (*DockerClient, error) {
 	return &DockerClient{Client: DockerClientProxy{*cli}}, nil
 }
 
-func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error) {
+func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
 	dockerOpt := types.ImageBuildOptions{
-		Tags:           buildConfig.Tags,
 		SuppressOutput: false,
 	}
-	tarReader := createContextTarStreamReader(buildConfig.BuildFolder)
+	tarReader := createContextTarStreamReader(buildFolder)
 	build, err := d.Client.ImageBuild(context.Background(), tarReader, dockerOpt)
 	if err != nil {
 		return "", errors.Wrap(err, "Error building image")
@@ -77,16 +78,6 @@ func (d *DockerClient) BuildImage(buildConfig DockerBuildConfig) (string, error)
 func (d *DockerClient) TagImage(imageId string, tag string) error {
 	if err := d.Client.ImageTag(context.Background(), imageId, tag); err != nil {
 		return err
-	}
-	return nil
-}
-
-func (d *DockerClient) TagImages(imageId string, tags []string) error {
-	for _, tag := range tags {
-		err := d.TagImage(imageId, tag)
-		if err != nil {
-			return errors.Wrap(err, "Error Tagging image")
-		}
 	}
 	return nil
 }

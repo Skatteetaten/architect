@@ -4,6 +4,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 )
 
@@ -55,7 +56,13 @@ func (m *retagger) Retag() error {
 		return errors.Errorf("Failed to extract ENV variable %s from temporary image manifest", docker.ENV_APP_VERSION)
 	}
 
-	appVersion := config.NewAppVersion(appVersionString)
+	givenVersionString, snapshot := envMap[docker.ENV_SNAPSHOT_TAG]
+
+	if !snapshot {
+		givenVersionString = appVersionString
+	}
+
+	appVersion := runtime.NewApplicationVersion(appVersionString, snapshot, givenVersionString, runtime.CompleteVersion(auroraVersion))
 
 	extratags, ok := envMap[docker.ENV_PUSH_EXTRA_TAGS]
 
@@ -67,8 +74,6 @@ func (m *retagger) Retag() error {
 
 	provider := docker.NewRegistryClient(m.Config.DockerSpec.ExternalDockerRegistry)
 
-	versionTags, err := appVersion.GetVersionTags(config.ParseExtraTags(extratags))
-
 	if err != nil {
 		return errors.Wrap(err, "Unable to get version tags")
 	}
@@ -79,23 +84,24 @@ func (m *retagger) Retag() error {
 		Tag:        m.Config.DockerSpec.RetagWith,
 	}
 
+	var repositoryTags *docker.TagsAPIResponse
+
 	if !m.Config.DockerSpec.TagOverwrite {
 		logrus.Debug("Tags Overwrite diabled, filtering tags")
 
-		repositoryTags, err := provider.GetTags(m.Config.DockerSpec.OutputRepository)
+		repositoryTags, err = provider.GetTags(m.Config.DockerSpec.OutputRepository)
 
 		if err != nil {
 			return errors.Wrapf(err, "Error in GetTags, repository=%s", m.Config.DockerSpec.OutputRepository)
 
 		}
 
-		versionTags, err = appVersion.FilterVersionTags(versionTags, repositoryTags.Tags)
+	}
 
-		if err != nil {
-			return errors.Wrapf(err, "Error in FilterVersionTags, app_version=%s, "+
-				"versionTags=%v, repositoryTags=%v",
-				appVersion, versionTags, repositoryTags.Tags)
-		}
+	versionTags, err := appVersion.GetApplicationVersionTagsToPush(repositoryTags.Tags, config.ParseExtraTags(extratags))
+
+	if err != nil {
+		return err
 	}
 
 	tagsToPush := docker.CreateImageNameFromSpecAndTags(versionTags,

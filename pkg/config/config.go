@@ -71,60 +71,69 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		}
 	}
 
-	var gav *MavenGav = nil
-	var nodegav *NodeJSGav = nil
-	var snapshot bool
+	var javaApp *JavaApplication = nil
+	var nodeApp *NodeApplication = nil
 	if applicationType == JavaLeveransepakke {
-		gav = &MavenGav{}
+		javaApp = &JavaApplication{}
 		if artifactId, err := findEnv(env, "ARTIFACT_ID"); err == nil {
-			gav.ArtifactId = artifactId
+			javaApp.ArtifactId = artifactId
 		} else {
 			return nil, err
 		}
 		if groupId, err := findEnv(env, "GROUP_ID"); err == nil {
-			gav.GroupId = groupId
+			javaApp.GroupId = groupId
 		} else {
 			return nil, err
 		}
 		if version, err := findEnv(env, "VERSION"); err == nil {
-			gav.Version = version
-			snapshot = strings.HasSuffix(version, "SNAPSHOT")
+			javaApp.Version = version
 		} else {
 			return nil, err
 		}
 		if classifier, err := findEnv(env, "CLASSIFIER"); err == nil {
-			gav.Classifier = classifier
+			javaApp.Classifier = classifier
 		} else {
-			gav.Classifier = "Leveransepakke"
+			javaApp.Classifier = "Leveransepakke"
 		}
+		baseSpec := DockerBaseImageSpec{}
+		if baseImage, err := findEnv(env, "DOCKER_BASE_IMAGE"); err == nil {
+			baseSpec.BaseImage = baseImage
+		} else if baseImage, err := findEnv(env, "DOCKER_BASE_NAME"); err == nil {
+			baseSpec.BaseImage = baseImage
+		} else {
+			return nil, err
+		}
+
+		if baseImageVersion, err := findEnv(env, "DOCKER_BASE_VERSION"); err == nil {
+			baseSpec.BaseVersion = baseImageVersion
+		} else {
+			return nil, err
+		}
+		javaApp.BaseImageSpec = baseSpec
+
 	} else {
-		nodegav = &NodeJSGav{}
+		nodeApp = &NodeApplication{}
 		if groupId, err := findEnv(env, "NPM_NAME"); err == nil {
-			nodegav.NpmName = groupId
+			nodeApp.NpmName = groupId
 		} else {
 			return nil, err
 		}
 		if v, err := findEnv(env, "VERSION"); err == nil {
-			nodegav.Version = v
+			nodeApp.Version = v
 		} else {
 			return nil, err
 		}
-		if v, err := findEnv(env, "SNAPSHOT"); err == nil {
-			snapshot = strings.ToUpper(v) == "TRUE"
-		} else {
-			snapshot = false
+		nodeApp.NginxBaseImageSpec = DockerBaseImageSpec{
+			BaseImage:   "aurora/modem",
+			BaseVersion: "latest",
+		}
+		nodeApp.NodejsBaseImageSpec = DockerBaseImageSpec{
+			BaseImage:   "aurora/wrench",
+			BaseVersion: "latest",
 		}
 	}
 
 	dockerSpec := DockerSpec{}
-
-	if baseImage, err := findEnv(env, "DOCKER_BASE_IMAGE"); err == nil {
-		dockerSpec.BaseImage = baseImage
-	} else if baseImage, err := findEnv(env, "DOCKER_BASE_NAME"); err == nil {
-		dockerSpec.BaseImage = baseImage
-	} else {
-		return nil, err
-	}
 
 	if externalRegistry, err := findEnv(env, "BASE_IMAGE_REGISTRY"); err == nil {
 		if strings.HasPrefix(externalRegistry, "https://") {
@@ -134,12 +143,6 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		}
 	} else {
 		dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
-	}
-
-	if baseImageVersion, err := findEnv(env, "DOCKER_BASE_VERSION"); err == nil {
-		dockerSpec.BaseVersion = baseImageVersion
-	} else {
-		return nil, err
 	}
 
 	if pushExtraTags, err := findEnv(env, "PUSH_EXTRA_TAGS"); err == nil {
@@ -190,31 +193,14 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		return nil, err
 	}
 	c := &Config{
-		ApplicationType: applicationType,
-		MavenGav:        gav,
-		NodeJSGav:       nodegav,
-		Snapshot:        snapshot,
-		DockerSpec:      dockerSpec,
-		BuilderSpec:     builderSpec,
+		ApplicationType:   applicationType,
+		JavaApplication:   javaApp,
+		NodeJsApplication: nodeApp,
+		DockerSpec:        dockerSpec,
+		BuilderSpec:       builderSpec,
+		BinaryBuild:       build.Spec.Source.Type == api.BuildSourceBinary,
 	}
 	return c, nil
-}
-
-func ParseExtraTags(i string) PushExtraTags {
-	p := PushExtraTags{}
-	if strings.Contains(i, "major") {
-		p.Major = true
-	}
-	if strings.Contains(i, "minor") {
-		p.Minor = true
-	}
-	if strings.Contains(i, "patch") {
-		p.Patch = true
-	}
-	if strings.Contains(i, "latest") {
-		p.Latest = true
-	}
-	return p
 }
 
 func findOutputRepository(dockerName string) (string, error) {

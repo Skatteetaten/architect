@@ -27,6 +27,30 @@ func NewLocalRegistry(basedir string) Downloader {
 	return &LocalClient{Basedir: basedir}
 }
 
+type BinaryDownloader struct {
+	tarball string
+	version string
+}
+
+func (m *BinaryDownloader) DownloadPackageJson(name string) (*PackageJson, error) {
+	return &PackageJson{
+		Versions: map[string]VersionedPackageJson{
+			m.version: {},
+		},
+	}, nil
+}
+
+func (m *BinaryDownloader) DownloadTarball(name string) (string, error) {
+	return m.tarball, nil
+}
+
+func NewBinaryBuildRegistry(pathToTarball string, version string) Downloader {
+	return &BinaryDownloader{
+		tarball: pathToTarball,
+		version: version,
+	}
+}
+
 func NewRemoteRegistry(url string) Downloader {
 	return &RegistryClient{RegistryUrl: url}
 }
@@ -171,4 +195,42 @@ func ExtractTarball(pathToTarball string) (string, error) {
 //Probably a better way of doing this.. But need to have file.Close() called to prevent to many open fd's.
 func writeInternal(deferrerd func() (string, error)) (string, error) {
 	return deferrerd()
+}
+
+func FindPackageJsonInsideTarball(pathToTarball string) (*VersionedPackageJson, error) {
+	tarball, err := os.Open(pathToTarball)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error opening tarball")
+	}
+	defer tarball.Close()
+	gzipStream, err := gzip.NewReader(tarball)
+	if err != nil {
+		return nil, err
+	}
+
+	defer gzipStream.Close()
+
+	tarReader := tar.NewReader(gzipStream)
+
+	for true {
+		header, err := tarReader.Next()
+
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, errors.Wrapf(err, "Error extracting tarball")
+		} else if header == nil {
+			continue
+		}
+
+		if header.Typeflag == tar.TypeReg && header.Name == "package/package.json" {
+			v := &VersionedPackageJson{}
+			err := json.NewDecoder(tarReader).Decode(v)
+			if err != nil {
+				return nil, errors.Wrap(err, "Error reading package.json")
+			}
+			return v, nil
+		}
+	}
+	return nil, errors.New("Did not find any package.json in archive")
 }

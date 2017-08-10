@@ -4,6 +4,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/nodejs/npm"
 	"github.com/skatteetaten/architect/pkg/process/build"
@@ -17,7 +18,7 @@ const (
 	NginxImage  ImageType = iota
 )
 
-const NODEJS_DOCKER_FILE string = `FROM aurora/wrench:latest
+const NODEJS_DOCKER_FILE string = `FROM {{.Baseimage}}
 
 LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
 
@@ -29,7 +30,7 @@ WORKDIR "/u01/app"
 
 CMD ["/u01/bin/run"]`
 
-const NGINX_DOCKER_FILE string = `FROM aurora/modem:latest
+const NGINX_DOCKER_FILE string = `FROM {{.Baseimage}}
 
 LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
 
@@ -80,55 +81,58 @@ http {
 
 type NodeJsBuilder struct {
 	Registry npm.Downloader
+	provider docker.ImageInfoProvider
 }
 
 type PreparedImage struct {
-	Type ImageType
-	Path string
+	Type      ImageType
+	baseImage runtime.BaseImage
+	Path      string
 }
 
 func Prepper(npmRegistry npm.Downloader) process.Prepper {
-	return func(c *config.Config, registry docker.ImageInfoProvider) ([]docker.DockerBuildConfig, error) {
+	return func(c *config.Config, provider docker.ImageInfoProvider) ([]docker.DockerBuildConfig, error) {
 		builder := &NodeJsBuilder{
 			Registry: npmRegistry,
+			provider: provider,
 		}
-		preparedImages, err := builder.Prepare(c)
+
+		preparedImages, err := builder.Prepare(c.NodeJsApplication, c.DockerSpec.GetExternalRegistryWithoutProtocol())
 		if err != nil {
 			return nil, err
 		}
-		auroraVersions, err := config.NewAuroraVersions(c.NodeJSGav.Version, false, c.NodeJSGav.Version,
-			c.DockerSpec, c.BuilderSpec, "BASEIMAGEVERSION!!")
-		if err != nil {
-			return nil, err
-		}
-		buildsConfigs := make([]docker.DockerBuildConfig, len(preparedImages))
-		tags, err := auroraVersions.GetAppVersion().GetVersionTags(c.DockerSpec.PushExtraTags)
-		if err != nil {
-			return nil, err
-		}
-		outputRegistry := c.DockerSpec.OutputRegistry
 		nginxOutputRepository := c.DockerSpec.OutputRepository + "-static"
 		nodejsOutputRepository := c.DockerSpec.OutputRepository + "-app"
-		for i, preparedImage := range preparedImages {
+		//TODO: AuroraVersion must be per image
+
+		buildConfigs := make([]docker.DockerBuildConfig, 0, 2)
+		buildImage := runtime.BuildImage{
+			Tag: c.BuilderSpec.Version,
+		}
+		for _, preparedImage := range preparedImages {
 			var outputRepository string
 			if preparedImage.Type == NodeJSImage {
 				outputRepository = nodejsOutputRepository
 			} else {
 				outputRepository = nginxOutputRepository
 			}
-			buildsConfigs[i] = docker.DockerBuildConfig{
-				BuildFolder: preparedImage.Path,
-				Tags:        docker.CreateImageNameFromSpecAndTags(tags, outputRegistry, outputRepository),
-			}
+			auroraVersion := runtime.NewApplicationVersionFromBuilderAndBase(c.NodeJsApplication.Version, false,
+				c.NodeJsApplication.Version, &buildImage, &preparedImage.baseImage)
+			buildConfigs = append(buildConfigs, docker.DockerBuildConfig{
+				BuildFolder:      preparedImage.Path,
+				DockerRepository: outputRepository,
+				AuroraVersion:    auroraVersion,
+			})
 		}
-		return buildsConfigs, nil
+		return buildConfigs, nil
 	}
 }
 
-func (n *NodeJsBuilder) Prepare(c *config.Config) ([]PreparedImage, error) {
-	logrus.Debug("Building %s", c.NodeJSGav.NpmName)
-	applicaionName := c.NodeJSGav.NpmName
-	version := c.NodeJSGav.Version
+func (n *NodeJsBuilder) Prepare(c *config.NodeApplication, externalRegistry string) ([]PreparedImage, error) {
+	logrus.Debug("Building %s", c.NpmName)
+	applicaionName := c.NpmName
+	version := c.Version
+
 	packageJson, err := n.Registry.DownloadPackageJson(applicaionName)
 	if err != nil {
 		return nil, err
@@ -140,6 +144,37 @@ func (n *NodeJsBuilder) Prepare(c *config.Config) ([]PreparedImage, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	nodejsBaseImageVersion, err := n.provider.GetCompleteBaseImageVersion(
+		c.NodejsBaseImageSpec.BaseImage,
+		c.NodejsBaseImageSpec.BaseVersion)
+
+	if err != nil {
+		return nil, err
+	}
+	logrus.Debugf("Nodejs base image version %s", nodejsBaseImageVersion)
+
+	nginxBaseImageVersion, err := n.provider.GetCompleteBaseImageVersion(
+		c.NginxBaseImageSpec.BaseImage,
+		c.NginxBaseImageSpec.BaseVersion)
+
+	if err != nil {
+		return nil, err
+	}
+	logrus.Debugf("Nginx base image version %s", nginxBaseImageVersion)
+
+	nodejsBaseImage := runtime.BaseImage{
+		Repository: c.NodejsBaseImageSpec.BaseImage,
+		Tag:        nodejsBaseImageVersion,
+		Registry:   externalRegistry,
+	}
+
+	nginxBaseImage := runtime.BaseImage{
+		Repository: c.NginxBaseImageSpec.BaseImage,
+		Tag:        nginxBaseImageVersion,
+		Registry:   externalRegistry,
+	}
+
 	tarball, err := n.Registry.DownloadTarball(v.Dist.Tarball)
 
 	if err != nil {
@@ -151,7 +186,11 @@ func (n *NodeJsBuilder) Prepare(c *config.Config) ([]PreparedImage, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = prepareNodeJsImage(&v, version, util.NewFileWriter(pathToNodeJSApplication))
+	packageJsonFromPackage, err := npm.FindPackageJsonInsideTarball(tarball)
+	if err != nil {
+		return nil, err
+	}
+	err = prepareNodeJsImage(packageJsonFromPackage, nodejsBaseImage, version, util.NewFileWriter(pathToNodeJSApplication))
 	if err != nil {
 		return nil, err
 	}
@@ -160,29 +199,33 @@ func (n *NodeJsBuilder) Prepare(c *config.Config) ([]PreparedImage, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = prepareNginxImage(&v, version, util.NewFileWriter(pathToNginxApplication))
+	err = prepareNginxImage(packageJsonFromPackage, nginxBaseImage, version, util.NewFileWriter(pathToNginxApplication))
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Nginx build prepared in %s", pathToNginxApplication)
 	return []PreparedImage{{
-		Type: NodeJSImage,
-		Path: pathToNodeJSApplication,
+		Type:      NodeJSImage,
+		baseImage: nodejsBaseImage,
+		Path:      pathToNodeJSApplication,
 	}, {
-		Type: NginxImage,
-		Path: pathToNginxApplication,
+		Type:      NginxImage,
+		baseImage: nginxBaseImage,
+		Path:      pathToNginxApplication,
 	}}, nil
 }
 
-func prepareNginxImage(v *npm.Version, version string, writer util.FileWriter) error {
+func prepareNginxImage(v *npm.VersionedPackageJson, baseImage runtime.BaseImage, version string, writer util.FileWriter) error {
 	labels := make(map[string]string)
 	labels["version"] = version
 	labels["maintainer"] = findMaintainer(v.Maintainers)
 	input := &struct {
+		Baseimage        string
 		Static           string
 		Labels           map[string]string
 		PackageDirectory string
 	}{
+		Baseimage:        baseImage.GetDockerFileString(),
 		Static:           v.Aurora.Static,
 		Labels:           labels,
 		PackageDirectory: "package",
@@ -199,15 +242,17 @@ func prepareNginxImage(v *npm.Version, version string, writer util.FileWriter) e
 
 }
 
-func prepareNodeJsImage(v *npm.Version, version string, writer util.FileWriter) error {
+func prepareNodeJsImage(v *npm.VersionedPackageJson, baseImage runtime.BaseImage, version string, writer util.FileWriter) error {
 	labels := make(map[string]string)
 	labels["version"] = version
 	labels["maintainer"] = findMaintainer(v.Maintainers)
 	input := &struct {
+		Baseimage        string
 		MainFile         string
 		Labels           map[string]string
 		PackageDirectory string
 	}{
+		Baseimage:        baseImage.GetDockerFileString(),
 		MainFile:         v.Aurora.NodeJS.Main,
 		Labels:           labels,
 		PackageDirectory: "package",

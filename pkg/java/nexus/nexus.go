@@ -15,7 +15,7 @@ import (
 )
 
 type Downloader interface {
-	DownloadArtifact(c *config.MavenGav) (*Deliverable, error)
+	DownloadArtifact(c *config.JavaApplication) (*Deliverable, error)
 }
 
 type Nexus struct {
@@ -39,7 +39,7 @@ func NewLocalDownloader() Downloader {
 	return &LocalRepo{}
 }
 
-func (n *LocalRepo) DownloadArtifact(c *config.MavenGav) (*Deliverable, error) {
+func (n *LocalRepo) DownloadArtifact(c *config.JavaApplication) (*Deliverable, error) {
 	home := homedir.Get()
 	replacer := strings.NewReplacer(".", "/")
 	path := home + "/.m2/repository/" + replacer.Replace(c.GroupId) +
@@ -50,7 +50,7 @@ func (n *LocalRepo) DownloadArtifact(c *config.MavenGav) (*Deliverable, error) {
 	return &Deliverable{path}, nil
 }
 
-func (n *Nexus) DownloadArtifact(c *config.MavenGav) (*Deliverable, error) {
+func (n *Nexus) DownloadArtifact(c *config.JavaApplication) (*Deliverable, error) {
 	resourceUrl, err := n.createURL(c)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to create Nexus url for GAV %+v", c)
@@ -92,7 +92,7 @@ func (n *Nexus) DownloadArtifact(c *config.MavenGav) (*Deliverable, error) {
 	return &Deliverable{fileName}, nil
 }
 
-func (m *Nexus) createURL(n *config.MavenGav) (string, error) {
+func (m *Nexus) createURL(n *config.JavaApplication) (string, error) {
 	tmpUrl, err := url.Parse(m.baseUrl)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to parse url")

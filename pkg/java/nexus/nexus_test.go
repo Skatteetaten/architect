@@ -29,7 +29,7 @@ func TestDownloadFromNexusServer(t *testing.T) {
 	defer ts.Close()
 
 	n := NewNexusDownloader(ts.URL)
-	m := config.MavenGav{
+	m := config.JavaApplication{
 		ArtifactId: "openshift-resource-monitor",
 		GroupId:    "ske.fellesplattform.monitor",
 		Version:    "1.1.4",
@@ -49,7 +49,7 @@ func TestDownloadFromNexusServer(t *testing.T) {
 
 func TestNewLocalDownloader(t *testing.T) {
 	d := NewLocalDownloader()
-	m := config.MavenGav{
+	m := config.JavaApplication{
 		ArtifactId: "dontexist",
 		GroupId:    "ske",
 		Version:    "develop-SNAPSHOT",

@@ -2,6 +2,7 @@ package prepare
 
 import (
 	"bytes"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/nodejs/npm"
 	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/stretchr/testify/assert"
@@ -69,7 +70,7 @@ http {
 }
 `
 
-var testVersion = npm.Version{
+var testVersion = npm.VersionedPackageJson{
 	Aurora: npm.AuroraApplication{
 		NodeJS: npm.NodeJSApplication{
 			Main: "test.json",
@@ -86,7 +87,10 @@ var testVersion = npm.Version{
 
 func TestNodeJsDockerFiles(t *testing.T) {
 	files := make(map[string]string)
-	err := prepareNodeJsImage(&testVersion, "1.2.3", testFileWriter(files))
+	err := prepareNodeJsImage(&testVersion, runtime.BaseImage{
+		Tag:        "latest",
+		Repository: "aurora/wrench",
+	}, "1.2.3", testFileWriter(files))
 	assert.NoError(t, err)
 	assert.Equal(t, files["Dockerfile"], expectedNodeJsDockerFile)
 	assert.Equal(t, len(files), 1)
@@ -94,7 +98,10 @@ func TestNodeJsDockerFiles(t *testing.T) {
 
 func TestNginxConfigurationAndDockerfile(t *testing.T) {
 	files := make(map[string]string)
-	err := prepareNginxImage(&testVersion, "1.2.3", testFileWriter(files))
+	err := prepareNginxImage(&testVersion, runtime.BaseImage{
+		Tag:        "latest",
+		Repository: "aurora/modem",
+	}, "1.2.3", testFileWriter(files))
 	assert.NoError(t, err)
 	assert.Equal(t, files["Dockerfile"], expectedNginxDockerFile)
 	assert.Equal(t, files["nginx.conf"], expectedNginxConfFile)

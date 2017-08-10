@@ -1,5 +1,9 @@
 package config
 
+import (
+	"strings"
+)
+
 type ApplicationType string
 
 const (
@@ -8,31 +12,37 @@ const (
 )
 
 type Config struct {
-	ApplicationType ApplicationType
-	MavenGav        *MavenGav
-	NodeJSGav       *NodeJSGav
-	Snapshot        bool //NPM don't have snapshot semantics, so this is lifted up.. Should be refactored
-	DockerSpec      DockerSpec
-	BuilderSpec     BuilderSpec
+	ApplicationType   ApplicationType
+	JavaApplication   *JavaApplication
+	NodeJsApplication *NodeApplication
+	DockerSpec        DockerSpec
+	BuilderSpec       BuilderSpec
+	BinaryBuild       bool
 }
 
-type MavenGav struct {
-	ArtifactId string
-	GroupId    string
-	Version    string
-	Classifier string
+type JavaApplication struct {
+	ArtifactId    string
+	GroupId       string
+	Version       string
+	Classifier    string
+	BaseImageSpec DockerBaseImageSpec
 }
 
-type NodeJSGav struct {
-	NpmName string
-	Version string
+type NodeApplication struct {
+	NpmName             string
+	Version             string
+	NginxBaseImageSpec  DockerBaseImageSpec
+	NodejsBaseImageSpec DockerBaseImageSpec
+}
+
+type DockerBaseImageSpec struct {
+	BaseImage   string
+	BaseVersion string
 }
 
 type DockerSpec struct {
 	OutputRegistry   string
 	OutputRepository string
-	BaseImage        string
-	BaseVersion      string
 	PushExtraTags    PushExtraTags
 	//This is the external docker registry where we check versions.
 	ExternalDockerRegistry string
@@ -41,7 +51,10 @@ type DockerSpec struct {
 	TagOverwrite           bool
 }
 
-//TODO Would it be more idiomatic Go to use bitmask?
+type BuilderSpec struct {
+	Version string
+}
+
 type PushExtraTags struct {
 	Latest bool
 	Major  bool
@@ -49,6 +62,41 @@ type PushExtraTags struct {
 	Patch  bool
 }
 
-type BuilderSpec struct {
-	Version string
+// Generates the tags given the appversion and extra tag configuration. Don't do any filtering
+func (m *PushExtraTags) ToStringValue() string {
+	str := make([]string, 0, 5)
+	if m.Major {
+		str = append(str, "major")
+	}
+	if m.Minor {
+		str = append(str, "minor")
+	}
+	if m.Patch {
+		str = append(str, "patch")
+	}
+	if m.Latest {
+		str = append(str, "latest")
+	}
+	return strings.Join(str, ",")
+}
+
+func (m DockerSpec) GetExternalRegistryWithoutProtocol() string {
+	return strings.TrimPrefix(m.ExternalDockerRegistry, "https://")
+}
+
+func ParseExtraTags(i string) PushExtraTags {
+	p := PushExtraTags{}
+	if strings.Contains(i, "major") {
+		p.Major = true
+	}
+	if strings.Contains(i, "minor") {
+		p.Minor = true
+	}
+	if strings.Contains(i, "patch") {
+		p.Patch = true
+	}
+	if strings.Contains(i, "latest") {
+		p.Latest = true
+	}
+	return p
 }

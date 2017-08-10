@@ -3,13 +3,14 @@ package prepare_test
 import (
 	"bytes"
 	global "github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/java/config"
 	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-const expectedDockerfile = `FROM test:oracle8-1.0.2
+const expectedDockerfile = `FROM oracle8:2.3.2
 
 MAINTAINER wrench@sits.no
 LABEL jallaball="Spank me beibi" maintainer="wrench.sits.no" no.skatteetaten.test="TestLabel"
@@ -20,26 +21,25 @@ RUN chmod -R 777 $HOME && \
 	rm $TRUST_STORE && \
 	ln -s $HOME/architect/cacerts $TRUST_STORE
 
-ENV APP_VERSION="2.0.0-SNAPSHOT" AURORA_VERSION="2.0.0-SNAPSHOT-b2.3.2-test-oracle8-1.0.2" LOGBACK_FILE="$HOME/architect/logback.xml" PUSH_EXTRA_TAGS=",,,," SNAPSHOT_TAG="2.0.0-SNAPSHOT" TZ="Europe/Oslo"
+ENV APP_VERSION="2.0.0-SNAPSHOT" AURORA_VERSION="2.0.0-SNAPSHOT-bbuildimage-oracle8-2.3.2" LOGBACK_FILE="$HOME/architect/logback.xml" PUSH_EXTRA_TAGS="major" SNAPSHOT_TAG="2.0.0-SNAPSHOT" TZ="Europe/Oslo"
 `
 
 func TestBuild(t *testing.T) {
 	dockerSpec := global.DockerSpec{
-		BaseImage:   "test",
-		BaseVersion: "tull",
+		PushExtraTags: global.ParseExtraTags("major"),
 	}
-	auroraVersions, err := global.NewAuroraVersions(
+	baseImage := &runtime.BaseImage{
+		Tag:        "2.3.2",
+		Repository: "oracle8",
+	}
+	auroraVersions := runtime.NewApplicationVersionFromBuilderAndBase(
 		"2.0.0-SNAPSHOT",
 		true,
 		"2.0.0-SNAPSHOT",
-		dockerSpec,
-		global.BuilderSpec{
-			Version: "2.3.2",
+		&runtime.BuildImage{
+			Tag: "buildimage",
 		},
-		"oracle8-1.0.2")
-	if err != nil {
-		t.Fatal(err)
-	}
+		baseImage)
 
 	labels := make(map[string]string)
 	labels["no.skatteetaten.test"] = "TestLabel"
@@ -51,7 +51,7 @@ func TestBuild(t *testing.T) {
 			Labels:     labels,
 		},
 	}
-	writer := prepare.NewDockerfile(dockerSpec, auroraVersions, &deliverableMetadata)
+	writer := prepare.NewDockerfile(dockerSpec, auroraVersions, &deliverableMetadata, baseImage)
 
 	buffer := new(bytes.Buffer)
 

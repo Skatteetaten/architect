@@ -115,13 +115,13 @@ func (registry *RegistryClient) GetCompleteBaseImageVersion(repository string, t
 	value, ok := envMap["BASE_IMAGE_VERSION"]
 
 	if !ok {
-		return "", errors.Wrapf(err, "Env variable %s not in manifest", "BASE_IMAGE_VERSION")
+		return "", errors.Errorf("Env variable %s not in manifest", "BASE_IMAGE_VERSION")
 	}
 
 	if value == "" {
 		return "", errors.Errorf("Failed to extract version in getBaseImageVersion, registry: %s, "+
-			"BaseImage: %s, BaseVersion: %s ",
-			registry, repository, tag)
+			"BaseImage: %s, BaseVersion: %s EnvMap: %v",
+			registry, repository, tag, envMap)
 	}
 	return value, nil
 }

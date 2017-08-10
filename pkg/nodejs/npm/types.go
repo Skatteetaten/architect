@@ -1,6 +1,6 @@
 package npm
 
-type Version struct {
+type VersionedPackageJson struct {
 	Aurora AuroraApplication `json:"aurora"`
 	Dist   struct {
 		Shasum  string `json:"shasum"`
@@ -15,8 +15,8 @@ type Maintainer struct {
 }
 
 type PackageJson struct {
-	Versions map[string]Version `json:"versions"`
-	Name     string             `json:"name"`
+	Versions map[string]VersionedPackageJson `json:"versions"`
+	Name     string                          `json:"name"`
 	Time     *struct {
 		Created  string `json:"created"`
 		Modified string `json:"modified"`

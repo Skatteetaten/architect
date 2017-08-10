@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/docker"
+	"github.com/skatteetaten/architect/pkg/process/tagger"
 )
 
 func Build(credentials *docker.RegistryCredentials, cfg *config.Config, prepper Prepper) error {
@@ -20,7 +21,7 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, prepper 
 	}
 
 	for _, buildConfig := range dockerBuildConfig {
-		imageid, err := client.BuildImage(buildConfig)
+		imageid, err := client.BuildImage(buildConfig.BuildFolder)
 
 		if err != nil {
 			return errors.Wrap(err, "Fuckup!")
@@ -28,8 +29,31 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, prepper 
 			logrus.Infof("Done building. Imageid: %s", imageid)
 		}
 
+		var tagResolver tagger.TagResolver
+		if cfg.DockerSpec.TagWith == "" {
+			tagResolver = &tagger.NormalTagResolver{
+				Overwrite:  cfg.DockerSpec.TagOverwrite,
+				Provider:   provider,
+				Registry:   cfg.DockerSpec.OutputRegistry,
+				Repository: buildConfig.DockerRepository,
+			}
+		} else {
+			tagResolver = &tagger.TagForRetagTagResolver{
+				Tag:        cfg.DockerSpec.TagWith,
+				Registry:   cfg.DockerSpec.OutputRegistry,
+				Repository: buildConfig.DockerRepository,
+			}
+		}
+
+		tags, err := tagResolver.ResolveTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
 		logrus.Debug("Push images and tags")
-		err = client.PushImages(buildConfig.Tags, credentials)
+		for _, tag := range tags {
+			err = client.TagImage(imageid, tag)
+			if err != nil {
+				return err
+			}
+		}
+		err = client.PushImages(tags, credentials)
 		if err != nil {
 			return errors.Wrap(err, "Error pushing images")
 		}

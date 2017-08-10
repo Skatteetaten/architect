@@ -31,12 +31,7 @@ func TestBuildImageSuccess(t *testing.T) {
 		t.Error(err)
 	}
 
-	buildConfig := docker.DockerBuildConfig{
-		Tags:        []string{"test_image"},
-		BuildFolder: dir,
-	}
-
-	if imageid, err := target.BuildImage(buildConfig); err != nil {
+	if imageid, err := target.BuildImage(dir); err != nil {
 		t.Error(err)
 	} else if imageid != "6757955c1ca1" {
 		t.Errorf("Build returned unexpected image id %s", imageid)
@@ -51,12 +46,7 @@ func TestBuildImageIllegalDockerfile(t *testing.T) {
 		t.Error(err)
 	}
 
-	buildConfig := docker.DockerBuildConfig{
-		Tags:        []string{"test_image"},
-		BuildFolder: dir,
-	}
-
-	if _, err = target.BuildImage(buildConfig); err == nil {
+	if _, err = target.BuildImage(dir); err == nil {
 		t.Errorf("Expected error")
 	} else if !strings.Contains(err.Error(), "Unknown instruction: FOO") {
 		t.Errorf("Expected error to contain cause of error")
@@ -72,12 +62,7 @@ func TestBuildImageError(t *testing.T) {
 		t.Error(err)
 	}
 
-	buildConfig := docker.DockerBuildConfig{
-		Tags:        []string{"test_image"},
-		BuildFolder: dir,
-	}
-
-	if _, err = target.BuildImage(buildConfig); err == nil {
+	if _, err = target.BuildImage(dir); err == nil {
 		t.Errorf("Expected error")
 	}
 }

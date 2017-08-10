@@ -23,6 +23,8 @@ import (
 	"github.com/skatteetaten/architect/pkg/nodejs/npm"
 	"os"
 	"strings"
+	"github.com/skatteetaten/architect/pkg/docker"
+	"github.com/skatteetaten/architect/pkg/util"
 )
 
 func main() {
@@ -41,10 +43,33 @@ func initializeAndRunOnOpenShift() {
 	}
 	mavenRepo := "http://aurora/nexus/service/local/artifact/maven/content"
 	logrus.Debugf("Using Maven repo on %s", mavenRepo)
+	// Read build config
+	configReader := config.NewInClusterConfigReader()
+	c, err := configReader.ReadConfig()
+	if err != nil {
+		logrus.Fatalf("Could not read configuration: %s", err)
+	}
+
+	cfg, err := configReader.ReadConfig()
+
+	if err != nil {
+		logrus.Fatalf("Error reading config: %s", err)
+	}
+	var npmDownloader npm.Downloader
+	if c.BinaryBuild  && c.ApplicationType == config.NodeJsLeveransepakke {
+		binaryInput, err := util.ExtractBinaryFromStdIn()
+		if err != nil {
+			logrus.Fatalf("Could not read binary input", err)
+		}
+		npmDownloader = npm.NewBinaryBuildRegistry(binaryInput, c.NodeJsApplication.Version)
+	} else {
+		npmDownloader = npm.NewRemoteRegistry("http://aurora/npm/repository/npm-internal")
+	}
 	runConfig := architect.RunConfiguration{
-		ConfigReader:    config.NewInClusterConfigReader(),
+		Config:    cfg,
 		NexusDownloader: nexus.NewNexusDownloader(mavenRepo),
-		NpmDownloader:   npm.NewRemoteRegistry("http://aurora/npm/repository/npm-internal"),
+		NpmDownloader:  npmDownloader,
+		RegistryCredentialsFunc: docker.CusterRegistryCredentials(),
 	}
 	architect.RunArchitect(runConfig)
 }

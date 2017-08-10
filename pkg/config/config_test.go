@@ -15,9 +15,9 @@ func TestJavaLeveransePakkeConfig(t *testing.T) {
 	completeDockerName := c.DockerSpec.OutputRegistry + "/" + c.DockerSpec.OutputRepository
 	assert.Equal(t, "docker-registry.themoon.com:5000/groupid/app", completeDockerName)
 	assert.Equal(t, config.JavaLeveransepakke, c.ApplicationType)
-	assert.Equal(t, "application-server", c.MavenGav.ArtifactId)
-	assert.Equal(t, "groupid.com", c.MavenGav.GroupId)
-	assert.Equal(t, "0.0.62", c.MavenGav.Version)
+	assert.Equal(t, "application-server", c.JavaApplication.ArtifactId)
+	assert.Equal(t, "groupid.com", c.JavaApplication.GroupId)
+	assert.Equal(t, "0.0.62", c.JavaApplication.Version)
 }
 
 func TestNodeJSLeveransePakkeConfig(t *testing.T) {
@@ -29,6 +29,6 @@ func TestNodeJSLeveransePakkeConfig(t *testing.T) {
 	completeDockerName := c.DockerSpec.OutputRegistry + "/" + c.DockerSpec.OutputRepository
 	assert.Equal(t, "docker-registry.themoon.com:5000/groupid/app", completeDockerName)
 	assert.Equal(t, config.NodeJsLeveransepakke, c.ApplicationType)
-	assert.Equal(t, "nodejs-test-app", c.NodeJSGav.NpmName)
-	assert.Equal(t, "0.0.62", c.NodeJSGav.Version)
+	assert.Equal(t, "nodejs-test-app", c.NodeJsApplication.NpmName)
+	assert.Equal(t, "0.0.62", c.NodeJsApplication.Version)
 }

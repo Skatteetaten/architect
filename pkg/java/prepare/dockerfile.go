@@ -3,6 +3,7 @@ package prepare
 import (
 	"github.com/pkg/errors"
 	global "github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/java/config"
 	"github.com/skatteetaten/architect/pkg/util"
@@ -40,7 +41,7 @@ type Dockerfile struct {
 	Env            map[string]string
 }
 
-func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *global.AuroraVersions, meta *config.DeliverableMetadata) util.WriterFunc {
+func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *runtime.AuroraVersion, meta *config.DeliverableMetadata, baseImage *runtime.BaseImage) util.WriterFunc {
 	return func(writer io.Writer) error {
 
 		env := createEnv(auroraVersion, dockerSpec.PushExtraTags)
@@ -66,8 +67,8 @@ func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *global.AuroraVer
 		appendArchitectEnv(env, meta)
 
 		dockerFile := &Dockerfile{
-			BaseRepository: auroraVersion.GetBaseImage(),
-			BaseImageTag:   auroraVersion.GetBaseImageVersion(),
+			BaseRepository: baseImage.Repository,
+			BaseImageTag:   baseImage.Tag,
 			Maintainer:     maintainer,
 			Labels:         labels,
 			Env:            env}

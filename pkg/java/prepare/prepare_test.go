@@ -2,6 +2,7 @@ package prepare_test
 
 import (
 	global "github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/java/nexus"
 	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"github.com/stretchr/testify/assert"
@@ -11,18 +12,18 @@ import (
 )
 
 func TestPrepare(t *testing.T) {
-	auroraVersions, err := global.NewAuroraVersions(
-		"2.0.0-b1.11.0-oracle8-1.0.2",
+	auroraVersions := runtime.NewApplicationVersion(
+		"2.0.0",
 		true,
 		"2.0.0",
-		global.DockerSpec{},
-		global.BuilderSpec{},
 		"2.0.0-b1.11.0-oracle8-1.0.2")
 
-	assert.NoError(t, err)
-
 	dockerBuildPath, err := prepare.Prepare(global.DockerSpec{}, auroraVersions,
-		nexus.Deliverable{"testdata/minarch-1.2.22-Leveransepakke.zip"})
+		&nexus.Deliverable{"testdata/minarch-1.2.22-Leveransepakke.zip"},
+		&runtime.BaseImage{
+			Repository: "test",
+			Tag:        "1",
+		})
 
 	assert.NoError(t, err)
 
