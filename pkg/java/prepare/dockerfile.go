@@ -40,7 +40,7 @@ type Dockerfile struct {
 	Env        map[string]string
 }
 
-func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *runtime.AuroraVersion, meta *config.DeliverableMetadata, baseImage *runtime.BaseImage) util.WriterFunc {
+func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *runtime.AuroraVersion, meta *config.DeliverableMetadata, baseImage *runtime.DockerImage) util.WriterFunc {
 	return func(writer io.Writer) error {
 
 		env := createEnv(auroraVersion, dockerSpec.PushExtraTags)
@@ -66,7 +66,7 @@ func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *runtime.AuroraVe
 		appendArchitectEnv(env, meta)
 
 		dockerFile := &Dockerfile{
-			BaseImage:  baseImage.GetDockerFileString(),
+			BaseImage:  baseImage.GetCompleteDockerTagName(),
 			Maintainer: maintainer,
 			Labels:     labels,
 			Env:        env}

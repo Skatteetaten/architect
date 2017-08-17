@@ -82,7 +82,7 @@ var testVersion = npm.VersionedPackageJson{
 
 func TestNodeJsDockerFiles(t *testing.T) {
 	files := make(map[string]string)
-	err := prepareImage(&testVersion, runtime.BaseImage{
+	err := prepareImage(&testVersion, runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
 	}, "1.2.3", testFileWriter(files))

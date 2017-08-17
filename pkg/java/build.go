@@ -30,13 +30,13 @@ func Prepper(downloader nexus.Downloader) process.Prepper {
 			return nil, errors.Wrap(err, "Unable to get the complete build version")
 		}
 
-		baseImage := &runtime.BaseImage{
+		baseImage := &runtime.DockerImage{
 			Tag:        completeBaseImageVersion,
 			Repository: javaApplication.BaseImageSpec.BaseImage,
 			Registry:   cfg.DockerSpec.GetExternalRegistryWithoutProtocol(),
 		}
 
-		buildImage := &runtime.BuildImage{
+		buildImage := &runtime.ArchitectImage{
 			Tag: cfg.BuilderSpec.Version,
 		}
 		snapshot := strings.Contains(javaApplication.Version, "-SNAPSHOT")

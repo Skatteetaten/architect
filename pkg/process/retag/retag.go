@@ -38,11 +38,6 @@ func (m *retagger) Retag() error {
 		return errors.Wrap(err, "Failed to retag image")
 	}
 
-	client, err := docker.NewDockerClient()
-	if err != nil {
-		return errors.Wrap(err, "Error initializing Docker")
-	}
-
 	// Get AURORA_VERSION
 	auroraVersion, ok := envMap[docker.ENV_AURORA_VERSION]
 
@@ -78,27 +73,28 @@ func (m *retagger) Retag() error {
 		return errors.Wrap(err, "Unable to get version tags")
 	}
 
-	imageId := &docker.ImageName{
+	imageId := &runtime.DockerImage{
 		Registry:   m.Config.DockerSpec.OutputRegistry,
 		Repository: m.Config.DockerSpec.OutputRepository,
 		Tag:        m.Config.DockerSpec.RetagWith,
 	}
 
-	var repositoryTags *docker.TagsAPIResponse
+	var repositoryTags []string
 
 	if !m.Config.DockerSpec.TagOverwrite {
 		logrus.Debug("Tags Overwrite diabled, filtering tags")
 
-		repositoryTags, err = provider.GetTags(m.Config.DockerSpec.OutputRepository)
+		rt, err := provider.GetTags(m.Config.DockerSpec.OutputRepository)
 
 		if err != nil {
 			return errors.Wrapf(err, "Error in GetTags, repository=%s", m.Config.DockerSpec.OutputRepository)
 
 		}
+		repositoryTags = rt.Tags
 
 	}
 
-	versionTags, err := appVersion.GetApplicationVersionTagsToPush(repositoryTags.Tags, config.ParseExtraTags(extratags))
+	versionTags, err := appVersion.GetApplicationVersionTagsToPush(repositoryTags, config.ParseExtraTags(extratags))
 
 	if err != nil {
 		return err
@@ -108,35 +104,29 @@ func (m *retagger) Retag() error {
 		m.Config.DockerSpec.OutputRegistry,
 		m.Config.DockerSpec.OutputRepository)
 
-	logrus.Debugf("Retag temporary image, versionTags=%-v", versionTags)
-	for _, alias := range tagsToPush {
-		err := m.tagAndPushImage(*client, imageId.String(), alias)
+	client, err := docker.NewDockerClient()
+	if err != nil {
+		return errors.Wrap(err, "Error initializing Docker")
+	}
 
+	//We need to pull to make sure we push the newest image.. We should probably do this directly
+	//on the registry when we get v2 registry!:)
+	client.PullImage(imageId)
+
+	logrus.Debugf("Retagging temporary image, versionTags=%-v", versionTags)
+	for _, tag := range tagsToPush {
+		sourceTag := imageId.GetCompleteDockerTagName()
+		logrus.Infof("Tag image %s with alias %s", sourceTag, tag)
+		err := client.TagImage(sourceTag, tag)
 		if err != nil {
-			return errors.Wrap(err, "Failed to tag image")
+			return errors.Wrapf(err, "Failed to tag image %s with tag %s", imageId, tag)
 		}
 	}
-
-	return nil
-}
-
-func (m *retagger) tagAndPushImage(client docker.DockerClient, imageId string, alias string) error {
-
-	logrus.Infof("Tag image %s with alias %s", imageId, alias)
-
-	err := client.TagImage(imageId, alias)
-
-	if err != nil {
-		return errors.Wrapf(err, "Failed to tag image %s with alias %s", imageId, alias)
+	for _, tag := range tagsToPush {
+		err = client.PushImage(tag, m.Credentials)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to push tag %s", tag)
+		}
 	}
-
-	logrus.Infof("Push tag %s to registry", alias)
-
-	err = client.PushImage(alias, m.Credentials)
-
-	if err != nil {
-		return errors.Wrapf(err, "Failed to push tag %s", alias)
-	}
-
 	return nil
 }

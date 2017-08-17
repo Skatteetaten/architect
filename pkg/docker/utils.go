@@ -1,5 +1,7 @@
 package docker
 
+import "github.com/skatteetaten/architect/pkg/config/runtime"
+
 // CreateCompleteTagsFromSpecAndTags makes a target image to be used for push.
 // The tag format in docker is somewhat confusing. For a description, see
 // https://docs.docker.com/engine/reference/commandline/tag/
@@ -11,9 +13,12 @@ package docker
 func CreateImageNameFromSpecAndTags(tags []string, outputRegistry string, outputRepository string) []string {
 	output := make([]string, len(tags))
 	for i, t := range tags {
-		name := &ImageName{outputRegistry,
-			outputRepository, t}
-		output[i] = name.String()
+		name := &runtime.DockerImage{
+			Registry:   outputRegistry,
+			Repository: outputRepository,
+			Tag:        t,
+		}
+		output[i] = name.GetCompleteDockerTagName()
 	}
 	return output
 }

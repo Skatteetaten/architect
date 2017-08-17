@@ -20,7 +20,7 @@ func TestPrepare(t *testing.T) {
 
 	dockerBuildPath, err := prepare.Prepare(global.DockerSpec{}, auroraVersions,
 		&nexus.Deliverable{"testdata/minarch-1.2.22-Leveransepakke.zip"},
-		&runtime.BaseImage{
+		&runtime.DockerImage{
 			Repository: "test",
 			Tag:        "1",
 		})

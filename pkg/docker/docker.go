@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -30,7 +29,7 @@ type DockerBuildConfig struct {
 	AuroraVersion    *runtime.AuroraVersion
 	DockerRepository string ///TODO: Refactor? We need to have to different for nodejs
 	BuildFolder      string
-	Baseimage        *runtime.BaseImage //We need to pull the newest image...
+	Baseimage        *runtime.DockerImage //We need to pull the newest image...
 }
 
 type DockerClient struct {
@@ -48,9 +47,9 @@ func NewDockerClient() (*DockerClient, error) {
 }
 
 //THIS IS BUGGY!
-func (d *DockerClient) PullImage(baseimage *runtime.BaseImage) error {
-	logrus.Infof("Pulling %s", baseimage.GetDockerFileString())
-	output, err := d.Client.ImagePull(context.Background(), baseimage.GetDockerFileString(), types.ImagePullOptions{})
+func (d *DockerClient) PullImage(baseimage *runtime.DockerImage) error {
+	logrus.Infof("Pulling %s", baseimage.GetCompleteDockerTagName())
+	output, err := d.Client.ImagePull(context.Background(), baseimage.GetCompleteDockerTagName(), types.ImagePullOptions{})
 
 	// ImageBuild will not return error message if build fails.
 	var bodyLine string = ""
@@ -156,14 +155,6 @@ func JsonMapToString(jsonStr string, key string) (string, error) {
 	}
 	errorMap := f.(map[string]interface{})
 	return errorMap[key].(string), nil
-}
-
-func (n ImageName) String() string {
-	if n.Registry == "" {
-		return fmt.Sprintf("%s:%s", n.Repository, n.Tag)
-	}
-
-	return fmt.Sprintf("%s/%s:%s", n.Registry, n.Repository, n.Tag)
 }
 
 func (rc RegistryCredentials) Encode() (string, error) {

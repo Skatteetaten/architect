@@ -28,7 +28,7 @@ func TestBuild(t *testing.T) {
 	dockerSpec := global.DockerSpec{
 		PushExtraTags: global.ParseExtraTags("major"),
 	}
-	baseImage := &runtime.BaseImage{
+	baseImage := &runtime.DockerImage{
 		Tag:        "2.3.2",
 		Repository: "oracle8",
 	}
@@ -36,7 +36,7 @@ func TestBuild(t *testing.T) {
 		"2.0.0-SNAPSHOT",
 		true,
 		"2.0.0-SNAPSHOT",
-		&runtime.BuildImage{
+		&runtime.ArchitectImage{
 			Tag: "buildimage",
 		},
 		baseImage)

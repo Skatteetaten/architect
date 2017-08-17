@@ -73,7 +73,7 @@ type NodeJsBuilder struct {
 }
 
 type PreparedImage struct {
-	baseImage runtime.BaseImage
+	baseImage runtime.DockerImage
 	Path      string
 }
 
@@ -90,7 +90,7 @@ func Prepper(npmRegistry npm.Downloader) process.Prepper {
 		}
 
 		buildConfigs := make([]docker.DockerBuildConfig, 0, 2)
-		buildImage := runtime.BuildImage{
+		buildImage := runtime.ArchitectImage{
 			Tag: c.BuilderSpec.Version,
 		}
 		for _, preparedImage := range preparedImages {
@@ -133,7 +133,7 @@ func (n *NodeJsBuilder) Prepare(c *config.NodeApplication, externalRegistry stri
 	}
 	logrus.Debugf("Nodejs base image version %s", nodejsBaseImageVersion)
 
-	nodejsBaseImage := runtime.BaseImage{
+	nodejsBaseImage := runtime.DockerImage{
 		Repository: c.NodejsBaseImageSpec.BaseImage,
 		Tag:        nodejsBaseImageVersion,
 		Registry:   externalRegistry,
@@ -165,7 +165,7 @@ func (n *NodeJsBuilder) Prepare(c *config.NodeApplication, externalRegistry stri
 	}}, nil
 }
 
-func prepareImage(v *npm.VersionedPackageJson, baseImage runtime.BaseImage, version string, writer util.FileWriter) error {
+func prepareImage(v *npm.VersionedPackageJson, baseImage runtime.DockerImage, version string, writer util.FileWriter) error {
 	labels := make(map[string]string)
 	labels["version"] = version
 	labels["maintainer"] = findMaintainer(v.Maintainers)
@@ -176,7 +176,7 @@ func prepareImage(v *npm.VersionedPackageJson, baseImage runtime.BaseImage, vers
 		Labels           map[string]string
 		PackageDirectory string
 	}{
-		Baseimage:        baseImage.GetDockerFileString(),
+		Baseimage:        baseImage.GetCompleteDockerTagName(),
 		MainFile:         v.Aurora.NodeJS.Main,
 		Static:           v.Aurora.Static,
 		Labels:           labels,

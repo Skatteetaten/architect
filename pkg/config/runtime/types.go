@@ -12,13 +12,13 @@ import (
 // The Docker naming scheme sucks..
 // https://docs.docker.com/glossary/?term=repository
 
-type BaseImage struct {
+type DockerImage struct {
 	Tag        string
 	Repository string
 	Registry   string
 }
 
-func (m *BaseImage) GetDockerFileString() string {
+func (m *DockerImage) GetCompleteDockerTagName() string {
 	if m.Registry == "" {
 		return m.Repository + ":" + m.Tag
 	} else {
@@ -26,11 +26,8 @@ func (m *BaseImage) GetDockerFileString() string {
 	}
 }
 
-type OutputImage struct {
-	Repository string
-}
-
-type BuildImage struct {
+//We only care of the version of architect image.. Refactor to a version variable?
+type ArchitectImage struct {
 	Tag string
 }
 
@@ -39,19 +36,19 @@ type BuildImage struct {
   <application-version>-<builder-version>-<baseimage-repository>-<baseimage-version>
   e.g. 2.0.0-b1.11.0-oracle8-1.0.2
 */
-func getCompleteVersion(appversion AppVersion, buildImage *BuildImage, baseImage *BaseImage) string {
+func getCompleteVersion(appversion AppVersion, buildImage *ArchitectImage, baseImage *DockerImage) string {
 	return fmt.Sprintf("%s-%s-%s", appversion,
 		buildImage.AuroraVersionComponent(),
 		baseImage.AuroraVersionComponent())
 }
 
-func (m *BaseImage) AuroraVersionComponent() string {
+func (m *DockerImage) AuroraVersionComponent() string {
 	//TODO: Can we assume that we have two one components?
 	s := strings.Split(m.Repository, "/")
 	return s[len(s)-1] + "-" + m.Tag
 }
 
-func (m *BuildImage) AuroraVersionComponent() string {
+func (m *ArchitectImage) AuroraVersionComponent() string {
 	//TODO: Should we include image name?
 	return "b" + m.Tag
 }
@@ -92,7 +89,7 @@ func NewApplicationVersion(appVersion string, snapshot bool, givenVersion string
 
 func NewApplicationVersionFromBuilderAndBase(
 	appVersion string, snapshot bool,
-	givenVersion string, buildImage *BuildImage, baseImage *BaseImage) *AuroraVersion {
+	givenVersion string, buildImage *ArchitectImage, baseImage *DockerImage) *AuroraVersion {
 	return &AuroraVersion{
 		appVersion:      AppVersion(appVersion),
 		Snapshot:        snapshot,

@@ -15,6 +15,23 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, prepper 
 		return errors.Wrap(err, "Error preparing image")
 	}
 
+	if !cfg.DockerSpec.TagOverwrite {
+		for _, buildConfig := range dockerBuildConfig {
+			if !buildConfig.AuroraVersion.Snapshot {
+				tags, err := provider.GetTags(cfg.DockerSpec.OutputRepository)
+				if err != nil {
+					return err
+				}
+				completeVersion := buildConfig.AuroraVersion.GetCompleteVersion()
+				for _, tag := range tags.Tags {
+					if tag == completeVersion {
+						return errors.Errorf("There are already a build with tag %s, consider TAG_OVERWRITE", completeVersion)
+					}
+				}
+			}
+		}
+	}
+
 	client, err := docker.NewDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "Error initializing Docker")

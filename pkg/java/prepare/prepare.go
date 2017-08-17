@@ -34,7 +34,7 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable *nexus.Deliverable, baseImage *runtime.BaseImage) (string, error) {
+func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable *nexus.Deliverable, baseImage *runtime.DockerImage) (string, error) {
 
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
