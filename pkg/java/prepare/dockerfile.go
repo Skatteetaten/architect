@@ -19,7 +19,7 @@ const ApplicationRoot = "app"
 // The directory where the application is prepared
 const ApplicationFolder = ApplicationRoot + "/application"
 
-var dockerfileTemplate string = `FROM {{.BaseRepository}}:{{.BaseImageTag}}
+var dockerfileTemplate string = `FROM {{.BaseImage}}
 
 MAINTAINER {{.Maintainer}}
 LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
@@ -34,11 +34,10 @@ ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
 `
 
 type Dockerfile struct {
-	BaseRepository string
-	BaseImageTag   string
-	Maintainer     string
-	Labels         map[string]string
-	Env            map[string]string
+	BaseImage  string
+	Maintainer string
+	Labels     map[string]string
+	Env        map[string]string
 }
 
 func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *runtime.AuroraVersion, meta *config.DeliverableMetadata, baseImage *runtime.BaseImage) util.WriterFunc {
@@ -67,11 +66,10 @@ func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *runtime.AuroraVe
 		appendArchitectEnv(env, meta)
 
 		dockerFile := &Dockerfile{
-			BaseRepository: baseImage.Repository,
-			BaseImageTag:   baseImage.Tag,
-			Maintainer:     maintainer,
-			Labels:         labels,
-			Env:            env}
+			BaseImage:  baseImage.GetDockerFileString(),
+			Maintainer: maintainer,
+			Labels:     labels,
+			Env:        env}
 		return util.NewTemplateWriter(dockerFile, "Dockerfile", dockerfileTemplate)(writer)
 	}
 }

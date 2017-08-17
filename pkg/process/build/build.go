@@ -21,6 +21,7 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, prepper 
 	}
 
 	for _, buildConfig := range dockerBuildConfig {
+		client.PullImage(buildConfig.Baseimage)
 		imageid, err := client.BuildImage(buildConfig.BuildFolder)
 
 		if err != nil {

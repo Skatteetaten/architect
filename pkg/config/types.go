@@ -31,7 +31,6 @@ type JavaApplication struct {
 type NodeApplication struct {
 	NpmName             string
 	Version             string
-	NginxBaseImageSpec  DockerBaseImageSpec
 	NodejsBaseImageSpec DockerBaseImageSpec
 }
 

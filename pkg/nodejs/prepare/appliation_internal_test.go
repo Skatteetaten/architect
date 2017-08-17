@@ -15,20 +15,15 @@ LABEL maintainer="Oyvind <oyvind@dagobah.wars>" version="1.2.3"
 
 COPY ./package /u01/app
 
+COPY ./package/app /u01/app/static
+
+COPY nginx.conf /etc/nginx/nginx.conf
+
 ENV MAIN_JAVASCRIPT_FILE="/u01/app/test.json"
 
 WORKDIR "/u01/app"
 
-CMD ["/u01/bin/run"]`
-
-const expectedNginxDockerFile = `FROM aurora/modem:latest
-
-LABEL maintainer="Oyvind <oyvind@dagobah.wars>" version="1.2.3"
-
-COPY ./package/app /u01/app/static
-
-COPY nginx.conf /etc/nginx/nginx.conf
-`
+CMD ["/u01/bin/run_node"]`
 
 const expectedNginxConfFile = `
 worker_processes  1;
@@ -87,23 +82,12 @@ var testVersion = npm.VersionedPackageJson{
 
 func TestNodeJsDockerFiles(t *testing.T) {
 	files := make(map[string]string)
-	err := prepareNodeJsImage(&testVersion, runtime.BaseImage{
+	err := prepareImage(&testVersion, runtime.BaseImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
 	}, "1.2.3", testFileWriter(files))
 	assert.NoError(t, err)
 	assert.Equal(t, files["Dockerfile"], expectedNodeJsDockerFile)
-	assert.Equal(t, len(files), 1)
-}
-
-func TestNginxConfigurationAndDockerfile(t *testing.T) {
-	files := make(map[string]string)
-	err := prepareNginxImage(&testVersion, runtime.BaseImage{
-		Tag:        "latest",
-		Repository: "aurora/modem",
-	}, "1.2.3", testFileWriter(files))
-	assert.NoError(t, err)
-	assert.Equal(t, files["Dockerfile"], expectedNginxDockerFile)
 	assert.Equal(t, files["nginx.conf"], expectedNginxConfFile)
 	assert.Equal(t, len(files), 2)
 }

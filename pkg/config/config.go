@@ -95,21 +95,11 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		} else {
 			javaApp.Classifier = "Leveransepakke"
 		}
-		baseSpec := DockerBaseImageSpec{}
-		if baseImage, err := findEnv(env, "DOCKER_BASE_IMAGE"); err == nil {
-			baseSpec.BaseImage = baseImage
-		} else if baseImage, err := findEnv(env, "DOCKER_BASE_NAME"); err == nil {
-			baseSpec.BaseImage = baseImage
+		if baseSpec, err := findBaseImage(env); err == nil {
+			javaApp.BaseImageSpec = baseSpec
 		} else {
 			return nil, err
 		}
-
-		if baseImageVersion, err := findEnv(env, "DOCKER_BASE_VERSION"); err == nil {
-			baseSpec.BaseVersion = baseImageVersion
-		} else {
-			return nil, err
-		}
-		javaApp.BaseImageSpec = baseSpec
 
 	} else {
 		nodeApp = &NodeApplication{}
@@ -123,13 +113,10 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		} else {
 			return nil, err
 		}
-		nodeApp.NginxBaseImageSpec = DockerBaseImageSpec{
-			BaseImage:   "aurora/modem",
-			BaseVersion: "latest",
-		}
-		nodeApp.NodejsBaseImageSpec = DockerBaseImageSpec{
-			BaseImage:   "aurora/wrench",
-			BaseVersion: "latest",
+		if baseSpec, err := findBaseImage(env); err == nil {
+			nodeApp.NodejsBaseImageSpec = baseSpec
+		} else {
+			return nil, err
 		}
 	}
 
@@ -201,6 +188,24 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		BinaryBuild:       build.Spec.Source.Type == api.BuildSourceBinary,
 	}
 	return c, nil
+}
+
+func findBaseImage(env map[string]string) (DockerBaseImageSpec, error) {
+	baseSpec := DockerBaseImageSpec{}
+	if baseImage, err := findEnv(env, "DOCKER_BASE_IMAGE"); err == nil {
+		baseSpec.BaseImage = baseImage
+	} else if baseImage, err := findEnv(env, "DOCKER_BASE_NAME"); err == nil {
+		baseSpec.BaseImage = baseImage
+	} else {
+		return baseSpec, err
+	}
+
+	if baseImageVersion, err := findEnv(env, "DOCKER_BASE_VERSION"); err == nil {
+		baseSpec.BaseVersion = baseImageVersion
+	} else {
+		return baseSpec, err
+	}
+	return baseSpec, nil
 }
 
 func findOutputRepository(dockerName string) (string, error) {

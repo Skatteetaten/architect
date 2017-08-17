@@ -19,6 +19,7 @@ import (
 	"strings"
 )
 
+//TODO: Fix context!!!
 type RegistryCredentials struct {
 	Username      string `json:"username,omitempty"`
 	Password      string `json:"password,omitempty"`
@@ -29,6 +30,7 @@ type DockerBuildConfig struct {
 	AuroraVersion    *runtime.AuroraVersion
 	DockerRepository string ///TODO: Refactor? We need to have to different for nodejs
 	BuildFolder      string
+	Baseimage        *runtime.BaseImage //We need to pull the newest image...
 }
 
 type DockerClient struct {
@@ -43,6 +45,21 @@ func NewDockerClient() (*DockerClient, error) {
 	}
 
 	return &DockerClient{Client: DockerClientProxy{*cli}}, nil
+}
+
+//THIS IS BUGGY!
+func (d *DockerClient) PullImage(baseimage *runtime.BaseImage) error {
+	logrus.Infof("Pulling %s", baseimage.GetDockerFileString())
+	output, err := d.Client.ImagePull(context.Background(), baseimage.GetDockerFileString(), types.ImagePullOptions{})
+
+	// ImageBuild will not return error message if build fails.
+	var bodyLine string = ""
+	scanner := bufio.NewScanner(output)
+	for scanner.Scan() {
+		bodyLine = scanner.Text()
+		logrus.Debug(bodyLine)
+	}
+	return err
 }
 
 func (d *DockerClient) BuildImage(buildFolder string) (string, error) {

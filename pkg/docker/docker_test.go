@@ -18,6 +18,7 @@ type DockerClientMock struct {
 	ImageBuildFunc func(ctx context.Context, context io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error)
 	ImagePushFunc  func(ctx context.Context, ref string, options types.ImagePushOptions) (io.ReadCloser, error)
 	ImageTagFunc   func(ctx context.Context, image, ref string) error
+	ImagePullFunc  func(ctx context.Context, ref string, options types.ImagePullOptions) (io.ReadCloser, error)
 }
 
 func TestBuildImageSuccess(t *testing.T) {
@@ -47,9 +48,9 @@ func TestBuildImageIllegalDockerfile(t *testing.T) {
 	}
 
 	if _, err = target.BuildImage(dir); err == nil {
-		t.Errorf("Expected error")
+		t.Error("Expected error")
 	} else if !strings.Contains(err.Error(), "Unknown instruction: FOO") {
-		t.Errorf("Expected error to contain cause of error")
+		t.Error("Expected error to contain cause of error")
 	}
 }
 
@@ -63,7 +64,7 @@ func TestBuildImageError(t *testing.T) {
 	}
 
 	if _, err = target.BuildImage(dir); err == nil {
-		t.Errorf("Expected error")
+		t.Error("Expected error")
 	}
 }
 
@@ -89,9 +90,9 @@ func TestPushImageUnauthorized(t *testing.T) {
 	err := target.PushImage("foo/baz", &credentials)
 
 	if err == nil {
-		t.Errorf("Expected error")
+		t.Error("Expected error")
 	} else if !strings.Contains(err.Error(), "unauthorized: authentication required") {
-		t.Errorf("Expected error to contain cause of error")
+		t.Errorf("Expected error to contain cause of error, was %s", err)
 	}
 }
 
@@ -102,9 +103,9 @@ func TestPushImageError(t *testing.T) {
 	err := target.PushImage("foo/qux", &credentials)
 
 	if err == nil {
-		t.Errorf("Expected error")
+		t.Error("Expected error")
 	} else if !strings.Contains(err.Error(), "Nasty errror occurred") {
-		t.Errorf("Expected error to contain cause of error")
+		t.Errorf("Expected error to contain cause of error, was %s", err)
 	}
 }
 
@@ -190,4 +191,8 @@ func (client DockerClientMock) ImagePush(ctx context.Context, ref string, option
 
 func (client DockerClientMock) ImageTag(ctx context.Context, image, ref string) error {
 	return client.ImageTagFunc(ctx, image, ref)
+}
+
+func (client DockerClientMock) ImagePull(ctx context.Context, image string, options types.ImagePullOptions) (io.ReadCloser, error) {
+	return client.ImagePullFunc(ctx, image, options)
 }

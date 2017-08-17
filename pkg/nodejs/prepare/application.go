@@ -11,33 +11,21 @@ import (
 	"github.com/skatteetaten/architect/pkg/util"
 )
 
-type ImageType int
-
-const (
-	NodeJSImage ImageType = iota
-	NginxImage  ImageType = iota
-)
-
-const NODEJS_DOCKER_FILE string = `FROM {{.Baseimage}}
+const WRENCH_DOCKER_FILE string = `FROM {{.Baseimage}}
 
 LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
 
 COPY ./{{.PackageDirectory}} /u01/app
 
+COPY ./{{.PackageDirectory}}/{{.Static}} /u01/app/static
+
+COPY nginx.conf /etc/nginx/nginx.conf
+
 ENV MAIN_JAVASCRIPT_FILE="/u01/app/{{.MainFile}}"
 
 WORKDIR "/u01/app"
 
-CMD ["/u01/bin/run"]`
-
-const NGINX_DOCKER_FILE string = `FROM {{.Baseimage}}
-
-LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
-
-COPY ./{{.PackageDirectory}}/{{.Static}} /u01/app/static
-
-COPY nginx.conf /etc/nginx/nginx.conf
-`
+CMD ["/u01/bin/run_node"]`
 
 const NGINX_CONFIG_TEMPLATE string = `
 worker_processes  1;
@@ -85,7 +73,6 @@ type NodeJsBuilder struct {
 }
 
 type PreparedImage struct {
-	Type      ImageType
 	baseImage runtime.BaseImage
 	Path      string
 }
@@ -101,27 +88,19 @@ func Prepper(npmRegistry npm.Downloader) process.Prepper {
 		if err != nil {
 			return nil, err
 		}
-		nginxOutputRepository := c.DockerSpec.OutputRepository + "-static"
-		nodejsOutputRepository := c.DockerSpec.OutputRepository + "-app"
-		//TODO: AuroraVersion must be per image
 
 		buildConfigs := make([]docker.DockerBuildConfig, 0, 2)
 		buildImage := runtime.BuildImage{
 			Tag: c.BuilderSpec.Version,
 		}
 		for _, preparedImage := range preparedImages {
-			var outputRepository string
-			if preparedImage.Type == NodeJSImage {
-				outputRepository = nodejsOutputRepository
-			} else {
-				outputRepository = nginxOutputRepository
-			}
 			auroraVersion := runtime.NewApplicationVersionFromBuilderAndBase(c.NodeJsApplication.Version, false,
 				c.NodeJsApplication.Version, &buildImage, &preparedImage.baseImage)
 			buildConfigs = append(buildConfigs, docker.DockerBuildConfig{
 				BuildFolder:      preparedImage.Path,
-				DockerRepository: outputRepository,
+				DockerRepository: c.DockerSpec.OutputRepository,
 				AuroraVersion:    auroraVersion,
+				Baseimage:        &preparedImage.baseImage,
 			})
 		}
 		return buildConfigs, nil
@@ -154,24 +133,9 @@ func (n *NodeJsBuilder) Prepare(c *config.NodeApplication, externalRegistry stri
 	}
 	logrus.Debugf("Nodejs base image version %s", nodejsBaseImageVersion)
 
-	nginxBaseImageVersion, err := n.provider.GetCompleteBaseImageVersion(
-		c.NginxBaseImageSpec.BaseImage,
-		c.NginxBaseImageSpec.BaseVersion)
-
-	if err != nil {
-		return nil, err
-	}
-	logrus.Debugf("Nginx base image version %s", nginxBaseImageVersion)
-
 	nodejsBaseImage := runtime.BaseImage{
 		Repository: c.NodejsBaseImageSpec.BaseImage,
 		Tag:        nodejsBaseImageVersion,
-		Registry:   externalRegistry,
-	}
-
-	nginxBaseImage := runtime.BaseImage{
-		Repository: c.NginxBaseImageSpec.BaseImage,
-		Tag:        nginxBaseImageVersion,
 		Registry:   externalRegistry,
 	}
 
@@ -182,7 +146,7 @@ func (n *NodeJsBuilder) Prepare(c *config.NodeApplication, externalRegistry stri
 	}
 	// We must create separate folders for nodejs and nginx due to
 	// Docker builds wanting one file per folder
-	pathToNodeJSApplication, err := npm.ExtractTarball(tarball)
+	pathToApplication, err := npm.ExtractTarball(tarball)
 	if err != nil {
 		return nil, err
 	}
@@ -190,74 +154,39 @@ func (n *NodeJsBuilder) Prepare(c *config.NodeApplication, externalRegistry stri
 	if err != nil {
 		return nil, err
 	}
-	err = prepareNodeJsImage(packageJsonFromPackage, nodejsBaseImage, version, util.NewFileWriter(pathToNodeJSApplication))
+	err = prepareImage(packageJsonFromPackage, nodejsBaseImage, version, util.NewFileWriter(pathToApplication))
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("NodeJS application build prepared in %s", pathToNodeJSApplication)
-	pathToNginxApplication, err := npm.ExtractTarball(tarball)
-	if err != nil {
-		return nil, err
-	}
-	err = prepareNginxImage(packageJsonFromPackage, nginxBaseImage, version, util.NewFileWriter(pathToNginxApplication))
-	if err != nil {
-		return nil, err
-	}
-	logrus.Infof("Nginx build prepared in %s", pathToNginxApplication)
+	logrus.Infof("Image build prepared in %s", pathToApplication)
 	return []PreparedImage{{
-		Type:      NodeJSImage,
 		baseImage: nodejsBaseImage,
-		Path:      pathToNodeJSApplication,
-	}, {
-		Type:      NginxImage,
-		baseImage: nginxBaseImage,
-		Path:      pathToNginxApplication,
+		Path:      pathToApplication,
 	}}, nil
 }
 
-func prepareNginxImage(v *npm.VersionedPackageJson, baseImage runtime.BaseImage, version string, writer util.FileWriter) error {
-	labels := make(map[string]string)
-	labels["version"] = version
-	labels["maintainer"] = findMaintainer(v.Maintainers)
-	input := &struct {
-		Baseimage        string
-		Static           string
-		Labels           map[string]string
-		PackageDirectory string
-	}{
-		Baseimage:        baseImage.GetDockerFileString(),
-		Static:           v.Aurora.Static,
-		Labels:           labels,
-		PackageDirectory: "package",
-	}
-	err := writer(util.NewTemplateWriter(input, "NginxDockerfile", NGINX_DOCKER_FILE), "Dockerfile")
-	if err != nil {
-		return errors.Wrap(err, "Error creating dockerfile")
-	}
-	err = writer(util.NewTemplateWriter(input, "NgnixConfiguration", NGINX_CONFIG_TEMPLATE), "nginx.conf")
-	if err != nil {
-		return errors.Wrap(err, "Error creating nginx configuration")
-	}
-	return nil
-
-}
-
-func prepareNodeJsImage(v *npm.VersionedPackageJson, baseImage runtime.BaseImage, version string, writer util.FileWriter) error {
+func prepareImage(v *npm.VersionedPackageJson, baseImage runtime.BaseImage, version string, writer util.FileWriter) error {
 	labels := make(map[string]string)
 	labels["version"] = version
 	labels["maintainer"] = findMaintainer(v.Maintainers)
 	input := &struct {
 		Baseimage        string
 		MainFile         string
+		Static           string
 		Labels           map[string]string
 		PackageDirectory string
 	}{
 		Baseimage:        baseImage.GetDockerFileString(),
 		MainFile:         v.Aurora.NodeJS.Main,
+		Static:           v.Aurora.Static,
 		Labels:           labels,
 		PackageDirectory: "package",
 	}
-	f := util.NewTemplateWriter(input, "NodejsDockerfile", NODEJS_DOCKER_FILE)
+	err := writer(util.NewTemplateWriter(input, "NgnixConfiguration", NGINX_CONFIG_TEMPLATE), "nginx.conf")
+	if err != nil {
+		return errors.Wrap(err, "Error creating nginx configuration")
+	}
+	f := util.NewTemplateWriter(input, "NodejsDockerfile", WRENCH_DOCKER_FILE)
 	return writer(f, "Dockerfile")
 }
 

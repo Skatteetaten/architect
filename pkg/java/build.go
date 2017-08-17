@@ -57,6 +57,7 @@ func Prepper(downloader nexus.Downloader) process.Prepper {
 			AuroraVersion:    auroraVersion,
 			BuildFolder:      buildPath,
 			DockerRepository: cfg.DockerSpec.OutputRepository,
+			Baseimage:        baseImage,
 		}
 		return []docker.DockerBuildConfig{buildConf}, nil
 	}

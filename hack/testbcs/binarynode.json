@@ -1,0 +1,74 @@
+{
+    "kind": "BuildConfig",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "architectconsole",
+        "creationTimestamp": null,
+        "labels": {
+            "affiliation": "mfp"
+        }
+    },
+    "spec": {
+        "triggers": [],
+        "runPolicy": "Serial",
+        "source": {
+            "type": "Binary"
+        },
+        "strategy": {
+            "type": "Custom",
+            "customStrategy": {
+                "from": {
+                    "kind": "DockerImage",
+                    "name": "docker-registry.aurora.sits.no:5000/aurora/architect:playtime-develop-SNAPSHOT-go"
+                },
+                "env": [
+                    {
+                      "name": "BASE_IMAGE_REGISTRY",
+                      "value": "uil0paas-utv-registry01.skead.no:5000"
+                    },
+                    {
+                      "name": "APPLICATION_TYPE",
+                      "value": "nodejs"
+                    },
+                    {
+                      "name": "NPM_NAME",
+                      "value": "openshift-referanse-react"
+                    },
+                    {
+                      "name": "VERSION",
+                      "value": "0.1.7"
+                    },
+                    {
+                      "name": "DOCKER_BASE_VERSION",
+                      "value": "latest"
+                    },
+                    {
+                      "name": "DOCKER_BASE_NAME",
+                      "value": "aurora/wingnut"
+                    },
+                    {
+                      "name": "TAG_OVERWRITE",
+                      "value": "false"
+                    },
+                    {
+                      "name": "SPLUNK_INDEX",
+                      "value": "openshift-test"
+                    }
+                ],
+                "exposeDockerSocket": true
+            }
+        },
+        "output": {
+            "to": {
+                "kind": "DockerImage",
+                "name": "uil0paas-utv-registry01.skead.no:5000/aurora/webleveransetest"
+            }
+        },
+        "resources": {},
+        "postCommit": {},
+        "nodeSelector": null
+    },
+    "status": {
+        "lastVersion": 0
+    }
+}
