@@ -64,7 +64,7 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, prepper 
 		}
 
 		tags, err := tagResolver.ResolveTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
-		logrus.Debug("Push images and tags")
+		logrus.Debugf("Tag image %s with %s", imageid, tags)
 		for _, tag := range tags {
 			err = client.TagImage(imageid, tag)
 			if err != nil {

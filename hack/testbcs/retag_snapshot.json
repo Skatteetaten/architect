@@ -19,7 +19,7 @@
             "customStrategy": {
                 "from": {
                     "kind": "DockerImage",
-                    "name": "docker-registry.aurora.sits.no:5000/aurora/architect:playtime-develop-SNAPSHOT-go"
+                    "name": "tulleball"
                 },
                 "env": [
                     {
@@ -51,8 +51,8 @@
                       "value": "true"
                     },
                     {
-                      "name": "SPLUNK_INDEX",
-                      "value": "openshift-test"
+                      "name": "RETAG_WITH",
+                      "value": "tagwithtest"
                     }
                 ],
                 "exposeDockerSocket": true

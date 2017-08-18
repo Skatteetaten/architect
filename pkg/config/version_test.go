@@ -45,7 +45,8 @@ const (
 )
 
 const (
-	SNAPSHOT_APP_VERSION    = "SNAPSHOT-201703929219"
+	SNAPSHOT_GIVEN_VERSION  = "branch_test-SNAPSHOT"
+	SNAPSHOT_APP_VERSION    = "branch_test-201703929219"
 	SNAPSHOT_AURORA_VERSION = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
 	SNAPSHOT_TAG_COMPLETE   = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
 )
@@ -88,15 +89,14 @@ func TestTagInfoRelease(t *testing.T) {
 }
 
 func TestTagInfoSnapshot(t *testing.T) {
-	appVersion := runtime.NewApplicationVersion(SNAPSHOT_APP_VERSION, true, SNAPSHOT_APP_VERSION, runtime.CompleteVersion(AURORA_VERSION))
-	tags, err := appVersion.GetApplicationVersionTagsToPush(make([]string, 0), config.ParseExtraTags(CFG_PUSH_EXTRA_TAGS))
+	appVersion := runtime.NewApplicationVersion(SNAPSHOT_APP_VERSION, true, SNAPSHOT_GIVEN_VERSION, runtime.CompleteVersion(SNAPSHOT_AURORA_VERSION))
+	tags, err := appVersion.GetApplicationVersionTagsToPush([]string{}, config.ParseExtraTags(CFG_PUSH_EXTRA_TAGS))
 	if err != nil {
 		t.Fatalf("Failed to create target VersionInfo %v", err)
 	}
 
 	//TODO: Add the test for complete tag, but it should not be a part of appversion
-	//verifyTagListContent(tags, []string{"latest", SNAPSHOT_TAG_COMPLETE}, t)
-	verifyTagListContent(tags, []string{}, t)
+	verifyTagListContent(tags, []string{SNAPSHOT_GIVEN_VERSION, SNAPSHOT_TAG_COMPLETE}, t)
 }
 
 //TODO: This test should be in Java-buidler

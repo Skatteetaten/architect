@@ -110,94 +110,92 @@ func (m *AuroraVersion) GetAppVersion() AppVersion {
 	return m.appVersion
 }
 
-func (m *AuroraVersion) getVersionTags(extraTags config.PushExtraTags) ([]string, error) {
+func (m *AuroraVersion) getSemtanticVersion(extraTags config.PushExtraTags) ([]string, error) {
 	versions := make([]string, 0, 10)
 
-	if m.isSemanticReleaseVersion() {
-		if extraTags.Latest {
-			versions = append(versions, "latest")
-		}
-
-		if extraTags.Major {
-			majorVersion, err := getMajor(string(m.appVersion), false)
-			if err != nil {
-				return nil, errors.Wrap(err, "Failed to get major version")
-			}
-			versions = append(versions, majorVersion)
-		}
-		if extraTags.Minor {
-			minorVersion, err := getMinor(string(m.appVersion), false)
-			if err != nil {
-				return nil, errors.Wrap(err, "Failed to get minor version")
-			}
-			versions = append(versions, minorVersion)
-		}
-		if extraTags.Patch {
-			versions = append(versions, string(m.appVersion))
-		}
-
-		versions = append(versions, string(m.completeVersion))
+	if extraTags.Latest {
+		versions = append(versions, "latest")
 	}
+
+	if extraTags.Major {
+		majorVersion, err := getMajor(string(m.appVersion), false)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to get major version")
+		}
+		versions = append(versions, majorVersion)
+	}
+	if extraTags.Minor {
+		minorVersion, err := getMinor(string(m.appVersion), false)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to get minor version")
+		}
+		versions = append(versions, minorVersion)
+	}
+	if extraTags.Patch {
+		versions = append(versions, string(m.appVersion))
+	}
+
+	versions = append(versions, string(m.completeVersion))
+
 	return versions, nil
 }
 
 func (m *AuroraVersion) GetApplicationVersionTagsToPush(repositoryTags []string, extraTags config.PushExtraTags) ([]string, error) {
-	if !m.isSemanticReleaseVersion() {
-		return make([]string, 0, 0), nil
-	}
-	newTags, err := m.getVersionTags(extraTags)
-	if err != nil {
-		return nil, err
-	}
-	var excludeMinor, excludeMajor, excludeLatest bool = true, true, true
-
-	minorTagName, err := getMinor(string(m.appVersion), true)
-
-	if err != nil {
-		return nil, err
-	}
-
-	excludeMinor, err = tagCompare("> "+string(m.appVersion)+", < "+minorTagName, repositoryTags)
-
-	if err != nil {
-		return nil, err
-	}
-
-	majorTagName, err := getMajor(string(m.appVersion), true)
-
-	if err != nil {
-		return nil, err
-	}
-
-	excludeMajor, err = tagCompare("> "+string(m.appVersion)+", < "+majorTagName, repositoryTags)
-
-	if err != nil {
-		return nil, err
-	}
-
-	excludeLatest, err = tagCompare("> "+string(m.appVersion), repositoryTags)
-
-	if err != nil {
-		return nil, err
-	}
-
 	versions := make([]string, 0, 10)
+	if !m.isSemanticReleaseVersion() {
+		versions = append(versions, string(m.completeVersion))
+		if m.Snapshot {
+			versions = append(versions, string(m.givenVersion))
+		}
+		return versions, nil
+	} else {
+		newTags, err := m.getSemtanticVersion(extraTags)
+		if err != nil {
+			return nil, err
+		}
+		var excludeMinor, excludeMajor, excludeLatest bool = true, true, true
 
-	for _, tag := range newTags {
-		if strings.EqualFold(strings.TrimSpace(tag), "latest") {
-			if !excludeLatest {
+		minorTagName, err := getMinor(string(m.appVersion), true)
+		if err != nil {
+			return nil, err
+		}
+
+		excludeMinor, err = tagCompare("> "+string(m.appVersion)+", < "+minorTagName, repositoryTags)
+		if err != nil {
+			return nil, err
+		}
+
+		majorTagName, err := getMajor(string(m.appVersion), true)
+		if err != nil {
+			return nil, err
+		}
+
+		excludeMajor, err = tagCompare("> "+string(m.appVersion)+", < "+majorTagName, repositoryTags)
+		if err != nil {
+			return nil, err
+		}
+
+		excludeLatest, err = tagCompare("> "+string(m.appVersion), repositoryTags)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, tag := range newTags {
+			if strings.EqualFold(strings.TrimSpace(tag), "latest") {
+				if !excludeLatest {
+					versions = append(versions, tag)
+				}
+			} else if isMinor(tag) {
+				if !excludeMinor {
+					versions = append(versions, tag)
+				}
+			} else if isMajor(tag) {
+				if !excludeMajor {
+					versions = append(versions, tag)
+				}
+			} else {
 				versions = append(versions, tag)
 			}
-		} else if isMinor(tag) {
-			if !excludeMinor {
-				versions = append(versions, tag)
-			}
-		} else if isMajor(tag) {
-			if !excludeMajor {
-				versions = append(versions, tag)
-			}
-		} else {
-			versions = append(versions, tag)
 		}
 	}
 	return versions, nil
