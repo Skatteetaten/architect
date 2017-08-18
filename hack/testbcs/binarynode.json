@@ -12,7 +12,7 @@
         "triggers": [],
         "runPolicy": "Serial",
         "source": {
-            "type": "None"
+            "type": "Binary"
         },
         "strategy": {
             "type": "Custom",
@@ -27,20 +27,16 @@
                       "value": "uil0paas-utv-registry01.skead.no:5000"
                     },
                     {
-                      "name": "ARTIFACT_ID",
-                      "value": "sprocket"
+                      "name": "APPLICATION_TYPE",
+                      "value": "nodejs"
                     },
                     {
-                      "name": "GROUP_ID",
-                      "value": "ske.aurora.openshift"
-                    },
-                    {
-                      "name" : "RETAG_WITH",
-                      "value": "1234-FOO"
+                      "name": "NPM_NAME",
+                      "value": "openshift-referanse-react"
                     },
                     {
                       "name": "VERSION",
-                      "value": "feature_sommerfikser-SNAPSHOT"
+                      "value": "0.1.7"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",
@@ -65,7 +61,7 @@
         "output": {
             "to": {
                 "kind": "DockerImage",
-                "name": "uil0paas-utv-registry01.skead.no:5000/aurora/architecttest"
+                "name": "uil0paas-utv-registry01.skead.no:5000/aurora/webleveransetest"
             }
         },
         "resources": {},

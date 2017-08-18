@@ -3,22 +3,26 @@ package prepare
 import (
 	"github.com/pkg/errors"
 	global "github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/java/config"
+	"github.com/skatteetaten/architect/pkg/util"
 	"io"
-	"text/template"
 )
 
 // The base directory where all code is copied in the Docker image
 const DockerBasedir = "/u01"
 
-// The directory where the application is prepared
-const ApplicationDir = "app"
+// The root of the application
+const ApplicationRoot = "app"
 
-var dockerfileTemplate string = `FROM {{.BaseRepository}}:{{.BaseImageTag}}
+// The directory where the application is prepared
+const ApplicationFolder = ApplicationRoot + "/application"
+
+var dockerfileTemplate string = `FROM {{.BaseImage}}
 
 MAINTAINER {{.Maintainer}}
-LABEL {{range $key, $value := .Labels}}{{$key}}="{{$value}}" {{end}}
+LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
 
 COPY ./app $HOME
 RUN chmod -R 777 $HOME && \
@@ -26,63 +30,48 @@ RUN chmod -R 777 $HOME && \
 	rm $TRUST_STORE && \
 	ln -s $HOME/architect/cacerts $TRUST_STORE
 
-ENV {{range $key, $value := .Env}}{{$key}}="{{$value}}" {{end}}
+ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
 `
 
 type Dockerfile struct {
-	BaseRepository string
-	BaseImageTag   string
-	Maintainer     string
-	Labels         map[string]string
-	Env            map[string]string
+	BaseImage  string
+	Maintainer string
+	Labels     map[string]string
+	Env        map[string]string
 }
 
-func NewDockerfile(meta *config.DeliverableMetadata, buildinfo global.BuildInfo) (*Dockerfile, error) {
-	if meta.Docker == nil {
-		return nil, errors.Errorf("Deliverable metadata does not contain docker object")
+func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *runtime.AuroraVersion, meta *config.DeliverableMetadata, baseImage *runtime.DockerImage) util.WriterFunc {
+	return func(writer io.Writer) error {
+
+		env := createEnv(auroraVersion, dockerSpec.PushExtraTags)
+
+		if meta.Docker == nil {
+			return errors.Errorf("Deliverable metadata does not contain docker object")
+		}
+
+		// Maintainer
+		maintainer := meta.Docker.Maintainer
+
+		if maintainer == "" {
+			return errors.Errorf("Deliverable metadata does not contain maintainer element")
+		}
+
+		// Lables
+		var labels map[string]string = make(map[string]string)
+
+		for k, v := range meta.Docker.Labels {
+			labels[k] = v
+		}
+
+		appendArchitectEnv(env, meta)
+
+		dockerFile := &Dockerfile{
+			BaseImage:  baseImage.GetCompleteDockerTagName(),
+			Maintainer: maintainer,
+			Labels:     labels,
+			Env:        env}
+		return util.NewTemplateWriter(dockerFile, "Dockerfile", dockerfileTemplate)(writer)
 	}
-
-	// Maintainer
-	maintainer := meta.Docker.Maintainer
-
-	if maintainer == "" {
-		return nil, errors.Errorf("Deliverable metadata does not contain maintainer element")
-	}
-
-	// Lables
-	var labels map[string]string = make(map[string]string)
-
-	for k, v := range meta.Docker.Labels {
-		labels[k] = v
-	}
-
-	// Env
-	var env map[string]string = make(map[string]string)
-
-	for k, v := range buildinfo.Env {
-		env[k] = v
-	}
-
-	appendArchitectEnv(env, meta)
-
-	return &Dockerfile{buildinfo.BaseImage.Repository,
-		buildinfo.BaseImage.Version, maintainer,
-		labels, env}, nil
-}
-
-func (dockerfile *Dockerfile) Write(writer io.Writer) error {
-
-	tmpl, err := template.New("dockerfile").Parse(dockerfileTemplate)
-
-	if err != nil {
-		return errors.Wrap(err, "Failed to parse Dockerfile template")
-	}
-
-	if err = tmpl.Execute(writer, dockerfile); err != nil {
-		return errors.Wrap(err, "Failed to execute Dockerfile template")
-	}
-
-	return nil
 }
 
 func appendArchitectEnv(env map[string]string, meta *config.DeliverableMetadata) {

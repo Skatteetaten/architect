@@ -4,6 +4,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/java/config"
+	"github.com/skatteetaten/architect/pkg/util"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,7 +17,7 @@ const (
 	DefaultReadinessScript = "readiness_std.sh"
 )
 
-func PrepareApplication(applicationPath string, applicationBase string, meta *config.DeliverableMetadata) error {
+func prepareEffectiveScripts(applicationPath string, meta *config.DeliverableMetadata) error {
 
 	scriptPath := filepath.Join(applicationPath, "bin")
 
@@ -30,8 +31,9 @@ func PrepareApplication(applicationPath string, applicationBase string, meta *co
 		return errors.Wrap(err, "Failed to locate lib directory in application")
 	}
 
+	fileWriter := util.NewFileWriter(scriptPath)
 	if meta != nil {
-		if err := addGeneratedStartscript(scriptPath, applicationBase, libPath, *meta); err != nil {
+		if err := addGeneratedStartscript(fileWriter, applicationPath, libPath, *meta); err != nil {
 			return errors.Wrap(err, "Failed to create default start script")
 		}
 	}
@@ -47,17 +49,15 @@ func PrepareApplication(applicationPath string, applicationBase string, meta *co
 	return nil
 }
 
-func addGeneratedStartscript(scriptPath string, applicationBase string, libPath string, meta config.DeliverableMetadata) error {
+func addGeneratedStartscript(fileWriter util.FileWriter, applicationBase string, libPath string, meta config.DeliverableMetadata) error {
 
-	classpath, err := Classpath(applicationBase, libPath)
+	classpath, err := generateClasspath(applicationBase, libPath)
 
 	if err != nil {
 		return errors.Wrap(err, "Failed to get application classpath")
 	}
 
-	startscript := NewStartscript(classpath, meta)
-
-	if err = WriteFile(filepath.Join(scriptPath, "generated-start"), startscript); err != nil {
+	if err = fileWriter(newStartScript(classpath, meta), "generated-start"); err != nil {
 		return errors.Wrap(err, "Failed to write script")
 	}
 
@@ -66,35 +66,33 @@ func addGeneratedStartscript(scriptPath string, applicationBase string, libPath 
 
 func prepareLivelinessAndReadynessScripts(scriptPath string) error {
 	livenessScript := filepath.Join(scriptPath, "liveness.sh")
-	livelinessExists, err := Exists(livenessScript)
+	err := linkInDefaultIfNotExists(livenessScript,
+		filepath.Join(DockerBasedir, "architect", DefaultLivenessScript))
 	if err != nil {
-		return errors.Wrap(err, "Could not determine if liveness-script exists")
-	}
-
-	if !livelinessExists {
-		logrus.Debug("No liveness-script. Linking in default")
-		err := os.Symlink(filepath.Join(DockerBasedir, "architect", DefaultLivenessScript), livenessScript)
-		if err != nil {
-			return errors.Wrap(err, "Error linking in script")
-		}
+		return errors.Wrap(err, "Could not link in script")
 	}
 
 	readinessScript := filepath.Join(scriptPath, "readiness.sh")
-	readinessExists, err := Exists(readinessScript)
+	err = linkInDefaultIfNotExists(readinessScript,
+		filepath.Join(DockerBasedir, "architect", DefaultReadinessScript))
 	if err != nil {
-		return errors.Wrap(err, "Could not determine if liveness-script exists")
+		return errors.Wrap(err, "Could not link in script")
 	}
-
-	if !readinessExists {
-		logrus.Debug("No readyness-script. Linking in default")
-		err := os.Symlink(filepath.Join(DockerBasedir, "architect", DefaultReadinessScript), readinessScript)
+	return nil
+}
+func linkInDefaultIfNotExists(pathToScript string, pathToDefaultScript string) error {
+	exists, err := Exists(pathToScript)
+	if err != nil {
+		return errors.Wrapf(err, "Could not determine if %s exists", pathToScript)
+	}
+	if !exists {
+		logrus.Debugf("Did not find script %s, symlinking %s", pathToScript, pathToDefaultScript)
+		err := os.Symlink(pathToDefaultScript, pathToScript)
 		if err != nil {
 			return errors.Wrap(err, "Error linking in script")
 		}
-
 	}
-
-	return err
+	return nil
 }
 
 func prepareEffectiveStartscript(scriptPath string) error {
@@ -130,7 +128,7 @@ func prepareEffectiveStartscript(scriptPath string) error {
 
 // applicationDir is the temporary directory where we have the application code
 // libpath is the path to the jar files
-func Classpath(applicationDir string, libPath string) ([]string, error) {
+func generateClasspath(applicationDir string, libPath string) ([]string, error) {
 	files, err := ioutil.ReadDir(libPath)
 
 	if err != nil {
@@ -161,5 +159,5 @@ func findLibraryPath(basedirPath string) (string, error) {
 		}
 	}
 
-	return "", errors.Errorf("No lib directory found in application")
+	return "", errors.Errorf("No lib directory found in application in base %s", basedirPath)
 }

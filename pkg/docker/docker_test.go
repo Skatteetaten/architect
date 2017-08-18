@@ -18,6 +18,7 @@ type DockerClientMock struct {
 	ImageBuildFunc func(ctx context.Context, context io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error)
 	ImagePushFunc  func(ctx context.Context, ref string, options types.ImagePushOptions) (io.ReadCloser, error)
 	ImageTagFunc   func(ctx context.Context, image, ref string) error
+	ImagePullFunc  func(ctx context.Context, ref string, options types.ImagePullOptions) (io.ReadCloser, error)
 }
 
 func TestBuildImageSuccess(t *testing.T) {
@@ -31,12 +32,7 @@ func TestBuildImageSuccess(t *testing.T) {
 		t.Error(err)
 	}
 
-	buildConfig := docker.DockerBuildConfig{
-		Tags:        []string{"test_image"},
-		BuildFolder: dir,
-	}
-
-	if imageid, err := target.BuildImage(buildConfig); err != nil {
+	if imageid, err := target.BuildImage(dir); err != nil {
 		t.Error(err)
 	} else if imageid != "6757955c1ca1" {
 		t.Errorf("Build returned unexpected image id %s", imageid)
@@ -51,15 +47,10 @@ func TestBuildImageIllegalDockerfile(t *testing.T) {
 		t.Error(err)
 	}
 
-	buildConfig := docker.DockerBuildConfig{
-		Tags:        []string{"test_image"},
-		BuildFolder: dir,
-	}
-
-	if _, err = target.BuildImage(buildConfig); err == nil {
-		t.Errorf("Expected error")
+	if _, err = target.BuildImage(dir); err == nil {
+		t.Error("Expected error")
 	} else if !strings.Contains(err.Error(), "Unknown instruction: FOO") {
-		t.Errorf("Expected error to contain cause of error")
+		t.Error("Expected error to contain cause of error")
 	}
 }
 
@@ -72,13 +63,8 @@ func TestBuildImageError(t *testing.T) {
 		t.Error(err)
 	}
 
-	buildConfig := docker.DockerBuildConfig{
-		Tags:        []string{"test_image"},
-		BuildFolder: dir,
-	}
-
-	if _, err = target.BuildImage(buildConfig); err == nil {
-		t.Errorf("Expected error")
+	if _, err = target.BuildImage(dir); err == nil {
+		t.Error("Expected error")
 	}
 }
 
@@ -88,35 +74,38 @@ func TestPushImageSuccess(t *testing.T) {
 	// Uncomment to invoke Docker engine
 	//target, _ := docker.NewDockerClient(&docker.DockerClientConfig{Endpoint: ""})
 
-	err := target.PushImage("foo/bar", "paswd")
+	credentials := docker.RegistryCredentials{}
+	err := target.PushImage("foo/bar", &credentials)
 	//err := target.PushImage("docker-registry-default.qa.paas.skead.no/aurora/architecttest:1.0.2")
 
 	if err != nil {
-		t.Errorf("Returned unexpected error")
+		t.Error("Returned unexpected error")
 	}
 }
 
 func TestPushImageUnauthorized(t *testing.T) {
 	target := getPushTargetFromFile(t, "testdata/rsp_push_unauthorized.txt")
 
-	err := target.PushImage("foo/baz", "paswd")
+	credentials := docker.RegistryCredentials{}
+	err := target.PushImage("foo/baz", &credentials)
 
 	if err == nil {
-		t.Errorf("Expected error")
+		t.Error("Expected error")
 	} else if !strings.Contains(err.Error(), "unauthorized: authentication required") {
-		t.Errorf("Expected error to contain cause of error")
+		t.Errorf("Expected error to contain cause of error, was %s", err)
 	}
 }
 
 func TestPushImageError(t *testing.T) {
 	target := getPushTargetError(t)
 
-	err := target.PushImage("foo/qux", "paswd")
+	credentials := docker.RegistryCredentials{}
+	err := target.PushImage("foo/qux", &credentials)
 
 	if err == nil {
-		t.Errorf("Expected error")
+		t.Error("Expected error")
 	} else if !strings.Contains(err.Error(), "Nasty errror occurred") {
-		t.Errorf("Expected error to contain cause of error")
+		t.Errorf("Expected error to contain cause of error, was %s", err)
 	}
 }
 
@@ -202,4 +191,8 @@ func (client DockerClientMock) ImagePush(ctx context.Context, ref string, option
 
 func (client DockerClientMock) ImageTag(ctx context.Context, image, ref string) error {
 	return client.ImageTagFunc(ctx, image, ref)
+}
+
+func (client DockerClientMock) ImagePull(ctx context.Context, image string, options types.ImagePullOptions) (io.ReadCloser, error) {
+	return client.ImagePullFunc(ctx, image, options)
 }

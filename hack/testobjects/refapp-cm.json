@@ -1,0 +1,14 @@
+{
+    "kind": "ConfigMap",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "refapp",
+        "creationTimestamp": null,
+        "labels": {
+            "generated-aurora-objects-version": "3.7.0",
+            "template": "aurora-frontend-deploy-3.0"
+        },
+        "annotations": {
+        }
+    }
+}

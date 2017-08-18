@@ -15,7 +15,7 @@ import (
 )
 
 type Downloader interface {
-	DownloadArtifact(c *config.MavenGav) (*config.Deliverable, error)
+	DownloadArtifact(c *config.JavaApplication) (*Deliverable, error)
 }
 
 type Nexus struct {
@@ -23,6 +23,10 @@ type Nexus struct {
 }
 
 type LocalRepo struct {
+}
+
+type Deliverable struct {
+	Path string
 }
 
 func NewNexusDownloader(baseUrl string) Downloader {
@@ -35,18 +39,18 @@ func NewLocalDownloader() Downloader {
 	return &LocalRepo{}
 }
 
-func (n *LocalRepo) DownloadArtifact(c *config.MavenGav) (*config.Deliverable, error) {
+func (n *LocalRepo) DownloadArtifact(c *config.JavaApplication) (*Deliverable, error) {
 	home := homedir.Get()
 	replacer := strings.NewReplacer(".", "/")
 	path := home + "/.m2/repository/" + replacer.Replace(c.GroupId) +
 		"/" + c.ArtifactId + "/" + c.Version + "/" + c.ArtifactId + "-" + c.Version + "-Leveransepakke.zip"
 	if _, err := os.Stat(path); err != nil {
-		return &config.Deliverable{path}, errors.Wrapf(err, "Failed to stat local artifact %s", path)
+		return &Deliverable{path}, errors.Wrapf(err, "Failed to stat local artifact %s", path)
 	}
-	return &config.Deliverable{path}, nil
+	return &Deliverable{path}, nil
 }
 
-func (n *Nexus) DownloadArtifact(c *config.MavenGav) (*config.Deliverable, error) {
+func (n *Nexus) DownloadArtifact(c *config.JavaApplication) (*Deliverable, error) {
 	resourceUrl, err := n.createURL(c)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to create Nexus url for GAV %+v", c)
@@ -85,10 +89,10 @@ func (n *Nexus) DownloadArtifact(c *config.MavenGav) (*config.Deliverable, error
 		return nil, errors.Wrap(err, "Failed to write to artifact file")
 	}
 
-	return &config.Deliverable{fileName}, nil
+	return &Deliverable{fileName}, nil
 }
 
-func (m *Nexus) createURL(n *config.MavenGav) (string, error) {
+func (m *Nexus) createURL(n *config.JavaApplication) (string, error) {
 	tmpUrl, err := url.Parse(m.baseUrl)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to parse url")
@@ -98,7 +102,7 @@ func (m *Nexus) createURL(n *config.MavenGav) (string, error) {
 	query.Set("a", n.ArtifactId)
 	query.Set("v", n.Version)
 	query.Set("e", "zip")
-	query.Set("c", "Leveransepakke")
+	query.Set("c", n.Classifier)
 	query.Set("r", "public-with-staging")
 	tmpUrl.RawQuery = query.Encode()
 	return tmpUrl.String(), nil

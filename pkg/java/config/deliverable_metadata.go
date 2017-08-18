@@ -8,20 +8,26 @@ import (
 )
 
 type DeliverableMetadata struct {
-	Docker *struct {
-		Maintainer string            `json:"maintainer"`
-		Labels     map[string]string `json:"labels"`
-	} `json:"docker"`
-	Java *struct {
-		MainClass       string `json:"mainClass"`
-		JvmOpts         string `json:"jvmOpts"`
-		ApplicationArgs string `json:"applicationArgs"`
-		ReadinessURL    string `json:"readinessUrl"`
-	} `json:"java"`
-	Openshift *struct {
-		ReadinessURL              string `json:"readinessUrl"`
-		ReadinessOnManagementPort string `json:"readinessOnManagementPort"`
-	} `json:"openshift"`
+	Docker    *MetadataDocker    `json:"docker"`
+	Java      *MetadataJava      `json:"java"`
+	Openshift *MetadataOpenShift `json:"openshift"`
+}
+
+type MetadataDocker struct {
+	Maintainer string            `json:"maintainer"`
+	Labels     map[string]string `json:"labels"`
+}
+
+type MetadataJava struct {
+	MainClass       string `json:"mainClass"`
+	JvmOpts         string `json:"jvmOpts"`
+	ApplicationArgs string `json:"applicationArgs"`
+	ReadinessURL    string `json:"readinessUrl"`
+}
+
+type MetadataOpenShift struct {
+	ReadinessURL              string `json:"readinessUrl"`
+	ReadinessOnManagementPort string `json:"readinessOnManagementPort"`
 }
 
 func NewDeliverableMetadata(reader io.Reader) (*DeliverableMetadata, error) {

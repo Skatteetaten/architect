@@ -9,9 +9,3 @@ const (
 	ENV_READINESS_ON_MANAGEMENT_PORT = "READINESS_ON_MANAGEMENT_PORT"
 	TZ                               = "TZ"
 )
-
-type ImageName struct {
-	Registry   string
-	Repository string
-	Tag        string
-}

@@ -1,0 +1,292 @@
+{
+    "kind": "DeploymentConfig",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "refapp",
+        "generation": 1,
+        "creationTimestamp": null,
+        "labels": {
+            "affiliation": "aurora",
+            "generated-aurora-objects-version": "3.7.0",
+            "template": "aurora-frontend-deploy-3.0"
+        },
+        "annotations": {
+            "marjory.skatteetaten.no/alarm": "true",
+            "marjory.skatteetaten.no/management-path": "",
+            "sprocket.sits.no/deployment-config.certificate": "no.skatteetaten.nodejs.refapp",
+            "sprocket.sits.no/deployment-config.database": "",
+            "sprocket.sits.no/deployment-config.route": "true"
+        }
+    },
+    "spec": {
+        "strategy": {
+            "type": "Recreate",
+            "recreateParams": {
+                "timeoutSeconds": 600
+            },
+            "resources": {},
+            "activeDeadlineSeconds": 21600
+        },
+        "triggers": [
+            {
+                "type": "ImageChange",
+                "imageChangeParams": {
+                    "automatic": true,
+                    "containerNames": [
+                        "refapp-static"
+                    ],
+                    "from": {
+                        "kind": "ImageStreamTag",
+                        "name": "refapp-static:default"
+                    }
+                }
+            },
+            {
+                "type": "ImageChange",
+                "imageChangeParams": {
+                    "automatic": true,
+                    "containerNames": [
+                        "refapp-app"
+                    ],
+                    "from": {
+                        "kind": "ImageStreamTag",
+                        "name": "refapp-app:default"
+                    }
+                }
+            }
+        ],
+        "replicas": 1,
+        "test": false,
+        "selector": {
+            "name": "refapp"
+        },
+        "template": {
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "refapp"
+                }
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "name": "application-log-volume",
+                        "emptyDir": {}
+                    },
+                    {
+                        "name": "config",
+                        "configMap": {
+                            "name": "refapp",
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "refapp-cert",
+                        "secret": {
+                            "secretName": "refapp-cert",
+                            "defaultMode": 420
+                        }
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "refapp-app",
+                        "image": "refapp-app:default",
+                        "ports": [
+                            {
+                                "name": "http",
+                                "containerPort": 9090,
+                                "protocol": "TCP"
+                            },
+                            {
+                                "name": "management",
+                                "containerPort": 8081,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "env": [
+                            {
+                                "name": "SPLUNK_INDEX"
+                            },
+                            {
+                                "name": "POD_NAME",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.name"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "POD_NAMESPACE",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.namespace"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "HTTP_PORT",
+                                "value": "9090"
+                            },
+                            {
+                                "name": "MANAGEMENT_HTTP_PORT",
+                                "value": "8081"
+                            },
+                            {
+                                "name": "APP_NAME",
+                                "value": "refapp"
+                            }
+                       ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "256Mi"
+                            },
+                            "requests": {
+                                "cpu": "0",
+                                "memory": "128Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "application-log-volume",
+                                "mountPath": "/u01/logs"
+                            },
+                            {
+                                "name": "config",
+                                "mountPath": "/u01/config/configmap"
+                            },{
+                                "name": "refapp-cert",
+                                "mountPath": "/u01/secrets/app/refapp-cert"
+                            }
+                       ],
+                        "livenessProbe": {
+                            "exec": {
+                                "command": [
+                                    "/u01/application/bin/liveness.sh"
+                                ]
+                            },
+                            "initialDelaySeconds": 10,
+                            "timeoutSeconds": 1,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 3
+                        },
+                        "readinessProbe": {
+                            "exec": {
+                                "command": [
+                                    "/u01/application/bin/readiness.sh"
+                                ]
+                            },
+                            "initialDelaySeconds": 10,
+                            "timeoutSeconds": 1,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 3
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "capabilities": {},
+                            "privileged": false
+                        }
+                    },
+                    {
+                        "name": "refapp-static",
+                        "image": "refapp-static:default",
+                        "ports": [
+                            {
+                                "name": "http",
+                                "containerPort": 8080,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "env": [
+                            {
+                                "name": "SPLUNK_INDEX"
+                            },
+                            {
+                                "name": "POD_NAME",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.name"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "POD_NAMESPACE",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.namespace"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "HTTP_PORT",
+                                "value": "8080"
+                            },
+                            {
+                                "name": "APP_NAME",
+                                "value": "refapp"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "256Mi"
+                            },
+                            "requests": {
+                                "cpu": "0",
+                                "memory": "128Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "application-log-volume",
+                                "mountPath": "/u01/logs"
+                            }
+                       ],
+                        "livenessProbe": {
+                            "exec": {
+                                "command": [
+                                    "/u01/application/bin/liveness.sh"
+                                ]
+                            },
+                            "initialDelaySeconds": 10,
+                            "timeoutSeconds": 1,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 3
+                        },
+                        "readinessProbe": {
+                            "exec": {
+                                "command": [
+                                    "/u01/application/bin/readiness.sh"
+                                ]
+                            },
+                            "initialDelaySeconds": 10,
+                            "timeoutSeconds": 1,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 3
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "capabilities": {},
+                            "privileged": false
+                        }
+                    }
+                ],
+                "restartPolicy": "Always",
+                "terminationGracePeriodSeconds": 30,
+                "dnsPolicy": "ClusterFirst",
+                "securityContext": {}
+            }
+        }
+    }
+}

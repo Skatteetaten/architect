@@ -2,37 +2,60 @@ package prepare_test
 
 import (
 	"bytes"
-	"fmt"
+	global "github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
+	"github.com/skatteetaten/architect/pkg/java/config"
 	"github.com/skatteetaten/architect/pkg/java/prepare"
-	"strings"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
+const expectedDockerfile = `FROM oracle8:2.3.2
+
+MAINTAINER wrench@sits.no
+LABEL jallaball="Spank me beibi" maintainer="wrench.sits.no" no.skatteetaten.test="TestLabel"
+
+COPY ./app $HOME
+RUN chmod -R 777 $HOME && \
+	ln -s $HOME/logs $HOME/application/logs && \
+	rm $TRUST_STORE && \
+	ln -s $HOME/architect/cacerts $TRUST_STORE
+
+ENV APP_VERSION="2.0.0-SNAPSHOT" AURORA_VERSION="2.0.0-SNAPSHOT-bbuildimage-oracle8-2.3.2" LOGBACK_FILE="$HOME/architect/logback.xml" PUSH_EXTRA_TAGS="major" SNAPSHOT_TAG="2.0.0-SNAPSHOT" TZ="Europe/Oslo"
+`
+
 func TestBuild(t *testing.T) {
-	var buf bytes.Buffer
-
-	dockerfile, err := prepare.NewDockerfile(meta, buildinfo)
-
-	if err != nil {
-		t.Fatal(err)
+	dockerSpec := global.DockerSpec{
+		PushExtraTags: global.ParseExtraTags("major"),
 	}
-
-	if err := dockerfile.Write(&buf); err != nil {
-		t.Fatal(err)
+	baseImage := &runtime.DockerImage{
+		Tag:        "2.3.2",
+		Repository: "oracle8",
 	}
+	auroraVersions := runtime.NewApplicationVersionFromBuilderAndBase(
+		"2.0.0-SNAPSHOT",
+		true,
+		"2.0.0-SNAPSHOT",
+		&runtime.ArchitectImage{
+			Tag: "buildimage",
+		},
+		baseImage)
 
-	output := buf.String()
-
-	assertContainsElement(t, output, fmt.Sprintf("FROM %s:%s", buildinfo.BaseImage.Repository,
-		buildinfo.BaseImage.Version))
-	assertContainsElement(t, output, fmt.Sprintf("MAINTAINER %s", meta_maintainer))
-	assertContainsElement(t, output, meta_k8sDescription)
-	assertContainsElement(t, output, meta_openshiftTags)
-	assertContainsElement(t, output, meta_readinessUrl)
-}
-
-func assertContainsElement(t *testing.T, target string, element string) {
-	if strings.Contains(target, element) == false {
-		t.Error("excpected", element, ", got", target)
+	labels := make(map[string]string)
+	labels["no.skatteetaten.test"] = "TestLabel"
+	labels["maintainer"] = "wrench.sits.no"
+	labels["jallaball"] = "Spank me beibi"
+	deliverableMetadata := config.DeliverableMetadata{
+		Docker: &config.MetadataDocker{
+			Maintainer: "wrench@sits.no",
+			Labels:     labels,
+		},
 	}
+	writer := prepare.NewDockerfile(dockerSpec, auroraVersions, &deliverableMetadata, baseImage)
+
+	buffer := new(bytes.Buffer)
+
+	assert.NoError(t, writer(buffer))
+	assert.Equal(t, buffer.String(), expectedDockerfile)
+
 }

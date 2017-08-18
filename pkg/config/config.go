@@ -2,11 +2,9 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/reference"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config/api"
-	"github.com/skatteetaten/architect/pkg/docker"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -14,7 +12,6 @@ import (
 
 type ConfigReader interface {
 	ReadConfig() (*Config, error)
-	AddRegistryCredentials(config *Config) error
 }
 
 type InClusterConfigReader struct {
@@ -41,16 +38,6 @@ func (m *FileConfigReader) ReadConfig() (*Config, error) {
 	return newConfig(dat)
 }
 
-func (m *FileConfigReader) AddRegistryCredentials(config *Config) error {
-	dockerConfigPath, err := docker.GetDockerConfigPath()
-
-	if err != nil {
-		return err
-	}
-
-	return addRegistryCredentials(config, dockerConfigPath)
-}
-
 func (m *InClusterConfigReader) ReadConfig() (*Config, error) {
 	buildConfig := os.Getenv("BUILD")
 
@@ -59,10 +46,6 @@ func (m *InClusterConfigReader) ReadConfig() (*Config, error) {
 	}
 
 	return newConfig([]byte(buildConfig))
-}
-
-func (m *InClusterConfigReader) AddRegistryCredentials(config *Config) error {
-	return addRegistryCredentials(config, "/var/run/secrets/openshift.io/push/.dockercfg")
 }
 
 func newConfig(buildConfig []byte) (*Config, error) {
@@ -81,38 +64,63 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		env[e.Name] = e.Value
 	}
 
-	gav := MavenGav{}
-	if artifactId, err := findEnv(env, "ARTIFACT_ID"); err == nil {
-		gav.ArtifactId = artifactId
-	} else {
-		return nil, err
-	}
-	if groupId, err := findEnv(env, "GROUP_ID"); err == nil {
-		gav.GroupId = groupId
-	} else {
-		return nil, err
-	}
-	if version, err := findEnv(env, "VERSION"); err == nil {
-		gav.Version = version
-	} else {
-		return nil, err
+	var applicationType ApplicationType = JavaLeveransepakke
+	if appType, err := findEnv(env, "APPLICATION_TYPE"); err == nil {
+		if strings.ToUpper(appType) == "NODEJS" {
+			applicationType = NodeJsLeveransepakke
+		}
 	}
 
-	if version, err := findEnv(env, "VERSION"); err == nil {
-		gav.Version = version
+	var javaApp *JavaApplication = nil
+	var nodeApp *NodeApplication = nil
+	if applicationType == JavaLeveransepakke {
+		javaApp = &JavaApplication{}
+		if artifactId, err := findEnv(env, "ARTIFACT_ID"); err == nil {
+			javaApp.ArtifactId = artifactId
+		} else {
+			return nil, err
+		}
+		if groupId, err := findEnv(env, "GROUP_ID"); err == nil {
+			javaApp.GroupId = groupId
+		} else {
+			return nil, err
+		}
+		if version, err := findEnv(env, "VERSION"); err == nil {
+			javaApp.Version = version
+		} else {
+			return nil, err
+		}
+		if classifier, err := findEnv(env, "CLASSIFIER"); err == nil {
+			javaApp.Classifier = classifier
+		} else {
+			javaApp.Classifier = "Leveransepakke"
+		}
+		if baseSpec, err := findBaseImage(env); err == nil {
+			javaApp.BaseImageSpec = baseSpec
+		} else {
+			return nil, err
+		}
+
 	} else {
-		return nil, err
+		nodeApp = &NodeApplication{}
+		if groupId, err := findEnv(env, "NPM_NAME"); err == nil {
+			nodeApp.NpmName = groupId
+		} else {
+			return nil, err
+		}
+		if v, err := findEnv(env, "VERSION"); err == nil {
+			nodeApp.Version = v
+		} else {
+			return nil, err
+		}
+		if baseSpec, err := findBaseImage(env); err == nil {
+			nodeApp.NodejsBaseImageSpec = baseSpec
+		} else {
+			return nil, err
+		}
 	}
 
 	dockerSpec := DockerSpec{}
-
-	if baseImage, err := findEnv(env, "DOCKER_BASE_IMAGE"); err == nil {
-		dockerSpec.BaseImage = baseImage
-	} else if baseImage, err := findEnv(env, "DOCKER_BASE_NAME"); err == nil {
-		dockerSpec.BaseImage = baseImage
-	} else {
-		return nil, err
-	}
 
 	if externalRegistry, err := findEnv(env, "BASE_IMAGE_REGISTRY"); err == nil {
 		if strings.HasPrefix(externalRegistry, "https://") {
@@ -124,15 +132,10 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
 	}
 
-	if baseImageVersion, err := findEnv(env, "DOCKER_BASE_VERSION"); err == nil {
-		dockerSpec.BaseVersion = baseImageVersion
-	} else {
-		return nil, err
-	}
-
-	dockerSpec.PushExtraTags = "latest,major,minor,patch"
 	if pushExtraTags, err := findEnv(env, "PUSH_EXTRA_TAGS"); err == nil {
-		dockerSpec.PushExtraTags = pushExtraTags
+		dockerSpec.PushExtraTags = ParseExtraTags(pushExtraTags)
+	} else {
+		dockerSpec.PushExtraTags = ParseExtraTags("latest,major,minor,patch")
 	}
 
 	dockerSpec.TagWith = ""
@@ -177,59 +180,32 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		return nil, err
 	}
 	c := &Config{
-		ApplicationType: JavaLeveransepakke,
-		MavenGav:        gav,
-		DockerSpec:      dockerSpec,
-		BuilderSpec:     builderSpec,
+		ApplicationType:   applicationType,
+		JavaApplication:   javaApp,
+		NodeJsApplication: nodeApp,
+		DockerSpec:        dockerSpec,
+		BuilderSpec:       builderSpec,
+		BinaryBuild:       build.Spec.Source.Type == api.BuildSourceBinary,
 	}
 	return c, nil
 }
 
-func addRegistryCredentials(cfg *Config, dockerConfigPath string) error {
-	_, err := os.Stat(dockerConfigPath)
-
-	if err != nil {
-		if os.IsNotExist(err) {
-			logrus.Infof("Will not load registry credentials. %s not found.", dockerConfigPath)
-			return nil
-		}
-
-		return err
+func findBaseImage(env map[string]string) (DockerBaseImageSpec, error) {
+	baseSpec := DockerBaseImageSpec{}
+	if baseImage, err := findEnv(env, "DOCKER_BASE_IMAGE"); err == nil {
+		baseSpec.BaseImage = baseImage
+	} else if baseImage, err := findEnv(env, "DOCKER_BASE_NAME"); err == nil {
+		baseSpec.BaseImage = baseImage
+	} else {
+		return baseSpec, err
 	}
 
-	dockerConfigReader, err := os.Open(dockerConfigPath)
-
-	if err != nil {
-		return err
+	if baseImageVersion, err := findEnv(env, "DOCKER_BASE_VERSION"); err == nil {
+		baseSpec.BaseVersion = baseImageVersion
+	} else {
+		return baseSpec, err
 	}
-
-	dockerConfig, err := docker.ReadConfig(dockerConfigReader)
-
-	if err != nil {
-		return err
-	}
-
-	basicCredentials, err := dockerConfig.GetCredentials(cfg.DockerSpec.OutputRegistry)
-
-	if err != nil {
-		return err
-	} else if basicCredentials == nil {
-		logrus.Infof("Will not load registry credentials. No entry for %s in %s.", cfg.DockerSpec.OutputRegistry, dockerConfigPath)
-		return nil
-	}
-
-	registryCredentials := docker.RegistryCredentials{basicCredentials.User, basicCredentials.Password,
-		cfg.DockerSpec.OutputRegistry}
-
-	encodedCredentials, err := registryCredentials.Encode()
-
-	if err != nil {
-		return err
-	}
-
-	cfg.DockerSpec.OutputRegistryCredentials = encodedCredentials
-
-	return err
+	return baseSpec, nil
 }
 
 func findOutputRepository(dockerName string) (string, error) {

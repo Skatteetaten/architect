@@ -1,0 +1,74 @@
+{
+    "kind": "BuildConfig",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "architectconsole",
+        "creationTimestamp": null,
+        "labels": {
+            "affiliation": "mfp"
+        }
+    },
+    "spec": {
+        "triggers": [],
+        "runPolicy": "Serial",
+        "source": {
+            "type": "None"
+        },
+        "strategy": {
+            "type": "Custom",
+            "customStrategy": {
+                "from": {
+                    "kind": "DockerImage",
+                    "name": "tulleball"
+                },
+                "env": [
+                    {
+                      "name": "BASE_IMAGE_REGISTRY",
+                      "value": "uil0paas-utv-registry01.skead.no:5000"
+                    },
+                    {
+                      "name": "ARTIFACT_ID",
+                      "value": "sprocket"
+                    },
+                    {
+                      "name": "GROUP_ID",
+                      "value": "ske.aurora.openshift"
+                    },
+                    {
+                      "name": "VERSION",
+                      "value": "feature_sommerfikser-SNAPSHOT"
+                    },
+                    {
+                      "name": "DOCKER_BASE_VERSION",
+                      "value": "latest"
+                    },
+                    {
+                      "name": "DOCKER_BASE_NAME",
+                      "value": "aurora/wingnut"
+                    },
+                    {
+                      "name": "TAG_OVERWRITE",
+                      "value": "true"
+                    },
+                    {
+                      "name": "TAG_WITH",
+                      "value": "tagwithtest"
+                    }
+                ],
+                "exposeDockerSocket": true
+            }
+        },
+        "output": {
+            "to": {
+                "kind": "DockerImage",
+                "name": "uil0paas-utv-registry01.skead.no:5000/aurora/architecttest"
+            }
+        },
+        "resources": {},
+        "postCommit": {},
+        "nodeSelector": null
+    },
+    "status": {
+        "lastVersion": 0
+    }
+}
