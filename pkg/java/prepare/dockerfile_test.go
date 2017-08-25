@@ -21,17 +21,19 @@ RUN chmod -R 777 $HOME && \
 	rm $TRUST_STORE && \
 	ln -s $HOME/architect/cacerts $TRUST_STORE
 
-ENV APP_VERSION="2.0.0-SNAPSHOT" AURORA_VERSION="2.0.0-SNAPSHOT-bbuildimage-oracle8-2.3.2" LOGBACK_FILE="$HOME/architect/logback.xml" PUSH_EXTRA_TAGS="major" SNAPSHOT_TAG="2.0.0-SNAPSHOT" TZ="Europe/Oslo"
+ENV FOO="BAR" TZ="2017-09-30T16:45:33Z"
 `
 
-func TestBuild(t *testing.T) {
-	dockerSpec := global.DockerSpec{
-		PushExtraTags: global.ParseExtraTags("major"),
-	}
+func TestCreateEnv(t *testing.T) {
 	baseImage := &runtime.DockerImage{
 		Tag:        "2.3.2",
 		Repository: "oracle8",
 	}
+
+	dockerSpec := global.DockerSpec{
+		PushExtraTags: global.ParseExtraTags("major"),
+	}
+
 	auroraVersions := runtime.NewApplicationVersionFromBuilderAndBase(
 		"2.0.0-SNAPSHOT",
 		true,
@@ -45,13 +47,42 @@ func TestBuild(t *testing.T) {
 	labels["no.skatteetaten.test"] = "TestLabel"
 	labels["maintainer"] = "wrench.sits.no"
 	labels["jallaball"] = "Spank me beibi"
+
 	deliverableMetadata := config.DeliverableMetadata{
 		Docker: &config.MetadataDocker{
 			Maintainer: "wrench@sits.no",
 			Labels:     labels,
 		},
 	}
-	writer := prepare.NewDockerfile(dockerSpec, auroraVersions, &deliverableMetadata, baseImage)
+
+	prepare.CreateEnv(auroraVersions, dockerSpec.PushExtraTags, &deliverableMetadata)
+}
+
+func TestBuild(t *testing.T) {
+
+	baseImage := &runtime.DockerImage{
+		Tag:        "2.3.2",
+		Repository: "oracle8",
+	}
+
+	inputEnv := map[string]string {
+		"FOO" : "BAR",
+		"BAR" : "2017-09-30T16:45:33Z",
+	}
+
+	labels := make(map[string]string)
+	labels["no.skatteetaten.test"] = "TestLabel"
+	labels["maintainer"] = "wrench.sits.no"
+	labels["jallaball"] = "Spank me beibi"
+
+	deliverableMetadata := config.DeliverableMetadata{
+		Docker: &config.MetadataDocker{
+			Maintainer: "wrench@sits.no",
+			Labels:     labels,
+		},
+	}
+
+	writer := prepare.NewDockerfile(&deliverableMetadata, baseImage, inputEnv)
 
 	buffer := new(bytes.Buffer)
 

@@ -22,6 +22,7 @@ COPY ./{{.PackageDirectory}}/{{.Static}} /u01/app/static
 COPY nginx.conf /etc/nginx/nginx.conf
 
 ENV MAIN_JAVASCRIPT_FILE="/u01/app/{{.MainFile}}"
+ENV IMAGE_BUILD_TIME="{{.ImageBuildTime}}"
 
 WORKDIR "/u01/app"
 
@@ -175,12 +176,14 @@ func prepareImage(v *npm.VersionedPackageJson, baseImage runtime.DockerImage, ve
 		Static           string
 		Labels           map[string]string
 		PackageDirectory string
+		ImageBuildTime	 string
 	}{
 		Baseimage:        baseImage.GetCompleteDockerTagName(),
 		MainFile:         v.Aurora.NodeJS.Main,
 		Static:           v.Aurora.Static,
 		Labels:           labels,
 		PackageDirectory: "package",
+		ImageBuildTime:	  docker.GetUtcTimestamp(),
 	}
 	err := writer(util.NewTemplateWriter(input, "NgnixConfiguration", NGINX_CONFIG_TEMPLATE), "nginx.conf")
 	if err != nil {

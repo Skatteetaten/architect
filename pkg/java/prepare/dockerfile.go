@@ -1,13 +1,14 @@
 package prepare
 
 import (
+	"io"
+
 	"github.com/pkg/errors"
 	global "github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/java/config"
 	"github.com/skatteetaten/architect/pkg/util"
-	"io"
 )
 
 // The base directory where all code is copied in the Docker image
@@ -40,10 +41,37 @@ type Dockerfile struct {
 	Env        map[string]string
 }
 
-func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *runtime.AuroraVersion, meta *config.DeliverableMetadata, baseImage *runtime.DockerImage) util.WriterFunc {
-	return func(writer io.Writer) error {
+func CreateEnv(auroraVersion *runtime.AuroraVersion, pushextratags global.PushExtraTags, meta *config.DeliverableMetadata) map[string]string {
+	env := make(map[string]string)
+	env[docker.ENV_APP_VERSION] = string(auroraVersion.GetAppVersion())
+	env[docker.ENV_AURORA_VERSION] = auroraVersion.GetCompleteVersion()
+	env[docker.ENV_PUSH_EXTRA_TAGS] = pushextratags.ToStringValue()
+	env[docker.TZ] = "Europe/Oslo"
+	env[docker.IMAGE_BUILD_TIME] = docker.GetUtcTimestamp()
 
-		env := createEnv(auroraVersion, dockerSpec.PushExtraTags)
+	if auroraVersion.Snapshot {
+		env[docker.ENV_SNAPSHOT_TAG] = auroraVersion.GetGivenVersion()
+	}
+
+	if meta.Openshift != nil {
+		if meta.Openshift.ReadinessURL != "" {
+			env[docker.ENV_READINESS_CHECK_URL] = meta.Openshift.ReadinessURL
+		}
+
+		if meta.Openshift.ReadinessOnManagementPort == "" || meta.Openshift.ReadinessOnManagementPort == "true" {
+			env[docker.ENV_READINESS_ON_MANAGEMENT_PORT] = "true"
+		}
+	} else if meta.Java != nil && meta.Java.ReadinessURL != "" {
+		env[docker.ENV_READINESS_CHECK_URL] = meta.Java.ReadinessURL
+	}
+
+	env["LOGBACK_FILE"] = "$HOME/architect/logback.xml"
+
+	return env
+}
+
+func NewDockerfile(meta *config.DeliverableMetadata, baseImage *runtime.DockerImage, env map[string]string) util.WriterFunc {
+	return func(writer io.Writer) error {
 
 		if meta.Docker == nil {
 			return errors.Errorf("Deliverable metadata does not contain docker object")
@@ -63,8 +91,6 @@ func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *runtime.AuroraVe
 			labels[k] = v
 		}
 
-		appendArchitectEnv(env, meta)
-
 		dockerFile := &Dockerfile{
 			BaseImage:  baseImage.GetCompleteDockerTagName(),
 			Maintainer: maintainer,
@@ -72,21 +98,4 @@ func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *runtime.AuroraVe
 			Env:        env}
 		return util.NewTemplateWriter(dockerFile, "Dockerfile", dockerfileTemplate)(writer)
 	}
-}
-
-func appendArchitectEnv(env map[string]string, meta *config.DeliverableMetadata) {
-
-	if meta.Openshift != nil {
-		if meta.Openshift.ReadinessURL != "" {
-			env[docker.ENV_READINESS_CHECK_URL] = meta.Openshift.ReadinessURL
-		}
-
-		if meta.Openshift.ReadinessOnManagementPort == "" || meta.Openshift.ReadinessOnManagementPort == "true" {
-			env[docker.ENV_READINESS_ON_MANAGEMENT_PORT] = "true"
-		}
-	} else if meta.Java != nil && meta.Java.ReadinessURL != "" {
-		env[docker.ENV_READINESS_CHECK_URL] = meta.Java.ReadinessURL
-	}
-
-	env["LOGBACK_FILE"] = "$HOME/architect/logback.xml"
 }
