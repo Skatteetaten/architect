@@ -56,7 +56,7 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 
 	// Dockerfile
 	fileWriter := util.NewFileWriter(dockerBuildPath)
-	env := CreateEnv(auroraVersions, dockerSpec.PushExtraTags, meta)
+	env := CreateEnv(auroraVersions, dockerSpec.PushExtraTags, meta, docker.GetUtcTimestamp())
 
 	if err = fileWriter(NewDockerfile(meta, baseImage, env), "Dockerfile"); err != nil {
 		return "", errors.Wrap(err, "Failed to create Dockerfile")

@@ -155,7 +155,8 @@ func (n *NodeJsBuilder) Prepare(c *config.NodeApplication, externalRegistry stri
 	if err != nil {
 		return nil, err
 	}
-	err = prepareImage(packageJsonFromPackage, nodejsBaseImage, version, util.NewFileWriter(pathToApplication))
+	imageBuildTime := docker.GetUtcTimestamp()
+	err = prepareImage(packageJsonFromPackage, nodejsBaseImage, version, util.NewFileWriter(pathToApplication), imageBuildTime)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +167,8 @@ func (n *NodeJsBuilder) Prepare(c *config.NodeApplication, externalRegistry stri
 	}}, nil
 }
 
-func prepareImage(v *npm.VersionedPackageJson, baseImage runtime.DockerImage, version string, writer util.FileWriter) error {
+func prepareImage(v *npm.VersionedPackageJson, baseImage runtime.DockerImage, version string, writer util.FileWriter,
+	imageBuildTime string) error {
 	labels := make(map[string]string)
 	labels["version"] = version
 	labels["maintainer"] = findMaintainer(v.Maintainers)
@@ -176,14 +178,14 @@ func prepareImage(v *npm.VersionedPackageJson, baseImage runtime.DockerImage, ve
 		Static           string
 		Labels           map[string]string
 		PackageDirectory string
-		ImageBuildTime	 string
+		ImageBuildTime   string
 	}{
 		Baseimage:        baseImage.GetCompleteDockerTagName(),
 		MainFile:         v.Aurora.NodeJS.Main,
 		Static:           v.Aurora.Static,
 		Labels:           labels,
 		PackageDirectory: "package",
-		ImageBuildTime:	  docker.GetUtcTimestamp(),
+		ImageBuildTime:   imageBuildTime,
 	}
 	err := writer(util.NewTemplateWriter(input, "NgnixConfiguration", NGINX_CONFIG_TEMPLATE), "nginx.conf")
 	if err != nil {

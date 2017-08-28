@@ -41,13 +41,14 @@ type Dockerfile struct {
 	Env        map[string]string
 }
 
-func CreateEnv(auroraVersion *runtime.AuroraVersion, pushextratags global.PushExtraTags, meta *config.DeliverableMetadata) map[string]string {
+func CreateEnv(auroraVersion *runtime.AuroraVersion, pushextratags global.PushExtraTags,
+	meta *config.DeliverableMetadata, imageBuildTime string) map[string]string {
 	env := make(map[string]string)
 	env[docker.ENV_APP_VERSION] = string(auroraVersion.GetAppVersion())
 	env[docker.ENV_AURORA_VERSION] = auroraVersion.GetCompleteVersion()
 	env[docker.ENV_PUSH_EXTRA_TAGS] = pushextratags.ToStringValue()
 	env[docker.TZ] = "Europe/Oslo"
-	env[docker.IMAGE_BUILD_TIME] = docker.GetUtcTimestamp()
+	env[docker.IMAGE_BUILD_TIME] = imageBuildTime
 
 	if auroraVersion.Snapshot {
 		env[docker.ENV_SNAPSHOT_TAG] = auroraVersion.GetGivenVersion()
