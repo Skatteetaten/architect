@@ -1,14 +1,11 @@
 package prepare
 
 import (
-	"io"
-
 	"github.com/pkg/errors"
 	global "github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/java/config"
-	"github.com/skatteetaten/architect/pkg/util"
 )
 
 // The base directory where all code is copied in the Docker image
@@ -41,8 +38,8 @@ type Dockerfile struct {
 	Env        map[string]string
 }
 
-func CreateEnv(auroraVersion *runtime.AuroraVersion, pushextratags global.PushExtraTags,
-	meta *config.DeliverableMetadata, imageBuildTime string) map[string]string {
+func createEnv(auroraVersion runtime.AuroraVersion, pushextratags global.PushExtraTags,
+	meta config.DeliverableMetadata, imageBuildTime string) map[string]string {
 	env := make(map[string]string)
 	env[docker.ENV_APP_VERSION] = string(auroraVersion.GetAppVersion())
 	env[docker.ENV_AURORA_VERSION] = auroraVersion.GetCompleteVersion()
@@ -71,32 +68,40 @@ func CreateEnv(auroraVersion *runtime.AuroraVersion, pushextratags global.PushEx
 	return env
 }
 
-func NewDockerfile(meta *config.DeliverableMetadata, baseImage *runtime.DockerImage, env map[string]string) util.WriterFunc {
-	return func(writer io.Writer) error {
+func createLabels(meta config.DeliverableMetadata) map[string]string {
+	var labels map[string]string = make(map[string]string)
 
-		if meta.Docker == nil {
-			return errors.Errorf("Deliverable metadata does not contain docker object")
-		}
-
-		// Maintainer
-		maintainer := meta.Docker.Maintainer
-
-		if maintainer == "" {
-			return errors.Errorf("Deliverable metadata does not contain maintainer element")
-		}
-
-		// Lables
-		var labels map[string]string = make(map[string]string)
-
-		for k, v := range meta.Docker.Labels {
-			labels[k] = v
-		}
-
-		dockerFile := &Dockerfile{
-			BaseImage:  baseImage.GetCompleteDockerTagName(),
-			Maintainer: maintainer,
-			Labels:     labels,
-			Env:        env}
-		return util.NewTemplateWriter(dockerFile, "Dockerfile", dockerfileTemplate)(writer)
+	for k, v := range meta.Docker.Labels {
+		labels[k] = v
 	}
+
+	return labels
+}
+
+// TODO Consider moving this func
+func verifyMetadata(meta config.DeliverableMetadata) error {
+	if meta.Docker == nil {
+		return errors.Errorf("Deliverable metadata does not contain \"Docker\" element")
+	} else if meta.Docker.Maintainer == "" {
+		return errors.Errorf("Deliverable metadata does not contain \"Docker.Maintainer\" element")
+	}
+
+	return nil
+ }
+
+func NewDockerfile(meta config.DeliverableMetadata, baseImage runtime.DockerImage, auroraVersion runtime.AuroraVersion,
+	pushextratags global.PushExtraTags) (*Dockerfile, error) {
+
+	if err := verifyMetadata(meta); err != nil {
+		return nil, err
+	}
+
+	dockerFile := &Dockerfile{
+		BaseImage:  baseImage.GetCompleteDockerTagName(),
+		Maintainer: meta.Docker.Maintainer,
+		Labels:     createLabels(meta),
+		Env:        createEnv(auroraVersion, pushextratags, meta, docker.GetUtcTimestamp()),
+	}
+
+	return dockerFile, nil
 }
