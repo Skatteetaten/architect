@@ -4,6 +4,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
+	"github.com/skatteetaten/architect/pkg/docker"
 	deliverable "github.com/skatteetaten/architect/pkg/java/config"
 	"github.com/skatteetaten/architect/pkg/java/nexus"
 	"github.com/skatteetaten/architect/pkg/java/prepare/resources"
@@ -54,9 +55,10 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 	}
 
 	// Dockerfile
-	_ = util.NewFileWriter(dockerBuildPath)
+	fileWriter := util.NewFileWriter(dockerBuildPath)
 
-	if _, err = NewDockerfile(*meta, *baseImage, *auroraVersions, dockerSpec.PushExtraTags); err != nil {
+	if err = fileWriter(NewDockerfile(dockerSpec, *auroraVersions, *meta, *baseImage, docker.GetUtcTimestamp()),
+		"Dockerfile"); err != nil {
 		return "", errors.Wrap(err, "Failed to create Dockerfile")
 	}
 

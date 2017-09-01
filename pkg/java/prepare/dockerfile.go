@@ -6,6 +6,8 @@ import (
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/java/config"
+	"github.com/skatteetaten/architect/pkg/util"
+	"io"
 )
 
 // The base directory where all code is copied in the Docker image
@@ -31,7 +33,7 @@ RUN chmod -R 777 $HOME && \
 ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
 `
 
-type Dockerfile struct {
+type DockerfileData struct {
 	BaseImage  string
 	Maintainer string
 	Labels     map[string]string
@@ -87,21 +89,23 @@ func verifyMetadata(meta config.DeliverableMetadata) error {
 	}
 
 	return nil
- }
+}
 
-func NewDockerfile(meta config.DeliverableMetadata, baseImage runtime.DockerImage, auroraVersion runtime.AuroraVersion,
-	pushextratags global.PushExtraTags) (*Dockerfile, error) {
+func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVersion, meta config.DeliverableMetadata,
+	baseImage runtime.DockerImage, imageBuildTime string) util.WriterFunc {
+	return func(writer io.Writer) error {
 
-	if err := verifyMetadata(meta); err != nil {
-		return nil, err
+		if err := verifyMetadata(meta); err != nil {
+			return err
+		}
+
+		data := &DockerfileData{
+			BaseImage:  baseImage.GetCompleteDockerTagName(),
+			Maintainer: meta.Docker.Maintainer,
+			Labels:     createLabels(meta),
+			Env:        createEnv(auroraVersion, dockerSpec.PushExtraTags, meta, imageBuildTime),
+		}
+
+		return util.NewTemplateWriter(data, "Dockerfile", dockerfileTemplate)(writer)
 	}
-
-	dockerFile := &Dockerfile{
-		BaseImage:  baseImage.GetCompleteDockerTagName(),
-		Maintainer: meta.Docker.Maintainer,
-		Labels:     createLabels(meta),
-		Env:        createEnv(auroraVersion, pushextratags, meta, docker.GetUtcTimestamp()),
-	}
-
-	return dockerFile, nil
 }

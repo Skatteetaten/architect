@@ -20,8 +20,7 @@ COPY ./package/app /u01/app/static
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
-ENV MAIN_JAVASCRIPT_FILE="/u01/app/test.json"
-ENV IMAGE_BUILD_TIME="2016-09-12T14:30:10Z"
+ENV MAIN_JAVASCRIPT_FILE="/u01/app/test.json" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z"
 
 WORKDIR "/u01/app"
 

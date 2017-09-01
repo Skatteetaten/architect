@@ -21,8 +21,7 @@ COPY ./{{.PackageDirectory}}/{{.Static}} /u01/app/static
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
-ENV MAIN_JAVASCRIPT_FILE="/u01/app/{{.MainFile}}"
-ENV IMAGE_BUILD_TIME="{{.ImageBuildTime}}"
+ENV MAIN_JAVASCRIPT_FILE="/u01/app/{{.MainFile}}" IMAGE_BUILD_TIME="{{.ImageBuildTime}}"
 
 WORKDIR "/u01/app"
 
