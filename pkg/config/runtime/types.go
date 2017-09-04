@@ -36,7 +36,7 @@ type ArchitectImage struct {
   <application-version>-<builder-version>-<baseimage-repository>-<baseimage-version>
   e.g. 2.0.0-b1.11.0-oracle8-1.0.2
 */
-func getCompleteVersion(appversion AppVersion, buildImage *ArchitectImage, baseImage *DockerImage) string {
+func getCompleteVersion(appversion AppVersion, buildImage *ArchitectImage, baseImage DockerImage) string {
 	return fmt.Sprintf("%s-%s-%s", appversion,
 		buildImage.AuroraVersionComponent(),
 		baseImage.AuroraVersionComponent())
@@ -78,7 +78,7 @@ type AuroraVersion struct {
 	completeVersion CompleteVersion
 }
 
-func NewApplicationVersion(appVersion string, snapshot bool, givenVersion string, completeVersion CompleteVersion) *AuroraVersion {
+func NewAuroraVersion(appVersion string, snapshot bool, givenVersion string, completeVersion CompleteVersion) *AuroraVersion {
 	return &AuroraVersion{
 		appVersion:      AppVersion(appVersion),
 		Snapshot:        snapshot,
@@ -87,9 +87,9 @@ func NewApplicationVersion(appVersion string, snapshot bool, givenVersion string
 	}
 }
 
-func NewApplicationVersionFromBuilderAndBase(
+func NewAuroraVersionFromBuilderAndBase(
 	appVersion string, snapshot bool,
-	givenVersion string, buildImage *ArchitectImage, baseImage *DockerImage) *AuroraVersion {
+	givenVersion string, buildImage *ArchitectImage, baseImage DockerImage) *AuroraVersion {
 	return &AuroraVersion{
 		appVersion:      AppVersion(appVersion),
 		Snapshot:        snapshot,

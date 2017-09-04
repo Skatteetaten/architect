@@ -2,8 +2,9 @@ package prepare_test
 
 import (
 	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/nodejs/npm"
+	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/nodejs/prepare"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -11,19 +12,28 @@ import (
 )
 
 func TestApplicationPrepare(t *testing.T) {
-	registryClient := npm.NewLocalRegistry("../npm/testfiles")
 
 	c := config.Config{
 		ApplicationType: config.NodeJsLeveransepakke,
-		NodeJsApplication: &config.NodeApplication{
-			NpmName: "openshift-referanse-react",
-			Version: "0.1.2",
+		ApplicationSpec: config.ApplicationSpec{
+			MavenGav: config.MavenGav{
+				ArtifactId: "nodejs",
+				GroupId:    "a.group.id",
+				Version:    "0.1.2",
+			},
 		},
 	}
 
 	imageInfoProvider := &testImageInfoProvider{}
-	prepper := prepare.Prepper(registryClient)
-	bc, err := prepper(&c, imageInfoProvider)
+	auroraVersion := runtime.NewAuroraVersion("0.1.2", false, "0.1.2", runtime.CompleteVersion("0.1.2-b--baseimageversion"))
+	prepper := prepare.Prepper()
+	baseImage := runtime.DockerImage{
+		Tag:        "test",
+		Repository: "tull",
+		Registry:   "tullogtoys",
+	}
+	deliverable := nexus.Deliverable{Path: "testfiles/openshift-referanse-react-snapshot_test-SNAPSHOT-Webleveransepakke.tgz"}
+	bc, err := prepper(&c, auroraVersion, deliverable, baseImage)
 	assert.Equal(t, 1, len(bc))
 	assert.NoError(t, err)
 	b := bc[0]

@@ -29,7 +29,7 @@ type DockerBuildConfig struct {
 	AuroraVersion    *runtime.AuroraVersion
 	DockerRepository string ///TODO: Refactor? We need to have to different for nodejs
 	BuildFolder      string
-	Baseimage        *runtime.DockerImage //We need to pull the newest image...
+	Baseimage        runtime.DockerImage //We need to pull the newest image...
 }
 
 type DockerClient struct {
@@ -47,7 +47,7 @@ func NewDockerClient() (*DockerClient, error) {
 }
 
 //THIS IS BUGGY!
-func (d *DockerClient) PullImage(baseimage *runtime.DockerImage) error {
+func (d *DockerClient) PullImage(baseimage runtime.DockerImage) error {
 	logrus.Infof("Pulling %s", baseimage.GetCompleteDockerTagName())
 	output, err := d.Client.ImagePull(context.Background(), baseimage.GetCompleteDockerTagName(), types.ImagePullOptions{})
 

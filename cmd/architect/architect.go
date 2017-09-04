@@ -5,8 +5,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/java"
-	"github.com/skatteetaten/architect/pkg/java/nexus"
-	"github.com/skatteetaten/architect/pkg/nodejs/npm"
+	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/nodejs/prepare"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/retag"
@@ -19,7 +18,6 @@ var verbose bool
 
 type RunConfiguration struct {
 	NexusDownloader         nexus.Downloader
-	NpmDownloader           npm.Downloader
 	Config                  *config.Config
 	RegistryCredentialsFunc func(string) (*docker.RegistryCredentials, error)
 }
@@ -32,7 +30,6 @@ var JavaLeveransepakke = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var configReader = config.NewInClusterConfigReader()
 		var nexusDownloader nexus.Downloader
-		var npmDownloader npm.Downloader
 		if verbose {
 			logrus.SetLevel(logrus.DebugLevel)
 		} else {
@@ -58,24 +55,17 @@ var JavaLeveransepakke = &cobra.Command{
 			}
 		}
 
-		if localRepo {
-			logrus.Debugf("Using local maven repo")
-			nexusDownloader = nexus.NewLocalDownloader()
-			npmDownloader = npm.NewLocalRegistry(".")
-		} else if c.BinaryBuild {
-			nexusDownloader = nexus.NewLocalDownloader() //TODO: Wont work with binary input
-			npmDownloader = npm.NewBinaryBuildRegistry(binaryInput, c.NodeJsApplication.Version)
+		if c.BinaryBuild {
+			nexusDownloader = nexus.NewBinaryDownloader(binaryInput)
 		} else {
 			mavenRepo := "http://aurora/nexus/service/local/artifact/maven/content"
 			logrus.Debugf("Using Maven repo on %s", mavenRepo)
 			nexusDownloader = nexus.NewNexusDownloader(mavenRepo)
-			npmDownloader = npm.NewRemoteRegistry("http://aurora/npm/repository/npm-internal/")
 		}
 
 		RunArchitect(RunConfiguration{
 			NexusDownloader:         nexusDownloader,
 			Config:                  c,
-			NpmDownloader:           npmDownloader,
 			RegistryCredentialsFunc: docker.LocalRegistryCredentials(),
 		})
 	},
@@ -84,7 +74,7 @@ var JavaLeveransepakke = &cobra.Command{
 func init() {
 	JavaLeveransepakke.Flags().StringP("fileconfig", "f", "", "Path to file config. If not set, the environment variable BUILD is read")
 	JavaLeveransepakke.Flags().StringP("skippush", "s", "", "If set, Docker push will not be performed")
-	JavaLeveransepakke.Flags().BoolVarP(&localRepo, "localrepo", "l", false, "If set, the Leveransepakke will be fetched from the local repo")
+	JavaLeveransepakke.Flags().BoolVarP(&localRepo, "binary", "b", false, "If set, the Leveransepakke will be fetched from stdin")
 	JavaLeveransepakke.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 }
 
@@ -113,14 +103,18 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 	var prepper process.Prepper
 	if c.ApplicationType == config.JavaLeveransepakke {
 		logrus.Info("Perform Java build")
-		prepper = java.Prepper(configuration.NexusDownloader)
+		prepper = java.Prepper()
 
 	} else if c.ApplicationType == config.NodeJsLeveransepakke {
 		logrus.Info("Perform Webleveranse build")
-		prepper = prepare.Prepper(configuration.NpmDownloader)
+		prepper = prepare.Prepper()
 	}
 
-	if err := process.Build(r, c, prepper); err != nil {
+	if c.BinaryBuild && !c.ApplicationSpec.MavenGav.IsSnapshot() {
+		logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
+	}
+
+	if err := process.Build(r, c, configuration.NexusDownloader, prepper); err != nil {
 		logrus.Fatalf("Failed to build image: %s", err)
 	}
 }

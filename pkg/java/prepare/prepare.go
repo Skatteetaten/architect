@@ -6,8 +6,8 @@ import (
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	deliverable "github.com/skatteetaten/architect/pkg/java/config"
-	"github.com/skatteetaten/architect/pkg/java/nexus"
 	"github.com/skatteetaten/architect/pkg/java/prepare/resources"
+	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/util"
 	"io"
 	"io/ioutil"
@@ -20,7 +20,7 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable *nexus.Deliverable, baseImage *runtime.DockerImage) (string, error) {
+func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.DockerImage) (string, error) {
 
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
@@ -57,7 +57,7 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 	// Dockerfile
 	fileWriter := util.NewFileWriter(dockerBuildPath)
 
-	if err = fileWriter(NewDockerfile(dockerSpec, *auroraVersions, *meta, *baseImage, docker.GetUtcTimestamp()),
+	if err = fileWriter(NewDockerfile(dockerSpec, *auroraVersions, *meta, baseImage, docker.GetUtcTimestamp()),
 		"Dockerfile"); err != nil {
 		return "", errors.Wrap(err, "Failed to create Dockerfile")
 	}

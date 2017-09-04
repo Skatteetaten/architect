@@ -4,13 +4,49 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
+	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/tagger"
 )
 
-func Build(credentials *docker.RegistryCredentials, cfg *config.Config, prepper Prepper) error {
+//TODO: Write some test for this..
+// Need to initialize RegistryClient and DockerClient outside of this function
+func Build(credentials *docker.RegistryCredentials, cfg *config.Config, downloader nexus.Downloader, prepper Prepper) error {
 	provider := docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry)
-	dockerBuildConfig, err := prepper(cfg, provider)
+
+	logrus.Debugf("Download deliverable for GAV %-v", cfg.ApplicationSpec)
+	deliverable, err := downloader.DownloadArtifact(&cfg.ApplicationSpec.MavenGav)
+	if err != nil {
+		return errors.Wrapf(err, "Could not download deliverable %-v", cfg.ApplicationSpec)
+	}
+	application := cfg.ApplicationSpec
+	logrus.Debug("Extract build info")
+
+	completeBaseImageVersion, err := provider.GetCompleteBaseImageVersion(application.BaseImageSpec.BaseImage,
+		application.BaseImageSpec.BaseVersion)
+	if err != nil {
+		return errors.Wrap(err, "Unable to get the complete build version")
+	}
+
+	baseImage := runtime.DockerImage{
+		Tag:        completeBaseImageVersion,
+		Repository: application.BaseImageSpec.BaseImage,
+		Registry:   cfg.DockerSpec.GetExternalRegistryWithoutProtocol(),
+	}
+
+	buildImage := &runtime.ArchitectImage{
+		Tag: cfg.BuilderSpec.Version,
+	}
+	snapshot := application.MavenGav.IsSnapshot()
+	appVersion := nexus.GetSnapshotTimestampVersion(application.MavenGav, deliverable)
+	auroraVersion := runtime.NewAuroraVersionFromBuilderAndBase(appVersion, snapshot,
+		application.MavenGav.Version, buildImage, baseImage)
+	if err != nil {
+		return errors.Wrap(err, "Error creating version information")
+	}
+
+	dockerBuildConfig, err := prepper(cfg, auroraVersion, deliverable, baseImage)
 	if err != nil {
 		return errors.Wrap(err, "Error preparing image")
 	}

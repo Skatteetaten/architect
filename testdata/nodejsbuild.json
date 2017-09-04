@@ -31,12 +31,12 @@
             "value": "nodejs"
           },
           {
-            "name": "NPM_NAME",
+            "name": "ARTIFACT_ID",
             "value": "nodejs-test-app"
           },
           {
             "name": "GROUP_ID",
-            "value": "groupid.com"
+            "value": "testgroup"
           },
           {
             "name": "VERSION",

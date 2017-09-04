@@ -3,7 +3,6 @@ package prepare
 import (
 	"bytes"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
-	"github.com/skatteetaten/architect/pkg/nodejs/npm"
 	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -66,14 +65,14 @@ http {
 }
 `
 
-var testVersion = npm.VersionedPackageJson{
-	Aurora: npm.AuroraApplication{
-		NodeJS: npm.NodeJSApplication{
+var testVersion = PackageJson{
+	Aurora: AuroraApplication{
+		NodeJS: NodeJSApplication{
 			Main: "test.json",
 		},
 		Static: "app",
 	},
-	Maintainers: []npm.Maintainer{
+	Maintainers: []Maintainer{
 		{
 			Name:  "Oyvind",
 			Email: "oyvind@dagobah.wars",

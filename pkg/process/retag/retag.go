@@ -57,7 +57,7 @@ func (m *retagger) Retag() error {
 		givenVersionString = appVersionString
 	}
 
-	appVersion := runtime.NewApplicationVersion(appVersionString, snapshot, givenVersionString, runtime.CompleteVersion(auroraVersion))
+	appVersion := runtime.NewAuroraVersion(appVersionString, snapshot, givenVersionString, runtime.CompleteVersion(auroraVersion))
 
 	extratags, ok := envMap[docker.ENV_PUSH_EXTRA_TAGS]
 
@@ -73,7 +73,7 @@ func (m *retagger) Retag() error {
 		return errors.Wrap(err, "Unable to get version tags")
 	}
 
-	imageId := &runtime.DockerImage{
+	imageId := runtime.DockerImage{
 		Registry:   m.Config.DockerSpec.OutputRegistry,
 		Repository: m.Config.DockerSpec.OutputRepository,
 		Tag:        m.Config.DockerSpec.RetagWith,

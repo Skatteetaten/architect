@@ -60,22 +60,27 @@ var dockerSpec = config.DockerSpec{
 	ExternalDockerRegistry: CFG_EXTERNAL_REGISTRY,
 }
 
-var mavenGavRelease = config.JavaApplication{
-	GroupId:    CFG_GAV_GROUP_ID,
-	ArtifactId: CFG_GAV_ARTIFACT_ID,
-	Version:    CFG_GAV_VERSION,
+var mavenGavRelease = config.ApplicationSpec{
+	MavenGav: config.MavenGav{
+		GroupId:    CFG_GAV_GROUP_ID,
+		ArtifactId: CFG_GAV_ARTIFACT_ID,
+		Version:    CFG_GAV_VERSION,
+	},
 	BaseImageSpec: config.DockerBaseImageSpec{
 		BaseImage:   CFG_BASE_REPOSITORY,
 		BaseVersion: CFG_BASE_VERSION,
 	}}
 
-var mavenGavSnapshot = config.JavaApplication{
-	GroupId:    CFG_GAV_GROUP_ID,
-	ArtifactId: CFG_GAV_ARTIFACT_ID,
-	Version:    CFG_GAV_SNAPSHOT_VERSION}
+var mavenGavSnapshot = config.ApplicationSpec{
+	MavenGav: config.MavenGav{
+		GroupId:    CFG_GAV_GROUP_ID,
+		ArtifactId: CFG_GAV_ARTIFACT_ID,
+		Version:    CFG_GAV_SNAPSHOT_VERSION,
+	},
+}
 
 func TestTagInfoRelease(t *testing.T) {
-	appVersion := runtime.NewApplicationVersion(APP_VERSION, false, APP_VERSION, runtime.CompleteVersion(AURORA_VERSION))
+	appVersion := runtime.NewAuroraVersion(APP_VERSION, false, APP_VERSION, runtime.CompleteVersion(AURORA_VERSION))
 	tags, err := appVersion.GetApplicationVersionTagsToPush(make([]string, 0), config.ParseExtraTags(CFG_PUSH_EXTRA_TAGS))
 	if err != nil {
 		t.Fatalf("Failed to create target VersionInfo %v", err)
@@ -89,7 +94,7 @@ func TestTagInfoRelease(t *testing.T) {
 }
 
 func TestTagInfoSnapshot(t *testing.T) {
-	appVersion := runtime.NewApplicationVersion(SNAPSHOT_APP_VERSION, true, SNAPSHOT_GIVEN_VERSION, runtime.CompleteVersion(SNAPSHOT_AURORA_VERSION))
+	appVersion := runtime.NewAuroraVersion(SNAPSHOT_APP_VERSION, true, SNAPSHOT_GIVEN_VERSION, runtime.CompleteVersion(SNAPSHOT_AURORA_VERSION))
 	tags, err := appVersion.GetApplicationVersionTagsToPush([]string{}, config.ParseExtraTags(CFG_PUSH_EXTRA_TAGS))
 	if err != nil {
 		t.Fatalf("Failed to create target VersionInfo %v", err)
@@ -192,7 +197,7 @@ type repositoryTester struct {
 
 //TODO: We don't filter tags, we return the tags we need... Need to refactor test!
 func (m repositoryTester) testTagFiltering(appVersion string, candidateTags []string, excpectedFilteringResult []string) {
-	a := runtime.NewApplicationVersion(appVersion, false, appVersion, runtime.CompleteVersion(AURORA_VERSION))
+	a := runtime.NewAuroraVersion(appVersion, false, appVersion, runtime.CompleteVersion(AURORA_VERSION))
 	_, err := a.GetApplicationVersionTagsToPush(m.tagsFromRegistry, config.ParseExtraTags("lastest major minor patch"))
 
 	if err != nil {
