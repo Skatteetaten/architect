@@ -65,18 +65,15 @@ http {
 }
 `
 
-var testVersion = PackageJson{
+var testVersion = OpenshiftJson{
 	Aurora: AuroraApplication{
 		NodeJS: NodeJSApplication{
 			Main: "test.json",
 		},
 		Static: "app",
 	},
-	Maintainers: []Maintainer{
-		{
-			Name:  "Oyvind",
-			Email: "oyvind@dagobah.wars",
-		},
+	DockerMetadata: DockerMetadata{
+		Maintainer: "Oyvind <oyvind@dagobah.wars>",
 	},
 }
 

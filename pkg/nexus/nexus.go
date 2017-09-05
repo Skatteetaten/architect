@@ -18,11 +18,11 @@ type Downloader interface {
 	DownloadArtifact(c *config.MavenGav) (Deliverable, error)
 }
 
-type Nexus struct {
+type NexusDownloader struct {
 	baseUrl string
 }
 
-type BinaryBuild struct {
+type BinaryDownloader struct {
 	Path string
 }
 
@@ -31,18 +31,18 @@ type Deliverable struct {
 }
 
 func NewNexusDownloader(baseUrl string) Downloader {
-	return &Nexus{
+	return &NexusDownloader{
 		baseUrl: baseUrl,
 	}
 }
 
 func NewBinaryDownloader(path string) Downloader {
-	return &BinaryBuild{
+	return &BinaryDownloader{
 		Path: path,
 	}
 }
 
-func (n *BinaryBuild) DownloadArtifact(c *config.MavenGav) (Deliverable, error) {
+func (n *BinaryDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, error) {
 	deliverable := Deliverable{
 		Path: n.Path,
 	}
@@ -52,7 +52,7 @@ func (n *BinaryBuild) DownloadArtifact(c *config.MavenGav) (Deliverable, error) 
 	return deliverable, nil
 }
 
-func (n *Nexus) DownloadArtifact(c *config.MavenGav) (Deliverable, error) {
+func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, error) {
 	resourceUrl, err := n.createURL(c)
 	deliverable := Deliverable{}
 	if err != nil {
@@ -108,7 +108,7 @@ func GetSnapshotTimestampVersion(gav config.MavenGav, deliverable Deliverable) s
 	return gav.Version
 }
 
-func (m *Nexus) createURL(n *config.MavenGav) (string, error) {
+func (m *NexusDownloader) createURL(n *config.MavenGav) (string, error) {
 	tmpUrl, err := url.Parse(m.baseUrl)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to parse url")

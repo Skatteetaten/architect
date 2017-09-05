@@ -22,18 +22,14 @@ type NodeJSApplication struct {
 	Runtime string `json:"runtime"`
 }
 
-type PackageJson struct {
-	Aurora AuroraApplication `json:"aurora"`
-	Dist   struct {
-		Shasum  string `json:"shasum"`
-		Tarball string `json:"tarball"`
-	} `json:"dist"`
-	Maintainers []Maintainer `json:"maintainers"`
+type OpenshiftJson struct {
+	Aurora         AuroraApplication `json:"web"`
+	DockerMetadata DockerMetadata    `json:"docker"`
 }
 
-type Maintainer struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
+type DockerMetadata struct {
+	Maintainer string            `json:"name"`
+	Labels     map[string]string `json:"labels"`
 }
 
 const WRENCH_DOCKER_FILE string = `FROM {{.Baseimage}}
@@ -123,18 +119,18 @@ func prepare(c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
 	deliverable nexus.Deliverable, baseImage runtime.DockerImage) ([]PreparedImage, error) {
 	logrus.Debug("Building %s", c.MavenGav.Name())
 
-	// We must create separate folders for nodejs and nginx due to
-	// Docker builds wanting one file per folder
+	openshiftJson, err := findOpenshiftJsonInTarball(deliverable.Path)
+	if err != nil {
+		return nil, err
+	}
+
 	pathToApplication, err := extractTarball(deliverable.Path)
 	if err != nil {
 		return nil, err
 	}
-	packageJsonFromPackage, err := findPackageJsonInsideTarball(deliverable.Path)
-	if err != nil {
-		return nil, err
-	}
+
 	imageBuildTime := docker.GetUtcTimestamp()
-	err = prepareImage(packageJsonFromPackage, baseImage, string(auroraVersion.GetAppVersion()), util.NewFileWriter(pathToApplication), imageBuildTime)
+	err = prepareImage(openshiftJson, baseImage, string(auroraVersion.GetAppVersion()), util.NewFileWriter(pathToApplication), imageBuildTime)
 	if err != nil {
 		return nil, err
 	}
@@ -145,11 +141,17 @@ func prepare(c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
 	}}, nil
 }
 
-func prepareImage(v *PackageJson, baseImage runtime.DockerImage, version string, writer util.FileWriter,
+func prepareImage(v *OpenshiftJson, baseImage runtime.DockerImage, version string, writer util.FileWriter,
 	imageBuildTime string) error {
 	labels := make(map[string]string)
+	if v.DockerMetadata.Labels != nil {
+		for k, v := range v.DockerMetadata.Labels {
+			labels[k] = v
+		}
+	}
 	labels["version"] = version
-	labels["maintainer"] = findMaintainer(v.Maintainers)
+	labels["maintainer"] = findMaintainer(v.DockerMetadata)
+
 	input := &struct {
 		Baseimage        string
 		MainFile         string
@@ -173,9 +175,9 @@ func prepareImage(v *PackageJson, baseImage runtime.DockerImage, version string,
 	return writer(f, "Dockerfile")
 }
 
-func findMaintainer(maintainers []Maintainer) string {
-	if len(maintainers) == 0 {
+func findMaintainer(dockerMetadata DockerMetadata) string {
+	if len(dockerMetadata.Maintainer) == 0 {
 		return "No Maintainer set!"
 	}
-	return maintainers[0].Name + " <" + maintainers[0].Email + ">"
+	return dockerMetadata.Maintainer
 }
