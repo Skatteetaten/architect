@@ -1,6 +1,9 @@
 package docker
 
-import "github.com/skatteetaten/architect/pkg/config/runtime"
+import (
+	"github.com/skatteetaten/architect/pkg/config/runtime"
+	"time"
+)
 
 // CreateCompleteTagsFromSpecAndTags makes a target image to be used for push.
 // The tag format in docker is somewhat confusing. For a description, see
@@ -21,4 +24,10 @@ func CreateImageNameFromSpecAndTags(tags []string, outputRegistry string, output
 		output[i] = name.GetCompleteDockerTagName()
 	}
 	return output
+}
+
+func GetUtcTimestamp() string {
+	location, _ := time.LoadLocation("UTC")
+	return time.Now().In(location).Format(time.RFC3339)
+
 }

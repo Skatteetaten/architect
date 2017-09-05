@@ -220,31 +220,6 @@ func (registry RegistryMock) GetManifestEnv(repository string, tag string, name 
 	}
 }
 
-func verifyEquals(actual string, expected string, t *testing.T) {
-	if actual != expected {
-		t.Errorf("Expected value %s, actual value is %s", expected, actual)
-	}
-}
-
-func verifyEnvMapContent(actualMap map[string]string, expectedMap map[string]string, t *testing.T) {
-	for k, e := range expectedMap {
-		verifyEnvMapContains(actualMap, k, e, t)
-	}
-}
-
-func verifyEnvMapContains(actualMap map[string]string, key string, expected string, t *testing.T) {
-	actual, ok := actualMap[key]
-
-	if !ok {
-		t.Errorf("Env map does not contain variable %s", key)
-		return
-	}
-
-	if actual != expected {
-		t.Errorf("Expected env value %s, actual is %s", expected, actual)
-	}
-}
-
 func verifyTagListContent(actualList []string, expectedList []string, t *testing.T) {
 	if len(actualList) != len(expectedList) {
 		t.Errorf("Expected %v tags, actual is %v", expectedList, actualList)

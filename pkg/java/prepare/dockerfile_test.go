@@ -21,7 +21,7 @@ RUN chmod -R 777 $HOME && \
 	rm $TRUST_STORE && \
 	ln -s $HOME/architect/cacerts $TRUST_STORE
 
-ENV APP_VERSION="2.0.0-SNAPSHOT" AURORA_VERSION="2.0.0-SNAPSHOT-bbuildimage-oracle8-2.3.2" LOGBACK_FILE="$HOME/architect/logback.xml" PUSH_EXTRA_TAGS="major" SNAPSHOT_TAG="2.0.0-SNAPSHOT" TZ="Europe/Oslo"
+ENV APP_VERSION="2.0.0-SNAPSHOT" AURORA_VERSION="2.0.0-SNAPSHOT-bbuildimage-oracle8-2.3.2" IMAGE_BUILD_TIME="2017-09-10T14:30:10Z" LOGBACK_FILE="$HOME/architect/logback.xml" PUSH_EXTRA_TAGS="major" SNAPSHOT_TAG="2.0.0-SNAPSHOT" TZ="Europe/Oslo"
 `
 
 func TestBuild(t *testing.T) {
@@ -51,7 +51,7 @@ func TestBuild(t *testing.T) {
 			Labels:     labels,
 		},
 	}
-	writer := prepare.NewDockerfile(dockerSpec, auroraVersions, &deliverableMetadata, baseImage)
+	writer := prepare.NewDockerfile(dockerSpec, *auroraVersions, deliverableMetadata, *baseImage, "2017-09-10T14:30:10Z")
 
 	buffer := new(bytes.Buffer)
 

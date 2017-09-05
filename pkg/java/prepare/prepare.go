@@ -16,20 +16,6 @@ import (
 	"path/filepath"
 )
 
-func createEnv(auroraVersion *runtime.AuroraVersion, pushextratags config.PushExtraTags) map[string]string {
-	env := make(map[string]string)
-	env[docker.ENV_APP_VERSION] = string(auroraVersion.GetAppVersion())
-	env[docker.ENV_AURORA_VERSION] = auroraVersion.GetCompleteVersion()
-	env[docker.ENV_PUSH_EXTRA_TAGS] = pushextratags.ToStringValue()
-	env[docker.TZ] = "Europe/Oslo"
-
-	if auroraVersion.Snapshot {
-		env[docker.ENV_SNAPSHOT_TAG] = auroraVersion.GetGivenVersion()
-	}
-
-	return env
-}
-
 type FileGenerator interface {
 	Write(writer io.Writer) error
 }
@@ -71,7 +57,8 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 	// Dockerfile
 	fileWriter := util.NewFileWriter(dockerBuildPath)
 
-	if err = fileWriter(NewDockerfile(dockerSpec, auroraVersions, meta, baseImage), "Dockerfile"); err != nil {
+	if err = fileWriter(NewDockerfile(dockerSpec, *auroraVersions, *meta, *baseImage, docker.GetUtcTimestamp()),
+		"Dockerfile"); err != nil {
 		return "", errors.Wrap(err, "Failed to create Dockerfile")
 	}
 

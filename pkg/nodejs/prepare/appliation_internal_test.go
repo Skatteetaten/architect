@@ -9,6 +9,7 @@ import (
 	"testing"
 )
 
+const buildTime = "2016-09-12T14:30:10Z"
 const expectedNodeJsDockerFile = `FROM aurora/wrench:latest
 
 LABEL maintainer="Oyvind <oyvind@dagobah.wars>" version="1.2.3"
@@ -19,7 +20,7 @@ COPY ./package/app /u01/app/static
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
-ENV MAIN_JAVASCRIPT_FILE="/u01/app/test.json"
+ENV MAIN_JAVASCRIPT_FILE="/u01/app/test.json" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z"
 
 WORKDIR "/u01/app"
 
@@ -85,7 +86,7 @@ func TestNodeJsDockerFiles(t *testing.T) {
 	err := prepareImage(&testVersion, runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
-	}, "1.2.3", testFileWriter(files))
+	}, "1.2.3", testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, files["Dockerfile"], expectedNodeJsDockerFile)
 	assert.Equal(t, files["nginx.conf"], expectedNginxConfFile)

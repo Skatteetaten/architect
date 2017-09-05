@@ -33,48 +33,25 @@ RUN chmod -R 777 $HOME && \
 ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
 `
 
-type Dockerfile struct {
+type DockerfileData struct {
 	BaseImage  string
 	Maintainer string
 	Labels     map[string]string
 	Env        map[string]string
 }
 
-func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion *runtime.AuroraVersion, meta *config.DeliverableMetadata, baseImage *runtime.DockerImage) util.WriterFunc {
-	return func(writer io.Writer) error {
+func createEnv(auroraVersion runtime.AuroraVersion, pushextratags global.PushExtraTags,
+	meta config.DeliverableMetadata, imageBuildTime string) map[string]string {
+	env := make(map[string]string)
+	env[docker.ENV_APP_VERSION] = string(auroraVersion.GetAppVersion())
+	env[docker.ENV_AURORA_VERSION] = auroraVersion.GetCompleteVersion()
+	env[docker.ENV_PUSH_EXTRA_TAGS] = pushextratags.ToStringValue()
+	env[docker.TZ] = "Europe/Oslo"
+	env[docker.IMAGE_BUILD_TIME] = imageBuildTime
 
-		env := createEnv(auroraVersion, dockerSpec.PushExtraTags)
-
-		if meta.Docker == nil {
-			return errors.Errorf("Deliverable metadata does not contain docker object")
-		}
-
-		// Maintainer
-		maintainer := meta.Docker.Maintainer
-
-		if maintainer == "" {
-			return errors.Errorf("Deliverable metadata does not contain maintainer element")
-		}
-
-		// Lables
-		var labels map[string]string = make(map[string]string)
-
-		for k, v := range meta.Docker.Labels {
-			labels[k] = v
-		}
-
-		appendArchitectEnv(env, meta)
-
-		dockerFile := &Dockerfile{
-			BaseImage:  baseImage.GetCompleteDockerTagName(),
-			Maintainer: maintainer,
-			Labels:     labels,
-			Env:        env}
-		return util.NewTemplateWriter(dockerFile, "Dockerfile", dockerfileTemplate)(writer)
+	if auroraVersion.Snapshot {
+		env[docker.ENV_SNAPSHOT_TAG] = auroraVersion.GetGivenVersion()
 	}
-}
-
-func appendArchitectEnv(env map[string]string, meta *config.DeliverableMetadata) {
 
 	if meta.Openshift != nil {
 		if meta.Openshift.ReadinessURL != "" {
@@ -89,4 +66,46 @@ func appendArchitectEnv(env map[string]string, meta *config.DeliverableMetadata)
 	}
 
 	env["LOGBACK_FILE"] = "$HOME/architect/logback.xml"
+
+	return env
+}
+
+func createLabels(meta config.DeliverableMetadata) map[string]string {
+	var labels map[string]string = make(map[string]string)
+
+	for k, v := range meta.Docker.Labels {
+		labels[k] = v
+	}
+
+	return labels
+}
+
+// TODO Consider moving this func
+func verifyMetadata(meta config.DeliverableMetadata) error {
+	if meta.Docker == nil {
+		return errors.Errorf("Deliverable metadata does not contain \"Docker\" element")
+	} else if meta.Docker.Maintainer == "" {
+		return errors.Errorf("Deliverable metadata does not contain \"Docker.Maintainer\" element")
+	}
+
+	return nil
+}
+
+func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVersion, meta config.DeliverableMetadata,
+	baseImage runtime.DockerImage, imageBuildTime string) util.WriterFunc {
+	return func(writer io.Writer) error {
+
+		if err := verifyMetadata(meta); err != nil {
+			return err
+		}
+
+		data := &DockerfileData{
+			BaseImage:  baseImage.GetCompleteDockerTagName(),
+			Maintainer: meta.Docker.Maintainer,
+			Labels:     createLabels(meta),
+			Env:        createEnv(auroraVersion, dockerSpec.PushExtraTags, meta, imageBuildTime),
+		}
+
+		return util.NewTemplateWriter(data, "Dockerfile", dockerfileTemplate)(writer)
+	}
 }
