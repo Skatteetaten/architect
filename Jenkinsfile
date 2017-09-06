@@ -15,7 +15,7 @@ node {
     stage 'Bygg Architect'
 
     def commitId = git.getCommitId()
-    def result = openshift.oc('start-build architect --commit=${commitId} -F')
+    def result = openshift.oc("start-build architect --commit=${commitId} -F")
     if(!result) {
        error("Building docker image failed")
     }
