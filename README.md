@@ -242,3 +242,8 @@ glide install
 
 For update of dependecies, see Glide documentation (http://glide.sh)
 
+## Building
+
+Architect is build on OpenShift with a builder called Cotterpin. Look at architect_bc.json for a working BC.
+
+The build is orchestrated on Jenkins, with Jenkinsfile
