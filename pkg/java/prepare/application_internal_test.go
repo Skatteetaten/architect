@@ -28,7 +28,7 @@ func TestClasspathOrder(t *testing.T) {
 
 	// Then
 	for idx, entry := range []string{"bar.jar", "bar2.jar", "foo.jar", "foobar.jar"} {
-		expectedLib := filepath.Join(DockerBasedir, "lib", entry)
+		expectedLib := filepath.Join("$HOME", "application", "lib", entry)
 		if idx >= len(actualCp) {
 			t.Error("Classpath", actualCp, "is not complete")
 			return

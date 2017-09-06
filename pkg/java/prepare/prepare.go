@@ -30,7 +30,7 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 	}
 
 	// Unzip deliverable
-	applicationFolder := filepath.Join(dockerBuildPath, ApplicationFolder)
+	applicationFolder := filepath.Join(dockerBuildPath, ApplicationBuildFolder)
 	err = extractAndRenameDeliverable(dockerBuildPath, deliverable.Path)
 
 	if err != nil {
@@ -68,7 +68,7 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 func extractAndRenameDeliverable(dockerBuildFolder string, deliverablePath string) error {
 
 	applicationRoot := filepath.Join(dockerBuildFolder, ApplicationRoot)
-	renamedApplicationFolder := filepath.Join(dockerBuildFolder, ApplicationFolder)
+	renamedApplicationFolder := filepath.Join(dockerBuildFolder, ApplicationBuildFolder)
 	if err := os.MkdirAll(dockerBuildFolder, 0755); err != nil {
 		return errors.Wrap(err, "Failed to create application directory in Docker context")
 	}

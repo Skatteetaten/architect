@@ -164,29 +164,39 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		if err != nil {
 			return nil, err
 		}
+		dockerSpec.TagWith, err = findOutputTag(output)
+		if err != nil {
+			dockerSpec.TagWith = ""
+		}
 	} else if outputKind == "ImageStreamTag" {
 		outputRegistry, exists := os.LookupEnv("OUTPUT_REGISTRY")
 		if !exists {
 			logrus.Error("Expected OUTPUT_REGISTRY environment variable when outputKind is ImageStreamTag")
 			return nil, errors.New("No output registry")
 		}
-		dockerSpec.OutputRegistry, err = findOutputRegistry(outputRegistry)
+		dockerSpec.OutputRegistry = outputRegistry
 		if err != nil {
 			return nil, err
 		}
-		dockerSpec.OutputRepository, err = findOutputRepository(outputRegistry)
-		if err != nil {
-			return nil, err
-		}
-		outputTag, exists := os.LookupEnv("OUTPUT_IMAGE")
+		outputImage, exists := os.LookupEnv("OUTPUT_IMAGE")
 		if !exists {
 			logrus.Error("Expected OUTPUT_IMAGE environment variable when outputKind is ImageStreamTag")
 			return nil, errors.New("No output image")
 		}
-		dockerSpec.TagWith = outputTag
+		dockerUrl := outputRegistry + "/" + outputImage
+		dockerSpec.TagWith, err = findOutputTag(dockerUrl)
+		if err != nil {
+			return nil, err
+		}
+		dockerSpec.OutputRepository, err = findOutputRepository(dockerUrl)
+		if err != nil {
+			return nil, err
+		}
+		dockerSpec.PushExtraTags = ParseExtraTags("")
 	} else {
 		return nil, errors.Errorf("Unknown outputkind. Only DockerImage and ImageStreamTag supported, was %s", outputKind)
 	}
+	logrus.Debug("Pushing to %s/%s:%s", dockerSpec.OutputRegistry, dockerSpec.OutputRepository, dockerSpec.TagWith)
 	c := &Config{
 		ApplicationType: applicationType,
 		ApplicationSpec: applicationSpec,
@@ -230,6 +240,17 @@ func findOutputRegistry(dockerName string) (string, error) {
 		return "", errors.Wrap(err, "Error parsing docker registry reference")
 	}
 	return name.Hostname(), nil
+}
+
+func findOutputTag(dockerName string) (string, error) {
+	name, err := reference.ParseNamed(dockerName)
+	if err != nil {
+		return "", errors.Wrap(err, "Error parsing docker registry reference")
+	}
+	if tagged, isTagged := name.(reference.NamedTagged); isTagged {
+		return tagged.Tag(), nil
+	}
+	return "", errors.Errorf("Could not parse tag from %s", dockerName)
 }
 
 func findEnv(env map[string]string, name string) (string, error) {

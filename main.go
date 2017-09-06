@@ -40,7 +40,7 @@ func initializeAndRunOnOpenShift() {
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
-	for env := range os.Environ() {
+	for _, env := range os.Environ() {
 		logrus.Debugf("Environment %s", env)
 	}
 	mavenRepo := "http://aurora/nexus/service/local/artifact/maven/content"

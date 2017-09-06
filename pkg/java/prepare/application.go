@@ -137,7 +137,7 @@ func generateClasspath(applicationDir string, libPath string) ([]string, error) 
 
 	classpath := make([]string, len(files))
 
-	base := DockerBasedir + strings.TrimPrefix(libPath, applicationDir)
+	base := "$HOME/" + ApplicationFolder + "/" + strings.TrimPrefix(libPath, applicationDir)
 	for index, value := range files {
 		classpath[index] = filepath.Join(base, value.Name())
 	}
