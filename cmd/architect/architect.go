@@ -115,6 +115,7 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 	}
 
 	if err := process.Build(r, c, configuration.NexusDownloader, prepper); err != nil {
-		logrus.Fatalf("Failed to build image: %s", err)
+		logrus.Errorf("Failed to build image: %+v", err)
+		logrus.Fatal("Terminating")
 	}
 }

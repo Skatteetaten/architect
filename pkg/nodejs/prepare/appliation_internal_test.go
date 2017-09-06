@@ -5,6 +5,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/stretchr/testify/assert"
+	"path"
 	"testing"
 )
 
@@ -13,17 +14,21 @@ const expectedNodeJsDockerFile = `FROM aurora/wrench:latest
 
 LABEL maintainer="Oyvind <oyvind@dagobah.wars>" version="1.2.3"
 
-COPY ./package /u01/app
+COPY ./architectscripts /u01/architect
 
-COPY ./package/app /u01/app/static
+RUN chmod 755 /u01/architect/*
+
+COPY ./package /u01/application
+
+COPY ./package/app /u01/application/static
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
-ENV MAIN_JAVASCRIPT_FILE="/u01/app/test.json" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z"
+ENV MAIN_JAVASCRIPT_FILE="/u01/application/test.json" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z"
 
-WORKDIR "/u01/app"
+WORKDIR "/u01/"
 
-CMD ["/u01/bin/run_node"]`
+CMD ["/u01/architect/run"]`
 
 const expectedNginxConfFile = `
 worker_processes  1;
@@ -86,15 +91,17 @@ func TestNodeJsDockerFiles(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, files["Dockerfile"], expectedNodeJsDockerFile)
 	assert.Equal(t, files["nginx.conf"], expectedNginxConfFile)
-	assert.Equal(t, len(files), 2)
+	assert.NotEmpty(t, files["architectscripts/run"])
+	assert.NotEmpty(t, files["architectscripts/run_tools.sh"])
+	assert.Equal(t, len(files), 4)
 }
 
 func testFileWriter(files map[string]string) util.FileWriter {
-	return func(writer util.WriterFunc, filename string) error {
+	return func(writer util.WriterFunc, filename ...string) error {
 		buffer := new(bytes.Buffer)
 		err := writer(buffer)
 		if err == nil {
-			files[filename] = buffer.String()
+			files[path.Join(filename...)] = buffer.String()
 		}
 		return err
 	}

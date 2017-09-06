@@ -65,6 +65,11 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 	}
 	defer httpResponse.Body.Close()
 
+	if httpResponse.StatusCode != http.StatusOK {
+		return deliverable, errors.Errorf("Could not download artifact (Make sure you have deployed it!)"+
+			". Status code %s ", httpResponse.Status)
+	}
+
 	contentDisposition := httpResponse.Header.Get("content-disposition")
 
 	if len(contentDisposition) <= 0 {

@@ -4,11 +4,12 @@ import (
 	"github.com/pkg/errors"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"text/template"
 )
 
-type FileWriter func(WriterFunc, string) error
+type FileWriter func(WriterFunc, ...string) error
 
 type WriterFunc func(io.Writer) error
 
@@ -26,20 +27,35 @@ func NewTemplateWriter(input interface{}, templatename string, templateString st
 	}
 }
 
-func NewFileWriter(targetFolder string) FileWriter {
-	return func(writerFunc WriterFunc, filename string) error {
-		fileToWriteTo, err := os.Create(filepath.Join(targetFolder, filename))
+func NewByteWriter(data []byte) WriterFunc {
+	return func(writer io.Writer) error {
+		n, err := writer.Write(data)
 		if err != nil {
-			errors.Wrapf(err, "Error creating %s", filename)
+			return errors.Wrapf(err, "Could not write data. Wrote %d bytes", n)
+		}
+		return nil
+	}
+}
+
+func NewFileWriter(targetFolder string) FileWriter {
+	return func(writerFunc WriterFunc, elem ...string) error {
+		elem = append(elem, "")
+		copy(elem[1:], elem[0:])
+		elem[0] = targetFolder
+		fp := filepath.Join(elem...)
+		os.MkdirAll(path.Dir(fp), os.ModeDir|0755)
+		fileToWriteTo, err := os.Create(fp)
+		if err != nil {
+			return errors.Wrapf(err, "Error creating %+t", elem)
 		}
 		defer fileToWriteTo.Close()
 		err = writerFunc(fileToWriteTo)
 		if err != nil {
-			return errors.Wrap(err, "Error processing template")
+			return errors.Wrap(err, "Error error writing data")
 		}
 		err = fileToWriteTo.Sync()
 		if err != nil {
-			return errors.Wrapf(err, "Error writing %s", filename)
+			return errors.Wrapf(err, "Error writing %+t", elem)
 		}
 		return nil
 	}
