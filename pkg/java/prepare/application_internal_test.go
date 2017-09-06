@@ -1,9 +1,7 @@
 package prepare
 
 import (
-	"bytes"
 	"github.com/skatteetaten/architect/pkg/java/config"
-	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
@@ -108,15 +106,4 @@ func setupApplication(t *testing.T) string {
 
 func deleteApplication(root string) error {
 	return os.RemoveAll(root)
-}
-
-func testFileWriter(files map[string]string) util.FileWriter {
-	return func(writer util.WriterFunc, filename string) error {
-		buffer := new(bytes.Buffer)
-		err := writer(buffer)
-		if err == nil {
-			files[filename] = buffer.String()
-		}
-		return err
-	}
 }

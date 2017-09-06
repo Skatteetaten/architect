@@ -6,6 +6,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
+	"github.com/skatteetaten/architect/pkg/java/prepare/resources"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
@@ -36,17 +37,26 @@ const WRENCH_DOCKER_FILE string = `FROM {{.Baseimage}}
 
 LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
 
-COPY ./{{.PackageDirectory}} /u01/app
+COPY ./architectscripts /u01/architect
 
-COPY ./{{.PackageDirectory}}/{{.Static}} /u01/app/static
+RUN chmod 755 /u01/architect/*
+
+COPY ./{{.PackageDirectory}} /u01/application
+
+COPY ./{{.PackageDirectory}}/{{.Static}} /u01/application/static
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
-ENV MAIN_JAVASCRIPT_FILE="/u01/app/{{.MainFile}}" IMAGE_BUILD_TIME="{{.ImageBuildTime}}"
+ENV MAIN_JAVASCRIPT_FILE="/u01/application/{{.MainFile}}" IMAGE_BUILD_TIME="{{.ImageBuildTime}}"
 
-WORKDIR "/u01/app"
+WORKDIR "/u01/"
 
-CMD ["/u01/bin/run_node"]`
+CMD ["/u01/architect/run"]`
+
+const START_SCRIPT string = `#!/bin/bash
+source $HOME/architect/run_tools.sh
+/u01/bin/run_node
+`
 
 const NGINX_CONFIG_TEMPLATE string = `
 worker_processes  1;
@@ -171,8 +181,21 @@ func prepareImage(v *OpenshiftJson, baseImage runtime.DockerImage, version strin
 	if err != nil {
 		return errors.Wrap(err, "Error creating nginx configuration")
 	}
-	f := util.NewTemplateWriter(input, "NodejsDockerfile", WRENCH_DOCKER_FILE)
-	return writer(f, "Dockerfile")
+	err = writer(util.NewTemplateWriter(input, "NodejsDockerfile", WRENCH_DOCKER_FILE), "Dockerfile")
+	if err != nil {
+		return errors.Wrap(err, "Error creating Dockerfile")
+	}
+	//TODO: this peeks into Java package.. Should be refactored...
+	bytes, err := resources.Asset("run_tools.sh")
+	if err != nil {
+		return errors.Wrap(err, "Could not find data")
+	}
+	err = writer(util.NewByteWriter(bytes), "architectscripts", "run_tools.sh")
+	if err != nil {
+		return errors.Wrap(err, "Failed add resource run_tools.sh")
+	}
+	err = writer(util.NewByteWriter([]byte(START_SCRIPT)), "architectscripts", "run")
+	return err
 }
 
 func findMaintainer(dockerMetadata DockerMetadata) string {
