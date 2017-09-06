@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/reference"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config/api"
@@ -126,12 +127,10 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		dockerSpec.PushExtraTags = ParseExtraTags("latest,major,minor,patch")
 	}
 
-	dockerSpec.TagWith = ""
 	if temporaryTag, err := findEnv(env, "TAG_WITH"); err == nil {
 		dockerSpec.TagWith = temporaryTag
 	}
 
-	dockerSpec.RetagWith = ""
 	if temporaryTag, err := findEnv(env, "RETAG_WITH"); err == nil {
 		dockerSpec.RetagWith = temporaryTag
 	}
@@ -154,18 +153,39 @@ func newConfig(buildConfig []byte) (*Config, error) {
 	}
 
 	outputKind := build.Spec.Output.To.Kind
-	if outputKind != "DockerImage" {
-		return nil, errors.New("This image only supports output of kind DockerImage")
-	}
-	output := build.Spec.Output.To.Name
+	if outputKind == "DockerImage" {
+		output := build.Spec.Output.To.Name
 
-	dockerSpec.OutputRegistry, err = findOutputRegistry(output)
-	if err != nil {
-		return nil, err
-	}
-	dockerSpec.OutputRepository, err = findOutputRepository(output)
-	if err != nil {
-		return nil, err
+		dockerSpec.OutputRegistry, err = findOutputRegistry(output)
+		if err != nil {
+			return nil, err
+		}
+		dockerSpec.OutputRepository, err = findOutputRepository(output)
+		if err != nil {
+			return nil, err
+		}
+	} else if outputKind == "ImageStreamTag" {
+		outputRegistry, exists := os.LookupEnv("OUTPUT_REGISTRY")
+		if !exists {
+			logrus.Error("Expected OUTPUT_REGISTRY environment variable when outputKind is ImageStreamTag")
+			return nil, errors.New("No output registry")
+		}
+		dockerSpec.OutputRegistry, err = findOutputRegistry(outputRegistry)
+		if err != nil {
+			return nil, err
+		}
+		dockerSpec.OutputRepository, err = findOutputRepository(outputRegistry)
+		if err != nil {
+			return nil, err
+		}
+		outputTag, exists := os.LookupEnv("OUTPUT_IMAGE")
+		if !exists {
+			logrus.Error("Expected OUTPUT_IMAGE environment variable when outputKind is ImageStreamTag")
+			return nil, errors.New("No output image")
+		}
+		dockerSpec.TagWith = outputTag
+	} else {
+		return nil, errors.Errorf("Unknown outputkind. Only DockerImage and ImageStreamTag supported, was %s", outputKind)
 	}
 	c := &Config{
 		ApplicationType: applicationType,

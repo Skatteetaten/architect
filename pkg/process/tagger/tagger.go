@@ -12,13 +12,13 @@ type TagResolver interface {
 	ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error)
 }
 
-type TagForRetagTagResolver struct {
+type SingleTagTagResolver struct {
 	Registry   string
 	Repository string
 	Tag        string
 }
 
-func (m *TagForRetagTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
+func (m *SingleTagTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
 	return docker.CreateImageNameFromSpecAndTags([]string{m.Tag}, m.Registry, m.Repository), nil
 }
 
