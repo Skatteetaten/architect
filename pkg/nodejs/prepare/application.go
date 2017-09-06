@@ -6,10 +6,31 @@ import (
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/nodejs/npm"
+	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
 )
+
+type AuroraApplication struct {
+	NodeJS NodeJSApplication `json:"nodejs"`
+	Static string            `json:"static"`
+}
+
+type NodeJSApplication struct {
+	Main    string `json:"main"`
+	Waf     string `json:"waf"`
+	Runtime string `json:"runtime"`
+}
+
+type OpenshiftJson struct {
+	Aurora         AuroraApplication `json:"web"`
+	DockerMetadata DockerMetadata    `json:"docker"`
+}
+
+type DockerMetadata struct {
+	Maintainer string            `json:"name"`
+	Labels     map[string]string `json:"labels"`
+}
 
 const WRENCH_DOCKER_FILE string = `FROM {{.Baseimage}}
 
@@ -67,110 +88,70 @@ http {
 }
 `
 
-type NodeJsBuilder struct {
-	Registry npm.Downloader
-	provider docker.ImageInfoProvider
-}
-
 type PreparedImage struct {
 	baseImage runtime.DockerImage
 	Path      string
 }
 
-func Prepper(npmRegistry npm.Downloader) process.Prepper {
-	return func(c *config.Config, provider docker.ImageInfoProvider) ([]docker.DockerBuildConfig, error) {
-		builder := &NodeJsBuilder{
-			Registry: npmRegistry,
-			provider: provider,
-		}
+func Prepper() process.Prepper {
+	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
+		baseImage runtime.DockerImage) ([]docker.DockerBuildConfig, error) {
 
-		preparedImages, err := builder.Prepare(c.NodeJsApplication, c.DockerSpec.GetExternalRegistryWithoutProtocol())
+		preparedImages, err := prepare(cfg.ApplicationSpec, auroraVersion, deliverable, baseImage)
 		if err != nil {
 			return nil, err
 		}
 
 		buildConfigs := make([]docker.DockerBuildConfig, 0, 2)
-		buildImage := runtime.ArchitectImage{
-			Tag: c.BuilderSpec.Version,
-		}
 		for _, preparedImage := range preparedImages {
-			auroraVersion := runtime.NewApplicationVersionFromBuilderAndBase(c.NodeJsApplication.Version, false,
-				c.NodeJsApplication.Version, &buildImage, &preparedImage.baseImage)
 			buildConfigs = append(buildConfigs, docker.DockerBuildConfig{
 				BuildFolder:      preparedImage.Path,
-				DockerRepository: c.DockerSpec.OutputRepository,
+				DockerRepository: cfg.DockerSpec.OutputRepository,
 				AuroraVersion:    auroraVersion,
-				Baseimage:        &preparedImage.baseImage,
+				Baseimage:        preparedImage.baseImage,
 			})
 		}
 		return buildConfigs, nil
 	}
 }
 
-func (n *NodeJsBuilder) Prepare(c *config.NodeApplication, externalRegistry string) ([]PreparedImage, error) {
-	logrus.Debug("Building %s", c.NpmName)
-	applicaionName := c.NpmName
-	version := c.Version
+func prepare(c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
+	deliverable nexus.Deliverable, baseImage runtime.DockerImage) ([]PreparedImage, error) {
+	logrus.Debug("Building %s", c.MavenGav.Name())
 
-	packageJson, err := n.Registry.DownloadPackageJson(applicaionName)
-	if err != nil {
-		return nil, err
-	}
-	v, present := packageJson.Versions[version]
-	if !present {
-		return nil, errors.Errorf("No version %s for application %s", version, applicaionName)
-	}
+	openshiftJson, err := findOpenshiftJsonInTarball(deliverable.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	nodejsBaseImageVersion, err := n.provider.GetCompleteBaseImageVersion(
-		c.NodejsBaseImageSpec.BaseImage,
-		c.NodejsBaseImageSpec.BaseVersion)
-
+	pathToApplication, err := extractTarball(deliverable.Path)
 	if err != nil {
 		return nil, err
 	}
-	logrus.Debugf("Nodejs base image version %s", nodejsBaseImageVersion)
 
-	nodejsBaseImage := runtime.DockerImage{
-		Repository: c.NodejsBaseImageSpec.BaseImage,
-		Tag:        nodejsBaseImageVersion,
-		Registry:   externalRegistry,
-	}
-
-	tarball, err := n.Registry.DownloadTarball(v.Dist.Tarball)
-
-	if err != nil {
-		return nil, err
-	}
-	// We must create separate folders for nodejs and nginx due to
-	// Docker builds wanting one file per folder
-	pathToApplication, err := npm.ExtractTarball(tarball)
-	if err != nil {
-		return nil, err
-	}
-	packageJsonFromPackage, err := npm.FindPackageJsonInsideTarball(tarball)
-	if err != nil {
-		return nil, err
-	}
 	imageBuildTime := docker.GetUtcTimestamp()
-	err = prepareImage(packageJsonFromPackage, nodejsBaseImage, version, util.NewFileWriter(pathToApplication), imageBuildTime)
+	err = prepareImage(openshiftJson, baseImage, string(auroraVersion.GetAppVersion()), util.NewFileWriter(pathToApplication), imageBuildTime)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Image build prepared in %s", pathToApplication)
 	return []PreparedImage{{
-		baseImage: nodejsBaseImage,
+		baseImage: baseImage,
 		Path:      pathToApplication,
 	}}, nil
 }
 
-func prepareImage(v *npm.VersionedPackageJson, baseImage runtime.DockerImage, version string, writer util.FileWriter,
+func prepareImage(v *OpenshiftJson, baseImage runtime.DockerImage, version string, writer util.FileWriter,
 	imageBuildTime string) error {
 	labels := make(map[string]string)
+	if v.DockerMetadata.Labels != nil {
+		for k, v := range v.DockerMetadata.Labels {
+			labels[k] = v
+		}
+	}
 	labels["version"] = version
-	labels["maintainer"] = findMaintainer(v.Maintainers)
+	labels["maintainer"] = findMaintainer(v.DockerMetadata)
+
 	input := &struct {
 		Baseimage        string
 		MainFile         string
@@ -194,9 +175,9 @@ func prepareImage(v *npm.VersionedPackageJson, baseImage runtime.DockerImage, ve
 	return writer(f, "Dockerfile")
 }
 
-func findMaintainer(maintainers []npm.Maintainer) string {
-	if len(maintainers) == 0 {
+func findMaintainer(dockerMetadata DockerMetadata) string {
+	if len(dockerMetadata.Maintainer) == 0 {
 		return "No Maintainer set!"
 	}
-	return maintainers[0].Name + " <" + maintainers[0].Email + ">"
+	return dockerMetadata.Maintainer
 }

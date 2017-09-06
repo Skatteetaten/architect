@@ -11,27 +11,47 @@ const (
 	NodeJsLeveransepakke ApplicationType = "NodeJsLeveranse"
 )
 
+type PackageType string
+
+const (
+	ZipPackaging PackageType = "zip"
+	TgzPackaging PackageType = "tgz"
+)
+
+type Classifier string
+
+const (
+	Webleveransepakke Classifier = "Webleveransepakke"
+	Leveransepakke    Classifier = "Leveransepakke"
+)
+
 type Config struct {
-	ApplicationType   ApplicationType
-	JavaApplication   *JavaApplication
-	NodeJsApplication *NodeApplication
-	DockerSpec        DockerSpec
-	BuilderSpec       BuilderSpec
-	BinaryBuild       bool
+	ApplicationType ApplicationType
+	ApplicationSpec ApplicationSpec
+	DockerSpec      DockerSpec
+	BuilderSpec     BuilderSpec
+	BinaryBuild     bool
 }
 
-type JavaApplication struct {
-	ArtifactId    string
-	GroupId       string
-	Version       string
-	Classifier    string
+type ApplicationSpec struct {
+	MavenGav      MavenGav
 	BaseImageSpec DockerBaseImageSpec
 }
 
-type NodeApplication struct {
-	NpmName             string
-	Version             string
-	NodejsBaseImageSpec DockerBaseImageSpec
+type MavenGav struct {
+	ArtifactId string
+	GroupId    string
+	Version    string
+	Classifier Classifier
+	Type       PackageType
+}
+
+func (m *MavenGav) IsSnapshot() bool {
+	return strings.Contains(m.Version, "SNAPSHOT")
+}
+
+func (m *MavenGav) Name() string {
+	return strings.Join([]string{m.GroupId, m.ArtifactId, m.ArtifactId}, ":")
 }
 
 type DockerBaseImageSpec struct {

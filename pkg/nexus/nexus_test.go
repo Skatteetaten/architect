@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
-	"github.com/docker/docker/pkg/homedir"
 	"github.com/skatteetaten/architect/pkg/config"
 	"log"
 	"net/http"
@@ -29,7 +28,7 @@ func TestDownloadFromNexusServer(t *testing.T) {
 	defer ts.Close()
 
 	n := NewNexusDownloader(ts.URL)
-	m := config.JavaApplication{
+	m := config.MavenGav{
 		ArtifactId: "openshift-resource-monitor",
 		GroupId:    "ske.fellesplattform.monitor",
 		Version:    "1.1.4",
@@ -48,16 +47,15 @@ func TestDownloadFromNexusServer(t *testing.T) {
 }
 
 func TestNewLocalDownloader(t *testing.T) {
-	d := NewLocalDownloader()
-	m := config.JavaApplication{
+	d := NewBinaryDownloader("test")
+	m := config.MavenGav{
 		ArtifactId: "dontexist",
 		GroupId:    "ske",
 		Version:    "develop-SNAPSHOT",
 	}
 	l, err := d.DownloadArtifact(&m)
-	homedir := homedir.Get()
-	expected := homedir + "/.m2/repository/ske/dontexist/develop-SNAPSHOT/" +
-		"dontexist-develop-SNAPSHOT-Leveransepakke.zip"
+
+	expected := "test"
 	if l.Path != expected {
 		t.Errorf("Expexted %s, was %s", expected, l)
 	}

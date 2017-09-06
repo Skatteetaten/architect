@@ -19,8 +19,7 @@ import (
 	"github.com/skatteetaten/architect/cmd"
 	"github.com/skatteetaten/architect/cmd/architect"
 	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/java/nexus"
-	"github.com/skatteetaten/architect/pkg/nodejs/npm"
+	"github.com/skatteetaten/architect/pkg/nexus"
 	"os"
 	"strings"
 	"github.com/skatteetaten/architect/pkg/docker"
@@ -55,20 +54,19 @@ func initializeAndRunOnOpenShift() {
 	if err != nil {
 		logrus.Fatalf("Error reading config: %s", err)
 	}
-	var npmDownloader npm.Downloader
-	if c.BinaryBuild  && c.ApplicationType == config.NodeJsLeveransepakke {
+	var nexusDownloader nexus.Downloader
+	if c.BinaryBuild {
 		binaryInput, err := util.ExtractBinaryFromStdIn()
 		if err != nil {
 			logrus.Fatalf("Could not read binary input", err)
 		}
-		npmDownloader = npm.NewBinaryBuildRegistry(binaryInput, c.NodeJsApplication.Version)
+		nexusDownloader = nexus.NewBinaryDownloader(binaryInput)
 	} else {
-		npmDownloader = npm.NewRemoteRegistry("http://aurora/npm/repository/npm-internal")
+		nexusDownloader = nexus.NewNexusDownloader(mavenRepo)
 	}
 	runConfig := architect.RunConfiguration{
 		Config:    cfg,
-		NexusDownloader: nexus.NewNexusDownloader(mavenRepo),
-		NpmDownloader:  npmDownloader,
+		NexusDownloader: nexusDownloader,
 		RegistryCredentialsFunc: docker.CusterRegistryCredentials(),
 	}
 	architect.RunArchitect(runConfig)

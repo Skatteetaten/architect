@@ -71,53 +71,41 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		}
 	}
 
-	var javaApp *JavaApplication = nil
-	var nodeApp *NodeApplication = nil
-	if applicationType == JavaLeveransepakke {
-		javaApp = &JavaApplication{}
-		if artifactId, err := findEnv(env, "ARTIFACT_ID"); err == nil {
-			javaApp.ArtifactId = artifactId
-		} else {
-			return nil, err
-		}
-		if groupId, err := findEnv(env, "GROUP_ID"); err == nil {
-			javaApp.GroupId = groupId
-		} else {
-			return nil, err
-		}
-		if version, err := findEnv(env, "VERSION"); err == nil {
-			javaApp.Version = version
-		} else {
-			return nil, err
-		}
-		if classifier, err := findEnv(env, "CLASSIFIER"); err == nil {
-			javaApp.Classifier = classifier
-		} else {
-			javaApp.Classifier = "Leveransepakke"
-		}
-		if baseSpec, err := findBaseImage(env); err == nil {
-			javaApp.BaseImageSpec = baseSpec
-		} else {
-			return nil, err
-		}
-
+	applicationSpec := ApplicationSpec{}
+	if artifactId, err := findEnv(env, "ARTIFACT_ID"); err == nil {
+		applicationSpec.MavenGav.ArtifactId = artifactId
 	} else {
-		nodeApp = &NodeApplication{}
-		if groupId, err := findEnv(env, "NPM_NAME"); err == nil {
-			nodeApp.NpmName = groupId
+		return nil, err
+	}
+	if groupId, err := findEnv(env, "GROUP_ID"); err == nil {
+		applicationSpec.MavenGav.GroupId = groupId
+	} else {
+		return nil, err
+	}
+	if version, err := findEnv(env, "VERSION"); err == nil {
+		applicationSpec.MavenGav.Version = version
+	} else {
+		return nil, err
+	}
+	if classifier, err := findEnv(env, "CLASSIFIER"); err == nil {
+		applicationSpec.MavenGav.Classifier = Classifier(classifier)
+	} else {
+		if applicationType == JavaLeveransepakke {
+			applicationSpec.MavenGav.Classifier = Leveransepakke
 		} else {
-			return nil, err
+			applicationSpec.MavenGav.Classifier = Webleveransepakke
 		}
-		if v, err := findEnv(env, "VERSION"); err == nil {
-			nodeApp.Version = v
-		} else {
-			return nil, err
-		}
-		if baseSpec, err := findBaseImage(env); err == nil {
-			nodeApp.NodejsBaseImageSpec = baseSpec
-		} else {
-			return nil, err
-		}
+	}
+	if applicationType == JavaLeveransepakke {
+		applicationSpec.MavenGav.Type = ZipPackaging
+	} else {
+		applicationSpec.MavenGav.Type = TgzPackaging
+	}
+
+	if baseSpec, err := findBaseImage(env); err == nil {
+		applicationSpec.BaseImageSpec = baseSpec
+	} else {
+		return nil, err
 	}
 
 	dockerSpec := DockerSpec{}
@@ -180,12 +168,11 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		return nil, err
 	}
 	c := &Config{
-		ApplicationType:   applicationType,
-		JavaApplication:   javaApp,
-		NodeJsApplication: nodeApp,
-		DockerSpec:        dockerSpec,
-		BuilderSpec:       builderSpec,
-		BinaryBuild:       build.Spec.Source.Type == api.BuildSourceBinary,
+		ApplicationType: applicationType,
+		ApplicationSpec: applicationSpec,
+		DockerSpec:      dockerSpec,
+		BuilderSpec:     builderSpec,
+		BinaryBuild:     build.Spec.Source.Type == api.BuildSourceBinary,
 	}
 	return c, nil
 }

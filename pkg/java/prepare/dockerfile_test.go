@@ -28,11 +28,11 @@ func TestBuild(t *testing.T) {
 	dockerSpec := global.DockerSpec{
 		PushExtraTags: global.ParseExtraTags("major"),
 	}
-	baseImage := &runtime.DockerImage{
+	baseImage := runtime.DockerImage{
 		Tag:        "2.3.2",
 		Repository: "oracle8",
 	}
-	auroraVersions := runtime.NewApplicationVersionFromBuilderAndBase(
+	auroraVersions := runtime.NewAuroraVersionFromBuilderAndBase(
 		"2.0.0-SNAPSHOT",
 		true,
 		"2.0.0-SNAPSHOT",
@@ -51,7 +51,7 @@ func TestBuild(t *testing.T) {
 			Labels:     labels,
 		},
 	}
-	writer := prepare.NewDockerfile(dockerSpec, *auroraVersions, deliverableMetadata, *baseImage, "2017-09-10T14:30:10Z")
+	writer := prepare.NewDockerfile(dockerSpec, *auroraVersions, deliverableMetadata, baseImage, "2017-09-10T14:30:10Z")
 
 	buffer := new(bytes.Buffer)
 
