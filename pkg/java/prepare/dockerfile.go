@@ -16,8 +16,10 @@ const DockerBasedir = "/u01"
 // The root of the application
 const ApplicationRoot = "app"
 
+const ApplicationFolder = "application"
+
 // The directory where the application is prepared
-const ApplicationFolder = ApplicationRoot + "/application"
+const ApplicationBuildFolder = ApplicationRoot + "/" + ApplicationFolder
 
 var dockerfileTemplate string = `FROM {{.BaseImage}}
 

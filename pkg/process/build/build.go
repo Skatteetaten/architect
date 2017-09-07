@@ -92,7 +92,7 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, download
 				Repository: buildConfig.DockerRepository,
 			}
 		} else {
-			tagResolver = &tagger.TagForRetagTagResolver{
+			tagResolver = &tagger.SingleTagTagResolver{
 				Tag:        cfg.DockerSpec.TagWith,
 				Registry:   cfg.DockerSpec.OutputRegistry,
 				Repository: buildConfig.DockerRepository,
