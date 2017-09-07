@@ -196,7 +196,7 @@ func newConfig(buildConfig []byte) (*Config, error) {
 	} else {
 		return nil, errors.Errorf("Unknown outputkind. Only DockerImage and ImageStreamTag supported, was %s", outputKind)
 	}
-	logrus.Debug("Pushing to %s/%s:%s", dockerSpec.OutputRegistry, dockerSpec.OutputRepository, dockerSpec.TagWith)
+	logrus.Debugf("Pushing to %s/%s:%s", dockerSpec.OutputRegistry, dockerSpec.OutputRepository, dockerSpec.TagWith)
 	c := &Config{
 		ApplicationType: applicationType,
 		ApplicationSpec: applicationSpec,
