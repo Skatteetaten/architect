@@ -60,7 +60,7 @@ http {
 
     server {
        listen 8080;
-       root /u01/app/static;
+       root /u01/application/static;
 
        location /api {
           proxy_pass http://localhost:9090;
