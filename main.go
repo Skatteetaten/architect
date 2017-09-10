@@ -39,6 +39,7 @@ func initializeAndRunOnOpenShift() {
 		logrus.SetLevel(logrus.DebugLevel)
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)
+
 	}
 	for _, env := range os.Environ() {
 		logrus.Debugf("Environment %s", env)

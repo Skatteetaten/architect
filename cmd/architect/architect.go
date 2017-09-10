@@ -51,7 +51,7 @@ var JavaLeveransepakke = &cobra.Command{
 		if c.BinaryBuild {
 			binaryInput, err = util.ExtractBinaryFromStdIn()
 			if err != nil {
-				logrus.Fatalf("Could not read binary input", err)
+				logrus.Fatalf("Could not read binary input: %s", err)
 			}
 		}
 
