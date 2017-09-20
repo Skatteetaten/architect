@@ -164,9 +164,12 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		if err != nil {
 			return nil, err
 		}
-		dockerSpec.TagWith, err = findOutputTag(output)
-		if err != nil {
-			dockerSpec.TagWith = ""
+		// TAG_WITH environment variable have precedence over tag in output
+		if dockerSpec.TagWith == "" {
+			dockerSpec.TagWith, err = findOutputTag(output)
+			if err != nil {
+				dockerSpec.TagWith = ""
+			}
 		}
 	} else if outputKind == "ImageStreamTag" {
 		outputRegistry, exists := os.LookupEnv("OUTPUT_REGISTRY")
