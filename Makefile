@@ -48,7 +48,7 @@ dist: deps build binary/main
 
 export
 
-deps:
+deps: build-dirs
 	@echo "installing deps"
 	@glide install
 
