@@ -44,7 +44,7 @@ GOBIN := $(shell pwd)/bin/$(ARCH)
 # If you want to build AND push all containers, see the 'all-push' rule.
 all: build
 
-dist: build binary/main
+dist: deps build binary/main
 
 export
 
