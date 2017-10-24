@@ -78,7 +78,7 @@ var testVersion = OpenshiftJson{
 	Aurora: AuroraApplication{
 		NodeJS: NodeJSApplication{
 			Main: "test.json",
-			SPA: true,
+			SPA:  true,
 		},
 		Static: "app",
 	},
