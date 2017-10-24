@@ -20,6 +20,7 @@ type AuroraApplication struct {
 type NodeJSApplication struct {
 	Main    string `json:"main"`
 	Waf     string `json:"waf"`
+	SPA     bool   `json:"spa"`
 	Runtime string `json:"runtime"`
 }
 
@@ -94,6 +95,11 @@ http {
           proxy_pass http://localhost:9090;
        }
 
+	{{if .SPA}}
+       location / {
+          try_files $uri /index.html;
+       }
+	{{end}}
     }
 }
 `
@@ -166,6 +172,7 @@ func prepareImage(v *OpenshiftJson, baseImage runtime.DockerImage, version strin
 		Baseimage        string
 		MainFile         string
 		Static           string
+		SPA              bool
 		Labels           map[string]string
 		PackageDirectory string
 		ImageBuildTime   string
@@ -173,6 +180,7 @@ func prepareImage(v *OpenshiftJson, baseImage runtime.DockerImage, version strin
 		Baseimage:        baseImage.GetCompleteDockerTagName(),
 		MainFile:         v.Aurora.NodeJS.Main,
 		Static:           v.Aurora.Static,
+		SPA:              v.Aurora.NodeJS.SPA,
 		Labels:           labels,
 		PackageDirectory: "package",
 		ImageBuildTime:   imageBuildTime,
