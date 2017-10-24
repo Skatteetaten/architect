@@ -94,12 +94,11 @@ http {
        location /api {
           proxy_pass http://localhost:9090;
        }
-
-	{{if .SPA}}
+{{if .SPA}}
        location / {
           try_files $uri /index.html;
        }
-	{{end}}
+{{end}}
     }
 }
 `

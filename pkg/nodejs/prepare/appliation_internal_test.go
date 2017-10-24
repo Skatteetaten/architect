@@ -66,6 +66,10 @@ http {
           proxy_pass http://localhost:9090;
        }
 
+       location / {
+          try_files $uri /index.html;
+       }
+
     }
 }
 `
@@ -74,6 +78,7 @@ var testVersion = OpenshiftJson{
 	Aurora: AuroraApplication{
 		NodeJS: NodeJSApplication{
 			Main: "test.json",
+			SPA: true,
 		},
 		Static: "app",
 	},
@@ -89,8 +94,8 @@ func TestNodeJsDockerFiles(t *testing.T) {
 		Repository: "aurora/wrench",
 	}, "1.2.3", testFileWriter(files), buildTime)
 	assert.NoError(t, err)
-	assert.Equal(t, files["Dockerfile"], expectedNodeJsDockerFile)
-	assert.Equal(t, files["nginx.conf"], expectedNginxConfFile)
+	assert.Equal(t, expectedNodeJsDockerFile, files["Dockerfile"])
+	assert.Equal(t, expectedNginxConfFile, files["nginx.conf"])
 	assert.NotEmpty(t, files["architectscripts/run"])
 	assert.NotEmpty(t, files["architectscripts/run_tools.sh"])
 	assert.Equal(t, len(files), 4)
