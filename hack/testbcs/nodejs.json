@@ -40,7 +40,7 @@
                     },
                     {
                       "name": "VERSION",
-                      "value": "snapshot_test-SNAPSHOT"
+                      "value": "0.2.1"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",

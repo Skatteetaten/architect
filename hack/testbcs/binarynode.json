@@ -31,12 +31,16 @@
                       "value": "nodejs"
                     },
                     {
-                      "name": "NPM_NAME",
+                      "name": "ARTIFACT_ID",
                       "value": "openshift-referanse-react"
                     },
                     {
+                      "name": "GROUP_ID",
+                      "value": "no.skatteetaten.aurora"
+                    },
+                    {
                       "name": "VERSION",
-                      "value": "0.1.7"
+                      "value": "0.2.1-SNAPSHOT"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",
@@ -44,11 +48,11 @@
                     },
                     {
                       "name": "DOCKER_BASE_NAME",
-                      "value": "aurora/wingnut"
+                      "value": "aurora/wrench"
                     },
                     {
                       "name": "TAG_OVERWRITE",
-                      "value": "false"
+                      "value": "true"
                     },
                     {
                       "name": "SPLUNK_INDEX",

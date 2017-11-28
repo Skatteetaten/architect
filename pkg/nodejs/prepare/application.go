@@ -10,17 +10,19 @@ import (
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
+	"strings"
 )
 
 type AuroraApplication struct {
 	NodeJS NodeJSApplication `json:"nodejs"`
 	Static string            `json:"static"`
+	Path   string            `json:"path"`
+	SPA    bool              `json:"spa"`
 }
 
 type NodeJSApplication struct {
 	Main    string `json:"main"`
 	Waf     string `json:"waf"`
-	SPA     bool   `json:"spa"`
 	Runtime string `json:"runtime"`
 }
 
@@ -44,7 +46,7 @@ RUN chmod 755 /u01/architect/*
 
 COPY ./{{.PackageDirectory}} /u01/application
 
-COPY ./{{.PackageDirectory}}/{{.Static}} /u01/application/static
+COPY ./{{.PackageDirectory}}/{{.Static}} /u01/static{{.Path}}
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
@@ -89,14 +91,18 @@ http {
 
     server {
        listen 8080;
-       root /u01/application/static;
 
        location /api {
           proxy_pass http://localhost:9090;
        }
 {{if .SPA}}
-       location / {
-          try_files $uri /index.html;
+       location {{.Path}} {
+          root /u01/static;
+          try_files $uri {{.Path}}index.html;
+       }
+{{else}}
+       location {{.Path}} {
+          root /u01/static;
        }
 {{end}}
     }
@@ -167,11 +173,23 @@ func prepareImage(v *OpenshiftJson, baseImage runtime.DockerImage, version strin
 	labels["version"] = version
 	labels["maintainer"] = findMaintainer(v.DockerMetadata)
 
+	var path string
+	if len(strings.TrimPrefix(v.Aurora.Path, "/")) == 0 {
+		path = "/"
+	} else {
+		path = "/" + strings.TrimPrefix(v.Aurora.Path, "/")
+	}
+
+	if !strings.HasSuffix(path, "/") {
+		path = path + "/"
+	}
+
 	input := &struct {
 		Baseimage        string
 		MainFile         string
 		Static           string
 		SPA              bool
+		Path             string
 		Labels           map[string]string
 		PackageDirectory string
 		ImageBuildTime   string
@@ -179,7 +197,8 @@ func prepareImage(v *OpenshiftJson, baseImage runtime.DockerImage, version strin
 		Baseimage:        baseImage.GetCompleteDockerTagName(),
 		MainFile:         v.Aurora.NodeJS.Main,
 		Static:           v.Aurora.Static,
-		SPA:              v.Aurora.NodeJS.SPA,
+		SPA:              v.Aurora.SPA,
+		Path:             path,
 		Labels:           labels,
 		PackageDirectory: "package",
 		ImageBuildTime:   imageBuildTime,
