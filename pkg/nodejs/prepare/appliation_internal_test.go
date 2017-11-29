@@ -20,7 +20,7 @@ RUN chmod 755 /u01/architect/*
 
 COPY ./package /u01/application
 
-COPY ./package/app /u01/application/static
+COPY ./package/app /u01/static/
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
@@ -60,10 +60,14 @@ http {
 
     server {
        listen 8080;
-       root /u01/application/static;
 
        location /api {
           proxy_pass http://localhost:9090;
+       }
+
+       location / {
+          root /u01/static;
+          try_files $uri /index.html;
        }
 
     }
@@ -75,6 +79,7 @@ var testVersion = OpenshiftJson{
 		NodeJS: NodeJSApplication{
 			Main: "test.json",
 		},
+		SPA:    true,
 		Static: "app",
 	},
 	DockerMetadata: DockerMetadata{
@@ -89,8 +94,8 @@ func TestNodeJsDockerFiles(t *testing.T) {
 		Repository: "aurora/wrench",
 	}, "1.2.3", testFileWriter(files), buildTime)
 	assert.NoError(t, err)
-	assert.Equal(t, files["Dockerfile"], expectedNodeJsDockerFile)
-	assert.Equal(t, files["nginx.conf"], expectedNginxConfFile)
+	assert.Equal(t, expectedNodeJsDockerFile, files["Dockerfile"])
+	assert.Equal(t, expectedNginxConfFile, files["nginx.conf"])
 	assert.NotEmpty(t, files["architectscripts/run"])
 	assert.NotEmpty(t, files["architectscripts/run_tools.sh"])
 	assert.Equal(t, len(files), 4)
