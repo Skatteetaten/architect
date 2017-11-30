@@ -24,6 +24,9 @@ COPY ./package/app /u01/static/
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
+RUN chmod 666 /etc/nginx/nginx.conf && \
+    chmod 777 /etc/nginx
+
 ENV MAIN_JAVASCRIPT_FILE="/u01/application/test.json" \
     IMAGE_BUILD_TIME="2016-09-12T14:30:10Z" \
     PROXY_PASS_HOST="localhost" \

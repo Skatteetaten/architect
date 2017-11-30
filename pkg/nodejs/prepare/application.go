@@ -50,6 +50,9 @@ COPY ./{{.PackageDirectory}}/{{.Static}} /u01/static{{.Path}}
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
+RUN chmod 666 /etc/nginx/nginx.conf && \
+    chmod 777 /etc/nginx
+
 ENV MAIN_JAVASCRIPT_FILE="/u01/application/{{.MainFile}}" \
     IMAGE_BUILD_TIME="{{.ImageBuildTime}}" \
     PROXY_PASS_HOST="localhost" \
