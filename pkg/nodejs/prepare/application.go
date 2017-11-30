@@ -50,7 +50,10 @@ COPY ./{{.PackageDirectory}}/{{.Static}} /u01/static{{.Path}}
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
-ENV MAIN_JAVASCRIPT_FILE="/u01/application/{{.MainFile}}" IMAGE_BUILD_TIME="{{.ImageBuildTime}}"
+ENV MAIN_JAVASCRIPT_FILE="/u01/application/{{.MainFile}}" \
+    IMAGE_BUILD_TIME="{{.ImageBuildTime}}" \
+    PROXY_PASS_HOST="localhost" \
+    PROXY_PASS_PORT="9090"
 
 WORKDIR "/u01/"
 
@@ -93,7 +96,7 @@ http {
        listen 8080;
 
        location /api {
-          proxy_pass http://localhost:9090;
+          proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};
        }
 {{if .SPA}}
        location {{.Path}} {

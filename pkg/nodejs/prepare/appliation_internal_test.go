@@ -24,7 +24,10 @@ COPY ./package/app /u01/static/
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
-ENV MAIN_JAVASCRIPT_FILE="/u01/application/test.json" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z"
+ENV MAIN_JAVASCRIPT_FILE="/u01/application/test.json" \
+    IMAGE_BUILD_TIME="2016-09-12T14:30:10Z" \
+    PROXY_PASS_HOST="localhost" \
+    PROXY_PASS_PORT="9090"
 
 WORKDIR "/u01/"
 
@@ -62,7 +65,7 @@ http {
        listen 8080;
 
        location /api {
-          proxy_pass http://localhost:9090;
+          proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};
        }
 
        location / {
