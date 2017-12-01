@@ -17,7 +17,7 @@ var expectedStartScript = `source $HOME/architect/run_tools.sh
 java -Dfoo=bar -cp "/app/lib/metrics.jar:/app/lib/rt.jar:/app/lib/spring.jar" $JAVA_OPTS foo.bar.Main --logging.config=logback.xml
 `
 
-var testMeta *config.DeliverableMetadata = &config.DeliverableMetadata{
+var testMeta = &config.DeliverableMetadata{
 	Docker: &config.MetadataDocker{},
 	Java: &config.MetadataJava{
 		MainClass:       mainClass,
@@ -29,7 +29,7 @@ var testMeta *config.DeliverableMetadata = &config.DeliverableMetadata{
 
 func TestWriteStartscript(t *testing.T) {
 
-	writer := newStartScript(classpath, *testMeta)
+	writer := newStartScript(classpath, testMeta)
 	buffer := new(bytes.Buffer)
 	err := writer(buffer)
 	assert.NoError(t, err)

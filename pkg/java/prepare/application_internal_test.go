@@ -1,10 +1,12 @@
 package prepare
 
 import (
+	"github.com/docker/docker/pkg/ioutils"
 	"github.com/skatteetaten/architect/pkg/java/config"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -54,8 +56,13 @@ func TestPrepareStartscript(t *testing.T) {
 	// Given
 	root := setupApplication(t)
 
+	meta := &config.DeliverableMetadata{
+		Java: &config.MetadataJava{
+			MainClass: "test",
+		},
+	}
 	// When
-	err := prepareEffectiveScripts(root, &config.DeliverableMetadata{})
+	err := prepareEffectiveScripts(root, meta)
 
 	assert.NoError(t, err)
 	// Then
@@ -69,7 +76,31 @@ func TestPrepareStartscript(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, linkExists, "Failed to generate link to startscript")
 
-	//deleteApplication(root)
+	deleteApplication(root)
+}
+
+func TestPrepareWithoutGeneratedStartScript(t *testing.T) {
+
+	var emptyFile = make([]byte, 0, 0)
+
+	scriptsInPrecedenceOrder := []string{"os-start.sh", "os-start", "start.sh"}
+
+	for i, startScript := range scriptsInPrecedenceOrder {
+		root := setupApplication(t)
+		for _, lowerAndEqualPrecedence := range scriptsInPrecedenceOrder[i:] {
+			err := ioutils.AtomicWriteFile(path.Join(root, "bin", lowerAndEqualPrecedence), emptyFile, 0755)
+			assert.NoError(t, err, "Unable to create script file")
+		}
+		err := prepareEffectiveScripts(root, &config.DeliverableMetadata{})
+		assert.NoError(t, err)
+		_, err = os.Stat(filepath.Join(root, "bin", "generated-start"))
+		assert.Error(t, err)
+		assert.True(t, os.IsNotExist(err))
+		fileInfo, err := os.Readlink(filepath.Join(root, "bin", "start"))
+		assert.NoError(t, err)
+		assert.Equal(t, startScript, fileInfo, "Failed to generate link to startscript")
+		deleteApplication(root)
+	}
 }
 
 func setupApplication(t *testing.T) string {
