@@ -32,10 +32,13 @@ func prepareEffectiveScripts(applicationPath string, meta *config.DeliverableMet
 	}
 
 	fileWriter := util.NewFileWriter(scriptPath)
-	if meta != nil {
-		if err := addGeneratedStartscript(fileWriter, applicationPath, libPath, *meta); err != nil {
-			return errors.Wrap(err, "Failed to create default start script")
-		}
+
+	ok, err := addGeneratedStartscript(fileWriter, applicationPath, libPath, meta)
+	if err != nil {
+		return errors.Wrap(err, "Failed to create default start script")
+	}
+	if !ok {
+		logrus.Info("No metadata present for generating startscript")
 	}
 
 	if err := prepareEffectiveStartscript(scriptPath); err != nil {
@@ -49,19 +52,23 @@ func prepareEffectiveScripts(applicationPath string, meta *config.DeliverableMet
 	return nil
 }
 
-func addGeneratedStartscript(fileWriter util.FileWriter, applicationBase string, libPath string, meta config.DeliverableMetadata) error {
+func addGeneratedStartscript(fileWriter util.FileWriter, applicationBase string, libPath string, meta *config.DeliverableMetadata) (bool, error) {
+
+	if meta == nil || meta.Java == nil || len(meta.Java.MainClass) == 0 {
+		return false, nil
+	}
 
 	classpath, err := generateClasspath(applicationBase, libPath)
 
 	if err != nil {
-		return errors.Wrap(err, "Failed to get application classpath")
+		return false, errors.Wrap(err, "Failed to get application classpath")
 	}
 
 	if err = fileWriter(newStartScript(classpath, meta), "generated-start"); err != nil {
-		return errors.Wrap(err, "Failed to write script")
+		return false, errors.Wrap(err, "Failed to write script")
 	}
 
-	return nil
+	return true, nil
 }
 
 func prepareLivelinessAndReadynessScripts(scriptPath string) error {
@@ -96,17 +103,14 @@ func linkInDefaultIfNotExists(pathToScript string, pathToDefaultScript string) e
 }
 
 func prepareEffectiveStartscript(scriptPath string) error {
-	name := "start"
-
-	defaultScriptExists, err := Exists(filepath.Join(scriptPath, name))
-
+	const name = "start"
+	startScript := filepath.Join(scriptPath, "start")
+	defaultScriptExists, err := Exists(startScript)
 	if err != nil {
 		return errors.Wrapf(err, "Could not determine if %s exists", name)
-	} else if defaultScriptExists {
-		return nil
 	}
 
-	for _, altScriptName := range []string{"start.sh", "start", "generated-start"} {
+	for _, altScriptName := range []string{"generated-start", "os-start.sh", "os-start", "start.sh"} {
 		scriptExists, err := Exists(filepath.Join(scriptPath, altScriptName))
 
 		if err != nil {
@@ -115,15 +119,30 @@ func prepareEffectiveStartscript(scriptPath string) error {
 			continue
 		}
 
-		if err := os.Symlink(altScriptName, filepath.Join(scriptPath, name)); err != nil {
+		//If start exists, we rename it. It has precedence last
+		if defaultScriptExists {
+			err := os.Rename(startScript, filepath.Join(scriptPath, name+".bak"))
+			if err != nil {
+				return errors.Wrapf(err, "Unable to rename already present start-script")
+			}
+		}
+
+		if err := os.Symlink(altScriptName, startScript); err != nil {
 			return errors.Wrapf(err, "Failed to create symlink %s to %s", altScriptName, name)
 		}
 
 		return nil
 	}
 
+	//This has presedence after generated-start, os-start.sh and start.sh
+	if defaultScriptExists {
+		logrus.Debugf("Default startscript %s exists.", name)
+		return nil
+	}
+
 	return errors.Errorf("No start script has been defined or generated for this Leveransepakke. %s",
-		"Please put a script called one of start, start.sh, in the bin folder.")
+		"Please put a script called one of start.sh or os-start.sh, in the bin folder, or fill inn correct "+
+			"informastion in openshift.json")
 }
 
 // applicationDir is the temporary directory where we have the application code

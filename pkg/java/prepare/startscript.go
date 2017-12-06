@@ -16,7 +16,7 @@ type Startscript struct {
 	ApplicationArgs string
 }
 
-func newStartScript(classpath []string, meta config.DeliverableMetadata) util.WriterFunc {
+func newStartScript(classpath []string, meta *config.DeliverableMetadata) util.WriterFunc {
 	var jvmOptions string
 	var mainClass string
 	var applicationArgs string
