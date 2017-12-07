@@ -78,7 +78,7 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, download
 		imageid, err := client.BuildImage(buildConfig.BuildFolder)
 
 		if err != nil {
-			return errors.Wrap(err, "Fuckup!")
+			return errors.Wrap(err, "Errors building docker image")
 		} else {
 			logrus.Infof("Done building. Imageid: %s", imageid)
 		}
