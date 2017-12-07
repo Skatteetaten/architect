@@ -14,7 +14,7 @@ const applicationArgs string = "--logging.config=logback.xml"
 var classpath []string = []string{"/app/lib/metrics.jar", "/app/lib/rt.jar", "/app/lib/spring.jar"}
 
 var expectedStartScript = `source $HOME/architect/run_tools.sh
-java -Dfoo=bar -cp "/app/lib/metrics.jar:/app/lib/rt.jar:/app/lib/spring.jar" $JAVA_OPTS foo.bar.Main --logging.config=logback.xml
+exec java -Dfoo=bar -cp "/app/lib/metrics.jar:/app/lib/rt.jar:/app/lib/spring.jar" $JAVA_OPTS foo.bar.Main --logging.config=logback.xml
 `
 
 var testMeta = &config.DeliverableMetadata{

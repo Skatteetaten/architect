@@ -6,7 +6,7 @@ import (
 )
 
 var startscriptTemplate string = `source $HOME/architect/run_tools.sh
-java {{.JvmOptions}} -cp "{{range $i, $value := .Classpath}}{{if $i}}:{{end}}{{$value}}{{end}}" $JAVA_OPTS {{.MainClass}} {{.ApplicationArgs}}
+exec java {{.JvmOptions}} -cp "{{range $i, $value := .Classpath}}{{if $i}}:{{end}}{{$value}}{{end}}" $JAVA_OPTS {{.MainClass}} {{.ApplicationArgs}}
 `
 
 type Startscript struct {
