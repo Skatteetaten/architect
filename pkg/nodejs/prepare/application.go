@@ -14,10 +14,11 @@ import (
 )
 
 type AuroraApplication struct {
-	NodeJS NodeJSApplication `json:"nodejs"`
-	Static string            `json:"static"`
-	Path   string            `json:"path"`
-	SPA    bool              `json:"spa"`
+	NodeJS            *NodeJSApplication `json:"nodejs"`
+	Static            string             `json:"static"`
+	ConfigurableProxy bool               `json:"configurableProxy"`
+	Path              string             `json:"path"`
+	SPA               bool               `json:"spa"`
 }
 
 type NodeJSApplication struct {
@@ -46,12 +47,15 @@ RUN chmod 755 /u01/architect/*
 
 COPY ./{{.PackageDirectory}} /u01/application
 
+COPY ./overrides /u01/bin/
+
 COPY ./{{.PackageDirectory}}/{{.Static}} /u01/static{{.Path}}
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
 RUN chmod 666 /etc/nginx/nginx.conf && \
-    chmod 777 /etc/nginx
+    chmod 777 /etc/nginx && \
+    chmod 755 /u01/bin/*
 
 ENV MAIN_JAVASCRIPT_FILE="/u01/application/{{.MainFile}}" \
     IMAGE_BUILD_TIME="{{.ImageBuildTime}}" \
@@ -60,11 +64,23 @@ ENV MAIN_JAVASCRIPT_FILE="/u01/application/{{.MainFile}}" \
 
 WORKDIR "/u01/"
 
-CMD ["/u01/architect/run"]`
+CMD ["/u01/architect/run", "/u01/bin/run_nginx"]`
 
 const START_SCRIPT string = `#!/bin/bash
 source $HOME/architect/run_tools.sh
-/u01/bin/run_node
+exec $1
+`
+
+//We copy this over the script in wrench if we don't have a nodejs app
+const BLOCKING_RUN_NODEJS string = `#!/bin/sh
+echo "No node. Blocking 4 ever<3!"
+while true; do sleep 100d; done;
+`
+
+const READINESS_LIVENESS_SH = `#!/bin/sh
+{{if .Include}}
+wget --spider localhost:{{.Port}} > /dev/null 2>&1
+{{end}}
 `
 
 const NGINX_CONFIG_TEMPLATE string = `
@@ -99,7 +115,7 @@ http {
        listen 8080;
 
        location /api {
-          proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};
+          {{if or .HasNodeJSApplication .ConfigurableProxy}}proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};{{else}}return 404;{{end}}
        }
 {{if .SPA}}
        location {{.Path}} {
@@ -118,6 +134,24 @@ http {
 type PreparedImage struct {
 	baseImage runtime.DockerImage
 	Path      string
+}
+
+type probe struct {
+	Include bool
+	Port    int
+}
+
+type templateInput struct {
+	Baseimage            string
+	MainFile             string
+	HasNodeJSApplication bool
+	ConfigurableProxy    bool
+	Static               string
+	SPA                  bool
+	Path                 string
+	Labels               map[string]string
+	PackageDirectory     string
+	ImageBuildTime       string
 }
 
 func Prepper() process.Prepper {
@@ -190,25 +224,24 @@ func prepareImage(v *OpenshiftJson, baseImage runtime.DockerImage, version strin
 		path = path + "/"
 	}
 
-	input := &struct {
-		Baseimage        string
-		MainFile         string
-		Static           string
-		SPA              bool
-		Path             string
-		Labels           map[string]string
-		PackageDirectory string
-		ImageBuildTime   string
-	}{
-		Baseimage:        baseImage.GetCompleteDockerTagName(),
-		MainFile:         v.Aurora.NodeJS.Main,
-		Static:           v.Aurora.Static,
-		SPA:              v.Aurora.SPA,
-		Path:             path,
-		Labels:           labels,
-		PackageDirectory: "package",
-		ImageBuildTime:   imageBuildTime,
+	var nodejsMainfile string
+	if v.Aurora.NodeJS != nil {
+		nodejsMainfile = strings.TrimSpace(v.Aurora.NodeJS.Main)
 	}
+
+	input := &templateInput{
+		Baseimage:            baseImage.GetCompleteDockerTagName(),
+		MainFile:             nodejsMainfile,
+		HasNodeJSApplication: len(nodejsMainfile) != 0,
+		ConfigurableProxy:    v.Aurora.ConfigurableProxy,
+		Static:               v.Aurora.Static,
+		SPA:                  v.Aurora.SPA,
+		Path:                 path,
+		Labels:               labels,
+		PackageDirectory:     "package",
+		ImageBuildTime:       imageBuildTime,
+	}
+
 	err := writer(util.NewTemplateWriter(input, "NgnixConfiguration", NGINX_CONFIG_TEMPLATE), "nginx.conf")
 	if err != nil {
 		return errors.Wrap(err, "Error creating nginx configuration")
@@ -227,7 +260,52 @@ func prepareImage(v *OpenshiftJson, baseImage runtime.DockerImage, version strin
 		return errors.Wrap(err, "Failed add resource run_tools.sh")
 	}
 	err = writer(util.NewByteWriter([]byte(START_SCRIPT)), "architectscripts", "run")
+	if err != nil {
+		return errors.Wrap(err, "Failed creating run script")
+	}
+	err = addProbes(input, writer)
+	if err != nil {
+		return err
+	}
+	if !input.HasNodeJSApplication {
+		err = writer(util.NewByteWriter([]byte(BLOCKING_RUN_NODEJS)), "overrides", "run_node")
+		if err != nil {
+			return errors.Wrap(err, "Failed creating nodejs override script")
+		}
+	}
 	return err
+}
+
+func addProbes(input *templateInput, writer util.FileWriter) error {
+	nginxProbe := &probe{
+		Include: true,
+		Port:    8080,
+	}
+	nodeProbe := &probe{
+		Include: input.HasNodeJSApplication,
+		Port:    9090,
+	}
+	err := writer(util.NewTemplateWriter(nodeProbe, "nodeliveness", READINESS_LIVENESS_SH),
+		"overrides", "liveness_node.sh")
+	if err != nil {
+		return err
+	}
+	err = writer(util.NewTemplateWriter(nginxProbe, "nginxliveness", READINESS_LIVENESS_SH),
+		"overrides", "liveness_nginx.sh")
+	if err != nil {
+		return err
+	}
+	err = writer(util.NewTemplateWriter(nodeProbe, "nodereadiness", READINESS_LIVENESS_SH),
+		"overrides", "readiness_node.sh")
+	if err != nil {
+		return err
+	}
+	err = writer(util.NewTemplateWriter(nginxProbe, "nginxreadiness", READINESS_LIVENESS_SH),
+		"overrides", "readiness_nginx.sh")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func findMaintainer(dockerMetadata DockerMetadata) string {
