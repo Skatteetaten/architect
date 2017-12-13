@@ -14,10 +14,11 @@ import (
 )
 
 type AuroraApplication struct {
-	NodeJS *NodeJSApplication `json:"nodejs"`
-	Static string             `json:"static"`
-	Path   string             `json:"path"`
-	SPA    bool               `json:"spa"`
+	NodeJS            *NodeJSApplication `json:"nodejs"`
+	Static            string             `json:"static"`
+	ConfigurableProxy bool               `json:"configurableProxy"`
+	Path              string             `json:"path"`
+	SPA               bool               `json:"spa"`
 }
 
 type NodeJSApplication struct {
@@ -114,7 +115,7 @@ http {
        listen 8080;
 
        location /api {
-          {{if .HasNodeJSApplication}}proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};{{else}}return 404;{{end}}
+          {{if or .HasNodeJSApplication .ConfigurableProxy}}proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};{{else}}return 404;{{end}}
        }
 {{if .SPA}}
        location {{.Path}} {
@@ -144,6 +145,7 @@ type templateInput struct {
 	Baseimage            string
 	MainFile             string
 	HasNodeJSApplication bool
+	ConfigurableProxy    bool
 	Static               string
 	SPA                  bool
 	Path                 string
@@ -231,6 +233,7 @@ func prepareImage(v *OpenshiftJson, baseImage runtime.DockerImage, version strin
 		Baseimage:            baseImage.GetCompleteDockerTagName(),
 		MainFile:             nodejsMainfile,
 		HasNodeJSApplication: len(nodejsMainfile) != 0,
+		ConfigurableProxy:    v.Aurora.ConfigurableProxy,
 		Static:               v.Aurora.Static,
 		SPA:                  v.Aurora.SPA,
 		Path:                 path,
