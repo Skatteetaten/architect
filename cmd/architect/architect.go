@@ -85,13 +85,13 @@ func RunArchitect(configuration RunConfiguration) {
 	registryCredentials, err := configuration.RegistryCredentialsFunc(c.DockerSpec.OutputRegistry)
 
 	if err != nil {
-		logrus.Fatal("Cound not parse registry credentials", err)
+		logrus.Fatalf("Could not parse registry credentials %s", err)
 	}
 
 	if c.DockerSpec.RetagWith != "" {
 		logrus.Info("Perform retag")
 		if err := retag.Retag(c, registryCredentials); err != nil {
-			logrus.Fatal("Failed to retag temporary image", err)
+			logrus.Fatalf("Failed to retag temporary image %s", err)
 		}
 	} else {
 		performBuild(&configuration, c, registryCredentials)
@@ -115,7 +115,12 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 	}
 
 	if err := process.Build(r, c, configuration.NexusDownloader, prepper); err != nil {
-		logrus.Errorf("Failed to build image: %+v", err)
-		logrus.Fatal("Terminating")
+		var errorMessage string
+		if logrus.GetLevel() >= logrus.DebugLevel {
+			errorMessage = "Failed to build image: %+v, Terminating"
+		} else {
+			errorMessage = "Failed to build image: %v, Terminating"
+		}
+		logrus.Fatalf(errorMessage, err)
 	}
 }
