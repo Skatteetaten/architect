@@ -85,7 +85,7 @@ func RunArchitect(configuration RunConfiguration) {
 	registryCredentials, err := configuration.RegistryCredentialsFunc(c.DockerSpec.OutputRegistry)
 
 	if err != nil {
-		logrus.Fatalf("Cound not parse registry credentials %s", err)
+		logrus.Fatalf("Could not parse registry credentials %s", err)
 	}
 
 	if c.DockerSpec.RetagWith != "" {
