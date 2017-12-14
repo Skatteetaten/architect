@@ -64,6 +64,8 @@ func (d *DockerClient) PullImage(baseimage runtime.DockerImage) error {
 func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
 	dockerOpt := types.ImageBuildOptions{
 		SuppressOutput: false,
+		Remove:         true,
+		ForceRemove:    true,
 	}
 	tarReader := createContextTarStreamReader(buildFolder)
 	build, err := d.Client.ImageBuild(context.Background(), tarReader, dockerOpt)
