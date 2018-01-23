@@ -3,6 +3,10 @@ package docker
 import (
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"time"
+	"crypto/tls"
+	"io/ioutil"
+	"net/http"
+	"github.com/pkg/errors"
 )
 
 // CreateCompleteTagsFromSpecAndTags makes a target image to be used for push.
@@ -30,4 +34,24 @@ func GetUtcTimestamp() string {
 	location, _ := time.LoadLocation("UTC")
 	return time.Now().In(location).Format(time.RFC3339)
 
+}
+
+func GetHTTPRequest(headers map[string]string, url string) ([]byte, error) {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+	req, _ := http.NewRequest("GET", url, nil)
+	for key, value := range headers {
+		req.Header.Add(key, value)
+	}
+	res, _ := client.Do(req)
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to read requested body for url %s and header %s", url, headers)
+	}
+	defer res.Body.Close()
+
+	return body, nil
 }
