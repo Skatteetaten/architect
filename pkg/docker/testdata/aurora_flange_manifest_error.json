@@ -1,0 +1,16 @@
+{
+  "errors": [
+    {
+      "code": "MANIFEST_UNKNOWN",
+      "message": "manifest unknown",
+      "detail": [
+        {
+          "Name": "aurora/flange"
+        },
+        {
+          "Revision": "sha256:b6a7c668428ff9347ef5c4f8736e8b7f38696dc6acc74409627d3607520"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,212 @@
+{
+  "architecture": "amd64",
+  "author": "The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+  "config": {
+    "Hostname": "eec77054e766",
+    "Domainname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": false,
+    "AttachStderr": false,
+    "Tty": false,
+    "OpenStdin": false,
+    "StdinOnce": false,
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/jre/bin",
+      "JAVA_HOME=/jre",
+      "JAVA_VERSION_MAJOR=8",
+      "JAVA_VERSION_MINOR=152",
+      "JAVA_VERSION_BUILD=16",
+      "JAVA_PACKAGE=server-jre",
+      "LANG=C.UTF-8",
+      "HOME=/u01",
+      "JOLOKIA_VERSION=1.3.7",
+      "JOLOKIA_PATH=/opt/jolokia/jolokia-jvm-1.3.7-agent.jar",
+      "BASE_IMAGE_VERSION=8.152.18",
+      "ALPINE_VERSION=3.6",
+      "TRUST_STORE=/jre/lib/security/cacerts"
+    ],
+    "Cmd": [
+      "/u01/bin/run"
+    ],
+    "ArgsEscaped": true,
+    "Image": "sha256:1b56263b8d8fe7a7e237824c4d635471c1efd1ec0b97609c22ea181e84e8da63",
+    "Volumes": null,
+    "WorkingDir": "/u01",
+    "Entrypoint": [
+      "/usr/bin/dumb-init",
+      "--"
+    ],
+    "OnBuild": [],
+    "Labels": {
+      "alpine": "3.6",
+      "java": "oraclejdk-8u152-b16",
+      "jolokia": "",
+      "version": "8.152.18"
+    }
+  },
+  "container": "8b6ba02286f3657695a547e8e179d5034f0be2bd38be1d53a0ce20ed165e7556",
+  "container_config": {
+    "Hostname": "eec77054e766",
+    "Domainname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": false,
+    "AttachStderr": false,
+    "Tty": false,
+    "OpenStdin": false,
+    "StdinOnce": false,
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/jre/bin",
+      "JAVA_HOME=/jre",
+      "JAVA_VERSION_MAJOR=8",
+      "JAVA_VERSION_MINOR=152",
+      "JAVA_VERSION_BUILD=16",
+      "JAVA_PACKAGE=server-jre",
+      "LANG=C.UTF-8",
+      "HOME=/u01",
+      "JOLOKIA_VERSION=1.3.7",
+      "JOLOKIA_PATH=/opt/jolokia/jolokia-jvm-1.3.7-agent.jar",
+      "BASE_IMAGE_VERSION=8.152.18",
+      "ALPINE_VERSION=3.6",
+      "TRUST_STORE=/jre/lib/security/cacerts"
+    ],
+    "Cmd": [
+      "/bin/sh",
+      "-c",
+      "#(nop) ",
+      "CMD [\"/u01/bin/run\"]"
+    ],
+    "ArgsEscaped": true,
+    "Image": "sha256:1b56263b8d8fe7a7e237824c4d635471c1efd1ec0b97609c22ea181e84e8da63",
+    "Volumes": null,
+    "WorkingDir": "/u01",
+    "Entrypoint": [
+      "/usr/bin/dumb-init",
+      "--"
+    ],
+    "OnBuild": [],
+    "Labels": {
+      "alpine": "3.6",
+      "java": "oraclejdk-8u152-b16",
+      "jolokia": "",
+      "version": "8.152.18"
+    }
+  },
+  "created": "2017-11-29T13:24:51.39994058Z",
+  "docker_version": "1.12.6",
+  "history": [
+    {
+      "created": "2017-11-03T22:10:18.456471742Z",
+      "created_by": "/bin/sh -c #(nop) ADD file:1e87ff33d1b6765b793888cd50e01b2bd0dfe152b7dbb4048008bfc2658faea7 in / "
+    },
+    {
+      "created": "2017-11-03T22:10:18.605674287Z",
+      "created_by": "/bin/sh -c #(nop)  CMD [\"/bin/sh\"]",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:06:17.548819868Z",
+      "created_by": "/bin/sh -c #(nop)  ARG javaMajorVersion=8",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:06:18.390965776Z",
+      "created_by": "/bin/sh -c #(nop)  ARG javaMinorVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:06:19.319900135Z",
+      "created_by": "/bin/sh -c #(nop)  ARG javaBuildVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:06:20.234867632Z",
+      "created_by": "/bin/sh -c #(nop)  ARG javaHash",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:06:21.552818159Z",
+      "created_by": "/bin/sh -c #(nop)  ARG jolokiaVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:06:22.555831204Z",
+      "created_by": "/bin/sh -c #(nop)  ARG baseImageVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:06:23.528974468Z",
+      "author": "The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+      "created_by": "/bin/sh -c #(nop)  MAINTAINER The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:06:24.343960326Z",
+      "author": "The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+      "created_by": "/bin/sh -c #(nop)  ENV JAVA_HOME=/jre",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:24:03.04893657Z",
+      "author": "The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+      "created_by": "/bin/sh -c #(nop)  ENV JAVA_VERSION_MAJOR=8 JAVA_VERSION_MINOR=152 JAVA_VERSION_BUILD=16 JAVA_PACKAGE=server-jre PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/jre/bin LANG=C.UTF-8 HOME=/u01 JOLOKIA_VERSION=1.3.7 JOLOKIA_PATH=/opt/jolokia/jolokia-jvm-1.3.7-agent.jar BASE_IMAGE_VERSION=8.152.18 ALPINE_VERSION=3.6 TRUST_STORE=/jre/lib/security/cacerts",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:24:05.027832971Z",
+      "author": "The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+      "created_by": "/bin/sh -c #(nop)  LABEL java=oraclejdk-8u152-b16 alpine=3.6 jolokia= version=8.152.18",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:24:07.110822879Z",
+      "author": "The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+      "created_by": "/bin/sh -c #(nop) ADD dir:93b313f230b5b3d1dc42a10532a1696a3ddf5aaae62652ce4e4b2e1e245ab470 in /opt/jolokia "
+    },
+    {
+      "created": "2017-11-29T13:24:43.361555516Z",
+      "author": "The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+      "created_by": "|6 baseImageVersion=8.152.18 javaBuildVersion=16 javaHash=aa0333dd3019491ca4f6ddbe78cdb6d0 javaMajorVersion=8 javaMinorVersion=152 jolokiaVersion=1.3.7 /bin/sh -c chmod -R 777 /opt/jolokia &&     apk add --update curl ca-certificates &&     cd /tmp &&     curl -k -L -o glibc-2.23-r1.apk https://github.com/andyshinn/alpine-pkg-glibc/releases/download/2.23-r1/glibc-2.23-r1.apk &&     curl -k -L -o glibc-bin-2.23-r1.apk https://github.com/andyshinn/alpine-pkg-glibc/releases/download/2.23-r1/glibc-bin-2.23-r1.apk &&     apk add --allow-untrusted         glibc-2.23-r1.apk         glibc-bin-2.23-r1.apk &&     echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf &&     curl -jksSLH \"Cookie: oraclelicense=accept-securebackup-cookie\"           \"http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/${javaHash}/${JAVA_PACKAGE}-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.tar.gz\"           | gunzip -c - | tar -xf - &&     mv jdk1.${JAVA_VERSION_MAJOR}.0_${JAVA_VERSION_MINOR}/jre /jre &&     curl -jkSLH \"Cookie: oraclelicense=accept-securebackup-cookie\"         \"http://download.oracle.com/otn-pub/java/jce/8/jce_policy-8.zip\" > jce_policy.zip  &&     unzip jce_policy.zip &&     cp UnlimitedJCEPolicyJDK8/local_policy.jar /jre/lib/security/ &&     cp UnlimitedJCEPolicyJDK8/US_export_policy.jar /jre/lib/security/ &&     rm jce_policy.zip &&     rm -r UnlimitedJCEPolicyJDK8 &&     apk del curl ca-certificates &&     rm /jre/bin/jjs &&     rm /jre/bin/keytool &&     rm /jre/bin/orbd &&     rm /jre/bin/pack200 &&     rm /jre/bin/rmid &&     rm /jre/bin/rmiregistry &&     rm /jre/bin/servertool &&     rm /jre/bin/tnameserv &&     rm /jre/bin/unpack200 &&     rm /jre/lib/ext/nashorn.jar &&     rm /jre/lib/jfr.jar &&     rm -rf /jre/lib/jfr &&     rm -rf /jre/lib/oblique-fonts &&     apk add --no-cache       dumb-init       drill       tcpdump       ngrep       bash       tzdata &&     mkdir $HOME &&     rm -rf /tmp/* /var/cache/apk/*"
+    },
+    {
+      "created": "2017-11-29T13:24:45.502910273Z",
+      "author": "The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+      "created_by": "/bin/sh -c #(nop) ADD dir:28c95dc23a7d5557b255bc19ab929279a0d40ff6bbddea9adb00b9545390626b in /u01/bin "
+    },
+    {
+      "created": "2017-11-29T13:24:47.147862375Z",
+      "author": "The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+      "created_by": "|6 baseImageVersion=8.152.18 javaBuildVersion=16 javaHash=aa0333dd3019491ca4f6ddbe78cdb6d0 javaMajorVersion=8 javaMinorVersion=152 jolokiaVersion=1.3.7 /bin/sh -c chmod -R 777 $HOME"
+    },
+    {
+      "created": "2017-11-29T13:24:48.455829733Z",
+      "author": "The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+      "created_by": "/bin/sh -c #(nop)  WORKDIR /u01",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:24:49.692903098Z",
+      "author": "The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+      "created_by": "/bin/sh -c #(nop)  ENTRYPOINT [\"/usr/bin/dumb-init\" \"--\"]",
+      "empty_layer": true
+    },
+    {
+      "created": "2017-11-29T13:24:51.39994058Z",
+      "author": "The Norwegian Tax Administration <utvpaas@skatteetaten.no>",
+      "created_by": "/bin/sh -c #(nop)  CMD [\"/u01/bin/run\"]",
+      "empty_layer": true
+    }
+  ],
+  "os": "linux",
+  "rootfs": {
+    "type": "layers",
+    "diff_ids": [
+      "sha256:2aebd096e0e237b447781353379722157e6c2d434b9ec5a0d63f2a6f07cf90c2",
+      "sha256:d017c4b2103204f4192f42c8e89a478e605e22cc4f080577105c8be5a8ec59e9",
+      "sha256:5ab2b8586ec7407d075acce172c51b9993bbb87effddbe0564bf17894e8ea42b",
+      "sha256:ca6de00d81ff069947e4e9e871e7fc1c8387f9d717c73283b6161b24443fffe0",
+      "sha256:0bd78f8a8634517a374bcaa96711930920e7fdf7fe4a39f145e8c0c13fdac7bc"
+    ]
+  }
+}
