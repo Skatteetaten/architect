@@ -1,6 +1,7 @@
 package nexus
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
 	"io"
@@ -12,7 +13,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"github.com/Sirupsen/logrus"
 )
 
 type Downloader interface {
