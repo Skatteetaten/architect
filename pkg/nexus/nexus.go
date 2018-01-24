@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"github.com/Sirupsen/logrus"
 )
 
 type Downloader interface {
@@ -59,6 +60,7 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 		return deliverable, errors.Wrapf(err, "Failed to create Nexus url for GAV %+v", c)
 	}
 
+	logrus.Debugf("Downloading artifact from %s", resourceUrl)
 	httpResponse, err := http.Get(resourceUrl)
 	if err != nil {
 		return deliverable, errors.Wrapf(err, "Failed to get artifact from Nexus %s", resourceUrl)
@@ -97,6 +99,7 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 		return deliverable, errors.Wrap(err, "Failed to write to artifact file")
 	}
 	deliverable.Path = fileName
+	logrus.Debugf("Downloaded artifact to %s", deliverable.Path)
 	return deliverable, nil
 }
 
