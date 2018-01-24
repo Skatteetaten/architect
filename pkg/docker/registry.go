@@ -33,7 +33,7 @@ type Manifest struct {
 	} `json:"config"`
 	History []struct {
 		V1Compatibility string `json:"v1Compatibility"`
-	} 
+	}
 }
 
 type RegistryClient struct {
@@ -60,7 +60,7 @@ func (registry *RegistryClient) getRegistryManifest(repository string, tag strin
 	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.address, repository, tag)
 	body, err := GetHTTPRequest(mHeader, url)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed in getRegistryBlob for request url %s and header %s", url, mHeader)
+		return nil, errors.Wrapf(err, "Failed in getRegistryManifest for request url %s and header %s", url, mHeader)
 	}
 	return body, nil
 }
@@ -90,8 +90,8 @@ func (registry *RegistryClient) GetManifestEnvMap(repository string, tag string)
 		return nil, errors.Wrapf(err, "Failed to unmarshal manifest for repository %s, tag %s from Docker registry %s", repository, tag, registry.address)
 	}
 
-	if (manifestMeta.SchemaVersion == 1) {
-		if (len(manifestMeta.History) > 0) {
+	if manifestMeta.SchemaVersion == 1 {
+		if len(manifestMeta.History) > 0 {
 			envMap, err := getEnvMapFromV1Data(manifestMeta.History[0].V1Compatibility)
 
 			if err != nil {
@@ -99,22 +99,22 @@ func (registry *RegistryClient) GetManifestEnvMap(repository string, tag string)
 			}
 
 			return envMap, nil
-		} 
+		}
 		return nil, errors.New("Error in Manifest for schemaVersion 1. Incomplete History list")
-	} else if (manifestMeta.Config.Digest != "") {
+	} else if manifestMeta.Config.Digest != "" {
 		digestID := manifestMeta.Config.Digest
 
 		body, err = registry.getRegistryBlob(repository, digestID)
 
 		if err != nil {
-			return nil, errors.Wrapf(err, "Failed to read image meta in repository %s, digestID %s from Docker registry %s", repository, digestID, registry.address)
+			return nil, errors.Wrapf(err, "Failed to read image meta from blob in repository %s, digestID %s from Docker registry %s", repository, digestID, registry.address)
 		}
 
 		imageMeta := ContainerImageV1{}
 		err = json.Unmarshal(body, &imageMeta)
 
 		if err != nil {
-			return nil, errors.Wrapf(err, "Failed to unmarshal digest in repository %s, digestID %s from Docker registry %s", repository, digestID, registry.address)
+			return nil, errors.Wrapf(err, "Failed to unmarshal image meta from blob in repository %s, digestID %s from Docker registry %s", repository, digestID, registry.address)
 		}
 
 		envMap := make(map[string]string)
@@ -127,8 +127,8 @@ func (registry *RegistryClient) GetManifestEnvMap(repository string, tag string)
 		}
 
 		return envMap, nil
-	} 
-	return nil, errors.New("Error reading ")
+	}
+	return nil, errors.Errorf("Failed creating environment map from manifest in registry %s and repository %s", registry.address, repository)
 }
 
 func (registry *RegistryClient) GetTags(repository string) (*TagsAPIResponse, error) {
