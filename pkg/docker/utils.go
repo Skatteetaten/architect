@@ -1,12 +1,12 @@
 package docker
 
 import (
-	"github.com/skatteetaten/architect/pkg/config/runtime"
-	"time"
 	"crypto/tls"
+	"github.com/pkg/errors"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"io/ioutil"
 	"net/http"
-	"github.com/pkg/errors"
+	"time"
 )
 
 // CreateCompleteTagsFromSpecAndTags makes a target image to be used for push.

@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 	"strings"
+	"testing"
 )
 
 const repository = "aurora/flange"
@@ -179,7 +179,6 @@ func startMockRegistryServer(filename string) (*httptest.Server, error) {
 	return ts, nil
 }
 
-
 func startMockRegistryManifestServer(fileManifest string, fileImageMeta string) (*httptest.Server, error) {
 	bufManifest, err := ioutil.ReadFile(fileManifest)
 
@@ -205,7 +204,7 @@ func startMockRegistryManifestServer(fileManifest string, fileImageMeta string) 
 			buf = bufManifest
 		} else if strings.Contains(r.Header.Get("Accept"), httpHeaderContainerImageV1) {
 			buf = bufImageMeta
-		} else  {
+		} else {
 			buf = bufManifestError
 		}
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(buf)))

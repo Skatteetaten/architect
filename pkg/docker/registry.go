@@ -4,11 +4,11 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/docker/docker/image"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"github.com/docker/docker/image"
-	"github.com/pkg/errors"
 )
 
 type ImageInfoProvider interface {
