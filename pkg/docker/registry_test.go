@@ -6,15 +6,15 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
-const repository = "aurora/oracle8"
-const tag = "1"
+const repository = "aurora/flange"
+const tag = "8"
 
-const expected_version = "1.7.0"
-
-func TestGetManifestEnv(t *testing.T) {
+func TestGetManifestEnvSchemaV1(t *testing.T) {
+	expectedVersion := "1.7.0"
 
 	server, err := startMockRegistryServer("testdata/manifest.json")
 
@@ -24,13 +24,14 @@ func TestGetManifestEnv(t *testing.T) {
 
 	target := NewRegistryClient(server.URL)
 
-	manifestEnvMap, err := target.GetManifestEnvMap("aurora/oracle8", "1")
+	manifestEnvMap, err := target.GetManifestEnvMap(repository, tag)
 	assert.NoError(t, err)
 	actualVersion := manifestEnvMap["BASE_IMAGE_VERSION"]
-	assert.Equal(t, actualVersion, expected_version)
+	assert.Equal(t, expectedVersion, actualVersion)
 }
 
-func TestGetManifestEnvMap(t *testing.T) {
+func TestGetCompleteBaseImageVersionSchemaV1(t *testing.T) {
+	expectedVersion := "1.7.0"
 
 	server, err := startMockRegistryServer("testdata/manifest.json")
 
@@ -40,13 +41,80 @@ func TestGetManifestEnvMap(t *testing.T) {
 
 	target := NewRegistryClient(server.URL)
 
-	envMap, err := target.GetManifestEnvMap("aurora/oracle8", "1")
+	actualVersion, err := target.GetCompleteBaseImageVersion(repository, tag)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedVersion, actualVersion)
+}
+
+func TestGetManifestEnvMapSchemaV1(t *testing.T) {
+	expectedLength := 14
+
+	server, err := startMockRegistryServer("testdata/manifest.json")
+
+	defer server.Close()
 
 	assert.NoError(t, err)
 
-	expected_len := 14
-	actual_len := len(envMap)
-	assert.Equal(t, expected_len, actual_len)
+	target := NewRegistryClient(server.URL)
+
+	envMap, err := target.GetManifestEnvMap(repository, tag)
+
+	assert.NoError(t, err)
+
+	actualLength := len(envMap)
+	assert.Equal(t, expectedLength, actualLength)
+}
+
+func TestGetManifestEnvSchemaV2(t *testing.T) {
+	expectedVersion := "8.152.18"
+
+	server, err := startMockRegistryManifestServer("testdata/aurora_flange_manifest_v2.json", "testdata/aurora_flange_container_image_v1.json")
+
+	defer server.Close()
+
+	assert.NoError(t, err)
+
+	target := NewRegistryClient(server.URL)
+
+	manifestEnvMap, err := target.GetManifestEnvMap(repository, tag)
+	assert.NoError(t, err)
+	actualVersion := manifestEnvMap["BASE_IMAGE_VERSION"]
+	assert.Equal(t, expectedVersion, actualVersion)
+}
+
+func TestGetCompleteBaseImageVersionSchemaV2(t *testing.T) {
+	expectedVersion := "8.152.18"
+
+	server, err := startMockRegistryManifestServer("testdata/aurora_flange_manifest_v2.json", "testdata/aurora_flange_container_image_v1.json")
+
+	defer server.Close()
+
+	assert.NoError(t, err)
+
+	target := NewRegistryClient(server.URL)
+
+	actualVersion, err := target.GetCompleteBaseImageVersion(repository, tag)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedVersion, actualVersion)
+}
+
+func TestGetManifestEnvMapSchemaV2(t *testing.T) {
+	expectedLength := 13
+
+	server, err := startMockRegistryManifestServer("testdata/aurora_flange_manifest_v2.json", "testdata/aurora_flange_container_image_v1.json")
+
+	defer server.Close()
+
+	assert.NoError(t, err)
+
+	target := NewRegistryClient(server.URL)
+
+	envMap, err := target.GetManifestEnvMap(repository, tag)
+
+	assert.NoError(t, err)
+
+	actualLength := len(envMap)
+	assert.Equal(t, expectedLength, actualLength)
 }
 
 func TestGetTags(t *testing.T) {
@@ -103,6 +171,42 @@ func startMockRegistryServer(filename string) (*httptest.Server, error) {
 	}
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(buf)))
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Write(buf)
+	}))
+	ts.StartTLS()
+	return ts, nil
+}
+
+func startMockRegistryManifestServer(fileManifest string, fileImageMeta string) (*httptest.Server, error) {
+	bufManifest, err := ioutil.ReadFile(fileManifest)
+
+	if err != nil {
+		return nil, err
+	}
+
+	bufImageMeta, err := ioutil.ReadFile(fileImageMeta)
+
+	if err != nil {
+		return nil, err
+	}
+
+	bufManifestError, err := ioutil.ReadFile("testdata/aurora_flange_manifest_error.json")
+
+	if err != nil {
+		return nil, err
+	}
+
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var buf []byte
+		if strings.Contains(r.Header.Get("Accept"), httpHeaderManifestSchemaV2) {
+			buf = bufManifest
+		} else if strings.Contains(r.Header.Get("Accept"), httpHeaderContainerImageV1) {
+			buf = bufImageMeta
+		} else {
+			buf = bufManifestError
+		}
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(buf)))
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Write(buf)
