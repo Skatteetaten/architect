@@ -13,30 +13,6 @@ import (
 	"strings"
 )
 
-type AuroraApplication struct {
-	NodeJS            *NodeJSApplication `json:"nodejs"`
-	Static            string             `json:"static"`
-	ConfigurableProxy bool               `json:"configurableProxy"`
-	Path              string             `json:"path"`
-	SPA               bool               `json:"spa"`
-}
-
-type NodeJSApplication struct {
-	Main    string `json:"main"`
-	Waf     string `json:"waf"`
-	Runtime string `json:"runtime"`
-}
-
-type OpenshiftJson struct {
-	Aurora         AuroraApplication `json:"web"`
-	DockerMetadata DockerMetadata    `json:"docker"`
-}
-
-type DockerMetadata struct {
-	Maintainer string            `json:"name"`
-	Labels     map[string]string `json:"labels"`
-}
-
 const WRENCH_DOCKER_FILE string = `FROM {{.Baseimage}}
 
 LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
@@ -120,39 +96,14 @@ http {
 {{if .SPA}}
        location {{.Path}} {
           root /u01/static;
-          try_files $uri {{.Path}}index.html;
-       }
-{{else}}
+          try_files $uri {{.Path}}index.html;{{else}}
        location {{.Path}} {
-          root /u01/static;
+          root /u01/static;{{end}}{{range $key, $value := .ExtraStaticHeaders}}
+          add_header {{$key}} "{{$value}}";{{end}}
        }
-{{end}}
     }
 }
 `
-
-type PreparedImage struct {
-	baseImage runtime.DockerImage
-	Path      string
-}
-
-type probe struct {
-	Include bool
-	Port    int
-}
-
-type templateInput struct {
-	Baseimage            string
-	MainFile             string
-	HasNodeJSApplication bool
-	ConfigurableProxy    bool
-	Static               string
-	SPA                  bool
-	Path                 string
-	Labels               map[string]string
-	PackageDirectory     string
-	ImageBuildTime       string
-}
 
 func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
@@ -202,45 +153,10 @@ func prepare(c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
 	}}, nil
 }
 
-func prepareImage(v *OpenshiftJson, baseImage runtime.DockerImage, version string, writer util.FileWriter,
+func prepareImage(v *openshiftJson, baseImage runtime.DockerImage, version string, writer util.FileWriter,
 	imageBuildTime string) error {
-	labels := make(map[string]string)
-	if v.DockerMetadata.Labels != nil {
-		for k, v := range v.DockerMetadata.Labels {
-			labels[k] = v
-		}
-	}
-	labels["version"] = version
-	labels["maintainer"] = findMaintainer(v.DockerMetadata)
-
-	var path string
-	if len(strings.TrimPrefix(v.Aurora.Path, "/")) == 0 {
-		path = "/"
-	} else {
-		path = "/" + strings.TrimPrefix(v.Aurora.Path, "/")
-	}
-
-	if !strings.HasSuffix(path, "/") {
-		path = path + "/"
-	}
-
-	var nodejsMainfile string
-	if v.Aurora.NodeJS != nil {
-		nodejsMainfile = strings.TrimSpace(v.Aurora.NodeJS.Main)
-	}
-
-	input := &templateInput{
-		Baseimage:            baseImage.GetCompleteDockerTagName(),
-		MainFile:             nodejsMainfile,
-		HasNodeJSApplication: len(nodejsMainfile) != 0,
-		ConfigurableProxy:    v.Aurora.ConfigurableProxy,
-		Static:               v.Aurora.Static,
-		SPA:                  v.Aurora.SPA,
-		Path:                 path,
-		Labels:               labels,
-		PackageDirectory:     "package",
-		ImageBuildTime:       imageBuildTime,
-	}
+	completeDockerName := baseImage.GetCompleteDockerTagName()
+	input := mapOpenShiftJsonToTemplateInput(v, completeDockerName, imageBuildTime, version)
 
 	err := writer(util.NewTemplateWriter(input, "NgnixConfiguration", NGINX_CONFIG_TEMPLATE), "nginx.conf")
 	if err != nil {
@@ -308,9 +224,65 @@ func addProbes(input *templateInput, writer util.FileWriter) error {
 	return nil
 }
 
-func findMaintainer(dockerMetadata DockerMetadata) string {
+func findMaintainer(dockerMetadata dockerMetadata) string {
 	if len(dockerMetadata.Maintainer) == 0 {
 		return "No Maintainer set!"
 	}
 	return dockerMetadata.Maintainer
+}
+
+func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string, imageBuildTime string, version string) *templateInput {
+	labels := make(map[string]string)
+	if v.DockerMetadata.Labels != nil {
+		for k, v := range v.DockerMetadata.Labels {
+			labels[k] = v
+		}
+	}
+	labels["version"] = version
+	labels["maintainer"] = findMaintainer(v.DockerMetadata)
+
+	var path string
+	if len(strings.TrimPrefix(v.Aurora.Path, "/")) == 0 {
+		path = "/"
+	} else {
+		path = "/" + strings.TrimPrefix(v.Aurora.Path, "/")
+	}
+
+	if !strings.HasSuffix(path, "/") {
+		path = path + "/"
+	}
+
+	var nodejsMainfile string
+	if v.Aurora.NodeJS != nil {
+		nodejsMainfile = strings.TrimSpace(v.Aurora.NodeJS.Main)
+	}
+
+	var static string
+	var spa bool
+	var extraHeaders map[string]string
+
+	if v.Aurora.Webapp == nil {
+		static = v.Aurora.Static
+		spa = v.Aurora.SPA
+		extraHeaders = nil
+
+	} else {
+		static = v.Aurora.Webapp.StaticContent
+		spa = v.Aurora.Webapp.DisableTryfiles == false
+		extraHeaders = v.Aurora.Webapp.Headers
+	}
+
+	return &templateInput{
+		Baseimage:            completeDockerName,
+		MainFile:             nodejsMainfile,
+		HasNodeJSApplication: len(nodejsMainfile) != 0,
+		ConfigurableProxy:    v.Aurora.ConfigurableProxy,
+		Static:               static,
+		ExtraStaticHeaders:   extraHeaders,
+		SPA:                  spa,
+		Path:                 path,
+		Labels:               labels,
+		PackageDirectory:     "package",
+		ImageBuildTime:       imageBuildTime,
+	}
 }
