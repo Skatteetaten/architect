@@ -68,7 +68,7 @@ WORKDIR "/u01/"
 
 CMD ["/u01/architect/run", "/u01/bin/run_nginx"]`
 
-const expectedNginxConfFileNoNodejs = `
+const nginxConfPrefix = `
 worker_processes  1;
 error_log stderr;
 
@@ -95,9 +95,12 @@ http {
     #gzip  on;
 
     index index.html;
+`
 
+const expectedNginxConfFileNoNodejsPartial = `
     server {
        listen 8080;
+
        location /api {
           return 404;
        }
@@ -106,38 +109,10 @@ http {
           root /u01/static;
           try_files $uri /index.html;
        }
-
     }
 }
 `
-const expectedNginxConfFile = `
-worker_processes  1;
-error_log stderr;
-
-events {
-    worker_connections  1024;
-}
-
-
-http {
-    include       /etc/nginx/mime.types;
-    default_type  application/octet-stream;
-
-    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-                      '$status $body_bytes_sent "$http_referer" '
-                      '"$http_user_agent" "$http_x_forwarded_for"';
-
-    access_log  /dev/stdout;
-
-    sendfile        on;
-    #tcp_nopush     on;
-
-    keepalive_timeout  65;
-
-    #gzip  on;
-
-    index index.html;
-
+const expectedNginxConfFilePartial = `
     server {
        listen 8080;
 
@@ -149,39 +124,66 @@ http {
           root /u01/static;
           try_files $uri /index.html;
        }
-
     }
 }
 `
 
-var openshiftJson = OpenshiftJson{
-	Aurora: AuroraApplication{
-		NodeJS: &NodeJSApplication{
+const expectedNginxConfFileSpaAndCustomHeaders = `
+    server {
+       listen 8080;
+
+       location /api {
+          proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};
+       }
+
+       location / {
+          root /u01/static;
+          try_files $uri /index.html;
+          add_header X-Test-Header "Tulleheader";
+          add_header X-Test-Header2 "Tulleheader2";
+       }
+    }
+}
+`
+const expectedNginxConfFileNoSpaAndCustomHeaders = `
+    server {
+       listen 8080;
+
+       location /api {
+          proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};
+       }
+
+       location / {
+          root /u01/static;
+          add_header X-Test-Header "Tulleheader";
+          add_header X-Test-Header2 "Tulleheader2";
+       }
+    }
+}
+`
+
+var osJson = openshiftJson{
+	Aurora: auroraApplication{
+		NodeJS: &nodeJSApplication{
 			Main: "test.json",
 		},
 		SPA:    true,
 		Static: "app",
 	},
-	DockerMetadata: DockerMetadata{
+	DockerMetadata: dockerMetadata{
 		Maintainer: "Oyvind <oyvind@dagobah.wars>",
 	},
 }
 
-var openshiftJsonNoNodeJs = openshiftJson
-
-func init() {
-	openshiftJsonNoNodeJs.Aurora.NodeJS = nil
-}
-
-func TestNodeJsDockerFiles(t *testing.T) {
+func TestGeneratedFiledWhenNodeJSIsEnabled(t *testing.T) {
 	files := make(map[string]string)
-	err := prepareImage(&openshiftJson, runtime.DockerImage{
+	err := prepareImage(&osJson, runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
 	}, "1.2.3", testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedNodeJsDockerFile, files["Dockerfile"])
-	assert.Equal(t, expectedNginxConfFile, files["nginx.conf"])
+	assert.Equal(t, nginxConfPrefix+expectedNginxConfFilePartial, files["nginx.conf"])
 	assert.NotEmpty(t, files["architectscripts/run"])
 	assert.NotEmpty(t, files["architectscripts/run_tools.sh"])
 	assert.NotEmpty(t, files["overrides/readiness_nginx.sh"])
@@ -191,17 +193,47 @@ func TestNodeJsDockerFiles(t *testing.T) {
 	assert.Equal(t, len(files), 8)
 }
 
-func TestDockerfileWithoutNodeJSApp(t *testing.T) {
+func TestGeneratedFilesWhenNodeJSIsDisabled(t *testing.T) {
 	files := make(map[string]string)
-
+	var openshiftJsonNoNodeJs = osJson
+	openshiftJsonNoNodeJs.Aurora.NodeJS = nil
 	err := prepareImage(&openshiftJsonNoNodeJs, runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
 	}, "1.2.3", testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedNodeJsDockerFileWithoutNodeApp, files["Dockerfile"])
+	assert.Equal(t, nginxConfPrefix+expectedNginxConfFileNoNodejsPartial, files["nginx.conf"])
 	assert.NotEmpty(t, files["overrides/run_node"])
 	assert.Equal(t, len(files), 9)
+}
+
+func TestThatCustomHeadersIsPresentInNginxConfig(t *testing.T) {
+	files := make(map[string]string)
+	json := osJson
+	webapp := webApplication{
+		DisableTryfiles: false,
+		Headers: map[string]string{
+			"X-Test-Header":  "Tulleheader",
+			"X-Test-Header2": "Tulleheader2",
+		},
+		StaticContent: "pathTilStatic",
+	}
+	json.Aurora.Webapp = &webapp
+	err := prepareImage(&json, runtime.DockerImage{
+		Tag:        "latest",
+		Repository: "aurora/wrench",
+	}, "1.2.3", testFileWriter(files), buildTime)
+	assert.NoError(t, err)
+	assert.Equal(t, nginxConfPrefix+expectedNginxConfFileSpaAndCustomHeaders, files["nginx.conf"])
+
+	json.Aurora.Webapp.DisableTryfiles = true
+	err = prepareImage(&json, runtime.DockerImage{
+		Tag:        "latest",
+		Repository: "aurora/wrench",
+	}, "1.2.3", testFileWriter(files), buildTime)
+	assert.NoError(t, err)
+	assert.Equal(t, nginxConfPrefix+expectedNginxConfFileNoSpaAndCustomHeaders, files["nginx.conf"])
 }
 
 func testFileWriter(files map[string]string) util.FileWriter {
