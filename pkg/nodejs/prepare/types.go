@@ -22,9 +22,8 @@ type webApplication struct {
 }
 
 type nodeJSApplication struct {
-	Main    string `json:"main"`
-	Waf     string `json:"waf"`
-	Runtime string `json:"runtime"`
+	Main      string            `json:"main"`
+	Overrides map[string]string `json:"overrides"`
 }
 
 type openshiftJson struct {
@@ -51,6 +50,7 @@ type templateInput struct {
 	Baseimage            string
 	MainFile             string
 	HasNodeJSApplication bool
+	NginxOverrides       map[string]string
 	ConfigurableProxy    bool
 	Static               string
 	SPA                  bool

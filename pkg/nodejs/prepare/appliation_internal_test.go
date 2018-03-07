@@ -162,6 +162,23 @@ const expectedNginxConfFileNoSpaAndCustomHeaders = `
 }
 `
 
+const expectedNginxConfigWithOverrides = `
+    server {
+       listen 8080;
+
+       location /api {
+          proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};
+          client_max_body_size 5m;
+       }
+
+       location / {
+          root /u01/static;
+          try_files $uri /index.html;
+       }
+    }
+}
+`
+
 var osJson = openshiftJson{
 	Aurora: auroraApplication{
 		NodeJS: &nodeJSApplication{
@@ -234,6 +251,21 @@ func TestThatCustomHeadersIsPresentInNginxConfig(t *testing.T) {
 	}, "1.2.3", testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, nginxConfPrefix+expectedNginxConfFileNoSpaAndCustomHeaders, files["nginx.conf"])
+}
+
+func TestThatOverrideInNginxIsSet(t *testing.T) {
+	files := make(map[string]string)
+	json := osJson
+	json.Aurora.NodeJS.Overrides = map[string]string{
+		"client_max_body_size": "5m",
+	}
+	err := prepareImage(&json, runtime.DockerImage{
+		Tag:        "latest",
+		Repository: "aurora/wrench",
+	}, "1.2.3", testFileWriter(files), buildTime)
+	assert.NoError(t, err)
+	assert.Equal(t, nginxConfPrefix+expectedNginxConfigWithOverrides, files["nginx.conf"])
+
 }
 
 func testFileWriter(files map[string]string) util.FileWriter {

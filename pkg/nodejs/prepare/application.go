@@ -10,6 +10,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
+	"regexp"
 	"strings"
 )
 
@@ -91,7 +92,8 @@ http {
        listen 8080;
 
        location /api {
-          {{if or .HasNodeJSApplication .ConfigurableProxy}}proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};{{else}}return 404;{{end}}
+          {{if or .HasNodeJSApplication .ConfigurableProxy}}proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};{{else}}return 404;{{end}}{{range $key, $value := .NginxOverrides}}
+          {{$key}} {{$value}};{{end}}
        }
 {{if .SPA}}
        location {{.Path}} {
@@ -104,6 +106,27 @@ http {
     }
 }
 `
+
+/*
+
+We sanitize the input.... Don't want to large inputs.
+
+For example; Accepting very large client_max_body_size would make a DOS attack very easy to implement...
+
+*/
+var allowedNginxOverrides = map[string]func(string) error{
+	"client_max_body_size": func(s string) error {
+		// between 1 and 20
+		match, err := regexp.MatchString("^([1-9]|[1-2][0-9])m$", s)
+		if err != nil {
+			return err
+		}
+		if !match {
+			return errors.New("Value on client_max_body_size should be on the form Nm where N is between 1 and 20")
+		}
+		return nil
+	},
+}
 
 func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
@@ -156,9 +179,13 @@ func prepare(c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
 func prepareImage(v *openshiftJson, baseImage runtime.DockerImage, version string, writer util.FileWriter,
 	imageBuildTime string) error {
 	completeDockerName := baseImage.GetCompleteDockerTagName()
-	input := mapOpenShiftJsonToTemplateInput(v, completeDockerName, imageBuildTime, version)
+	input, err := mapOpenShiftJsonToTemplateInput(v, completeDockerName, imageBuildTime, version)
 
-	err := writer(util.NewTemplateWriter(input, "NgnixConfiguration", NGINX_CONFIG_TEMPLATE), "nginx.conf")
+	if err != nil {
+		return errors.Wrap(err, "Error processing AuroraConfig")
+	}
+
+	err = writer(util.NewTemplateWriter(input, "NgnixConfiguration", NGINX_CONFIG_TEMPLATE), "nginx.conf")
 	if err != nil {
 		return errors.Wrap(err, "Error creating nginx configuration")
 	}
@@ -231,7 +258,7 @@ func findMaintainer(dockerMetadata dockerMetadata) string {
 	return dockerMetadata.Maintainer
 }
 
-func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string, imageBuildTime string, version string) *templateInput {
+func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string, imageBuildTime string, version string) (*templateInput, error) {
 	labels := make(map[string]string)
 	if v.DockerMetadata.Labels != nil {
 		for k, v := range v.DockerMetadata.Labels {
@@ -253,8 +280,15 @@ func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string
 	}
 
 	var nodejsMainfile string
+	var overrides map[string]string
+	var err error
 	if v.Aurora.NodeJS != nil {
 		nodejsMainfile = strings.TrimSpace(v.Aurora.NodeJS.Main)
+		overrides = v.Aurora.NodeJS.Overrides
+		err = whitelistOverrides(overrides)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var static string
@@ -276,6 +310,7 @@ func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string
 		Baseimage:            completeDockerName,
 		MainFile:             nodejsMainfile,
 		HasNodeJSApplication: len(nodejsMainfile) != 0,
+		NginxOverrides:       overrides,
 		ConfigurableProxy:    v.Aurora.ConfigurableProxy,
 		Static:               static,
 		ExtraStaticHeaders:   extraHeaders,
@@ -284,5 +319,22 @@ func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string
 		Labels:               labels,
 		PackageDirectory:     "package",
 		ImageBuildTime:       imageBuildTime,
+	}, nil
+}
+func whitelistOverrides(overrides map[string]string) error {
+	if overrides == nil {
+		return nil
 	}
+
+	for key, value := range overrides {
+		validateFunc, exists := allowedNginxOverrides[key]
+		if !exists {
+			return errors.New("Config " + key + " is not allowed to override with Architect.")
+		}
+		var err error
+		if err = validateFunc(value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
