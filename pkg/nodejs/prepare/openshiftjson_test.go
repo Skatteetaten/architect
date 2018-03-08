@@ -65,16 +65,48 @@ func TestThatValuesAreSetAsExpected(t *testing.T) {
 	assert.Equal(t, openshiftJson.Aurora.Webapp.StaticContent, "build")
 }
 
+func TestThatOverridesAreWhitelistedAndSetCorrectly(t *testing.T) {
+	openshiftJson := openshiftJson{}
+	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &openshiftJson))
+	openshiftJson.Aurora.NodeJS.Overrides = map[string]string{
+		"a_value_not_whitelisted": "value",
+	}
+	_, err := mapObject(&openshiftJson)
+	assert.EqualError(t, err, "Config a_value_not_whitelisted is not allowed to override with Architect.")
+
+	openshiftJson.Aurora.NodeJS.Overrides = map[string]string{
+		"client_max_body_size": "30m",
+	}
+	_, err = mapObject(&openshiftJson)
+	assert.EqualError(t, err, "Value on client_max_body_size should be on the form Nm where N is between 1 and 20")
+
+	openshiftJson.Aurora.NodeJS.Overrides = map[string]string{
+		"client_max_body_size": "20m",
+	}
+	_, err = mapObject(&openshiftJson)
+	assert.NoError(t, err)
+	openshiftJson.Aurora.NodeJS.Overrides = map[string]string{
+		"client_max_body_size": "2m",
+	}
+	assert.NoError(t, err)
+}
+
 func TestThatLegacyFormatIsMappedCorrect(t *testing.T) {
 	oldOpenShiftJson := openshiftJson{}
 	newOpenShiftJson := openshiftJson{}
 	oldOpenShiftJson.Aurora.SPA = true
 	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &newOpenShiftJson))
 	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_LEGACY_FORMAT), &oldOpenShiftJson))
-	tiOld := mapOpenShiftJsonToTemplateInput(&oldOpenShiftJson, "name", "name", "version")
-	tiNew := mapOpenShiftJsonToTemplateInput(&newOpenShiftJson, "name", "name", "version")
+	tiOld, err := mapObject(&oldOpenShiftJson)
+	assert.NoError(t, err)
+	tiNew, err := mapObject(&newOpenShiftJson)
+	assert.NoError(t, err)
 	assert.EqualValues(t, tiNew, tiOld)
 	assert.Equal(t, "/", tiNew.Path)
 	assert.Equal(t, "build", tiNew.Static)
 	assert.Equal(t, true, tiNew.SPA)
+}
+
+func mapObject(openshiftJson *openshiftJson) (*templateInput, error) {
+	return mapOpenShiftJsonToTemplateInput(openshiftJson, "name", "name", "version")
 }
