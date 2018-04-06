@@ -2,6 +2,7 @@ package prepare
 
 import (
 	"encoding/json"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -108,5 +109,5 @@ func TestThatLegacyFormatIsMappedCorrect(t *testing.T) {
 }
 
 func mapObject(openshiftJson *openshiftJson) (*templateInput, error) {
-	return mapOpenShiftJsonToTemplateInput(openshiftJson, "name", "name", "version")
+	return mapOpenShiftJsonToTemplateInput(openshiftJson, "name", "name", runtime.NewAuroraVersion("version", false, "version", runtime.CompleteVersion("version-b--baseimageversion")))
 }

@@ -57,6 +57,7 @@ type templateInput struct {
 	ExtraStaticHeaders   map[string]string
 	Path                 string
 	Labels               map[string]string
+	Env                  map[string]string
 	PackageDirectory     string
 	ImageBuildTime       string
 }
