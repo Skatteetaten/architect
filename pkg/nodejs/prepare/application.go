@@ -313,7 +313,6 @@ func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string
 
 	return &templateInput{
 		Baseimage:            completeDockerName,
-		MainFile:             nodejsMainfile,
 		HasNodeJSApplication: len(nodejsMainfile) != 0,
 		NginxOverrides:       overrides,
 		ConfigurableProxy:    v.Aurora.ConfigurableProxy,
@@ -324,7 +323,6 @@ func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string
 		Labels:               labels,
 		Env:                  env,
 		PackageDirectory:     "package",
-		ImageBuildTime:       imageBuildTime,
 	}, nil
 }
 func whitelistOverrides(overrides map[string]string) error {
