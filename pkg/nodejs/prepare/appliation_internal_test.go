@@ -30,10 +30,7 @@ RUN chmod 666 /etc/nginx/nginx.conf && \
     chmod 777 /etc/nginx && \
     chmod 755 /u01/bin/*
 
-ENV MAIN_JAVASCRIPT_FILE="/u01/application/test.json" \
-    IMAGE_BUILD_TIME="2016-09-12T14:30:10Z" \
-    PROXY_PASS_HOST="localhost" \
-    PROXY_PASS_PORT="9090"
+ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z" MAIN_JAVASCRIPT_FILE="/u01/application/test.json" PROXY_PASS_HOST="localhost" PROXY_PASS_PORT="9090"
 
 WORKDIR "/u01/"
 
@@ -59,10 +56,7 @@ RUN chmod 666 /etc/nginx/nginx.conf && \
     chmod 777 /etc/nginx && \
     chmod 755 /u01/bin/*
 
-ENV MAIN_JAVASCRIPT_FILE="/u01/application/" \
-    IMAGE_BUILD_TIME="2016-09-12T14:30:10Z" \
-    PROXY_PASS_HOST="localhost" \
-    PROXY_PASS_PORT="9090"
+ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z" MAIN_JAVASCRIPT_FILE="/u01/application/" PROXY_PASS_HOST="localhost" PROXY_PASS_PORT="9090"
 
 WORKDIR "/u01/"
 
@@ -194,10 +188,11 @@ var osJson = openshiftJson{
 
 func TestGeneratedFiledWhenNodeJSIsEnabled(t *testing.T) {
 	files := make(map[string]string)
+	auroraVersion := runtime.NewAuroraVersion("1.2.3", false, "1.2.3", runtime.CompleteVersion("1.2.3-b--baseimageversion"))
 	err := prepareImage(&osJson, runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
-	}, "1.2.3", testFileWriter(files), buildTime)
+	}, auroraVersion, testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedNodeJsDockerFile, files["Dockerfile"])
 	assert.Equal(t, nginxConfPrefix+expectedNginxConfFilePartial, files["nginx.conf"])
@@ -212,12 +207,13 @@ func TestGeneratedFiledWhenNodeJSIsEnabled(t *testing.T) {
 
 func TestGeneratedFilesWhenNodeJSIsDisabled(t *testing.T) {
 	files := make(map[string]string)
+	auroraVersion := runtime.NewAuroraVersion("1.2.3", false, "1.2.3", runtime.CompleteVersion("1.2.3-b--baseimageversion"))
 	var openshiftJsonNoNodeJs = osJson
 	openshiftJsonNoNodeJs.Aurora.NodeJS = nil
 	err := prepareImage(&openshiftJsonNoNodeJs, runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
-	}, "1.2.3", testFileWriter(files), buildTime)
+	}, auroraVersion, testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedNodeJsDockerFileWithoutNodeApp, files["Dockerfile"])
 	assert.Equal(t, nginxConfPrefix+expectedNginxConfFileNoNodejsPartial, files["nginx.conf"])
@@ -228,6 +224,7 @@ func TestGeneratedFilesWhenNodeJSIsDisabled(t *testing.T) {
 func TestThatCustomHeadersIsPresentInNginxConfig(t *testing.T) {
 	files := make(map[string]string)
 	json := osJson
+	auroraVersion := runtime.NewAuroraVersion("1.2.3", false, "1.2.3", runtime.CompleteVersion("1.2.3-b--baseimageversion"))
 	webapp := webApplication{
 		DisableTryfiles: false,
 		Headers: map[string]string{
@@ -240,7 +237,7 @@ func TestThatCustomHeadersIsPresentInNginxConfig(t *testing.T) {
 	err := prepareImage(&json, runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
-	}, "1.2.3", testFileWriter(files), buildTime)
+	}, auroraVersion, testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, nginxConfPrefix+expectedNginxConfFileSpaAndCustomHeaders, files["nginx.conf"])
 
@@ -248,7 +245,7 @@ func TestThatCustomHeadersIsPresentInNginxConfig(t *testing.T) {
 	err = prepareImage(&json, runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
-	}, "1.2.3", testFileWriter(files), buildTime)
+	}, auroraVersion, testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, nginxConfPrefix+expectedNginxConfFileNoSpaAndCustomHeaders, files["nginx.conf"])
 }
@@ -256,13 +253,14 @@ func TestThatCustomHeadersIsPresentInNginxConfig(t *testing.T) {
 func TestThatOverrideInNginxIsSet(t *testing.T) {
 	files := make(map[string]string)
 	json := osJson
+	auroraVersion := runtime.NewAuroraVersion("1.2.3", false, "1.2.3", runtime.CompleteVersion("1.2.3-b--baseimageversion"))
 	json.Aurora.NodeJS.Overrides = map[string]string{
 		"client_max_body_size": "5m",
 	}
 	err := prepareImage(&json, runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
-	}, "1.2.3", testFileWriter(files), buildTime)
+	}, auroraVersion, testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, nginxConfPrefix+expectedNginxConfigWithOverrides, files["nginx.conf"])
 

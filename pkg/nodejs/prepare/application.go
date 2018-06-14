@@ -34,10 +34,7 @@ RUN chmod 666 /etc/nginx/nginx.conf && \
     chmod 777 /etc/nginx && \
     chmod 755 /u01/bin/*
 
-ENV MAIN_JAVASCRIPT_FILE="/u01/application/{{.MainFile}}" \
-    IMAGE_BUILD_TIME="{{.ImageBuildTime}}" \
-    PROXY_PASS_HOST="localhost" \
-    PROXY_PASS_PORT="9090"
+ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
 
 WORKDIR "/u01/"
 
@@ -165,7 +162,7 @@ func prepare(c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
 	}
 
 	imageBuildTime := docker.GetUtcTimestamp()
-	err = prepareImage(openshiftJson, baseImage, string(auroraVersion.GetAppVersion()), util.NewFileWriter(pathToApplication), imageBuildTime)
+	err = prepareImage(openshiftJson, baseImage, auroraVersion, util.NewFileWriter(pathToApplication), imageBuildTime)
 	if err != nil {
 		return nil, err
 	}
@@ -176,10 +173,10 @@ func prepare(c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
 	}}, nil
 }
 
-func prepareImage(v *openshiftJson, baseImage runtime.DockerImage, version string, writer util.FileWriter,
+func prepareImage(v *openshiftJson, baseImage runtime.DockerImage, auroraVersion *runtime.AuroraVersion, writer util.FileWriter,
 	imageBuildTime string) error {
 	completeDockerName := baseImage.GetCompleteDockerTagName()
-	input, err := mapOpenShiftJsonToTemplateInput(v, completeDockerName, imageBuildTime, version)
+	input, err := mapOpenShiftJsonToTemplateInput(v, completeDockerName, imageBuildTime, auroraVersion)
 
 	if err != nil {
 		return errors.Wrap(err, "Error processing AuroraConfig")
@@ -258,14 +255,14 @@ func findMaintainer(dockerMetadata dockerMetadata) string {
 	return dockerMetadata.Maintainer
 }
 
-func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string, imageBuildTime string, version string) (*templateInput, error) {
+func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string, imageBuildTime string, auroraVersion *runtime.AuroraVersion) (*templateInput, error) {
 	labels := make(map[string]string)
 	if v.DockerMetadata.Labels != nil {
 		for k, v := range v.DockerMetadata.Labels {
 			labels[k] = v
 		}
 	}
-	labels["version"] = version
+	labels["version"] = string(auroraVersion.GetAppVersion())
 	labels["maintainer"] = findMaintainer(v.DockerMetadata)
 
 	var path string
@@ -306,9 +303,16 @@ func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string
 		extraHeaders = v.Aurora.Webapp.Headers
 	}
 
+	env := make(map[string]string)
+	env["MAIN_JAVASCRIPT_FILE"] = "/u01/application/" + nodejsMainfile
+	env["IMAGE_BUILD_TIME"] = imageBuildTime
+	env["PROXY_PASS_HOST"] = "localhost"
+	env["PROXY_PASS_PORT"] = "9090"
+	env["APP_VERSION"] = string(auroraVersion.GetAppVersion())
+	env["AURORA_VERSION"] = string(auroraVersion.GetCompleteVersion())
+
 	return &templateInput{
 		Baseimage:            completeDockerName,
-		MainFile:             nodejsMainfile,
 		HasNodeJSApplication: len(nodejsMainfile) != 0,
 		NginxOverrides:       overrides,
 		ConfigurableProxy:    v.Aurora.ConfigurableProxy,
@@ -317,8 +321,8 @@ func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string
 		SPA:                  spa,
 		Path:                 path,
 		Labels:               labels,
+		Env:                  env,
 		PackageDirectory:     "package",
-		ImageBuildTime:       imageBuildTime,
 	}, nil
 }
 func whitelistOverrides(overrides map[string]string) error {

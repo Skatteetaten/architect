@@ -48,7 +48,6 @@ type probe struct {
 
 type templateInput struct {
 	Baseimage            string
-	MainFile             string
 	HasNodeJSApplication bool
 	NginxOverrides       map[string]string
 	ConfigurableProxy    bool
@@ -57,6 +56,6 @@ type templateInput struct {
 	ExtraStaticHeaders   map[string]string
 	Path                 string
 	Labels               map[string]string
+	Env                  map[string]string
 	PackageDirectory     string
-	ImageBuildTime       string
 }

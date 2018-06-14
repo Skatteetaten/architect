@@ -16,6 +16,7 @@ func TestJavaLeveransePakkeConfig(t *testing.T) {
 	assert.Equal(t, "application-server", c.ApplicationSpec.MavenGav.ArtifactId)
 	assert.Equal(t, "groupid.com", c.ApplicationSpec.MavenGav.GroupId)
 	assert.Equal(t, "0.0.62", c.ApplicationSpec.MavenGav.Version)
+	assert.Equal(t, "1", c.ApplicationSpec.BaseImageSpec.BaseVersion)
 }
 
 func TestNodeJSLeveransePakkeConfig(t *testing.T) {
