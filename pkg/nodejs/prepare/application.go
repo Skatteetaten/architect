@@ -265,12 +265,13 @@ func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string
 	labels["version"] = string(auroraVersion.GetAppVersion())
 	labels["maintainer"] = findMaintainer(v.DockerMetadata)
 
-	var path string
-	if len(strings.TrimPrefix(v.Aurora.Path, "/")) == 0 {
-		path = "/"
-	} else {
+	path := "/"
+	if v.Aurora.Webapp != nil && len(strings.TrimPrefix(v.Aurora.Webapp.Path, "/")) > 0 {
+		path = "/" + strings.TrimPrefix(v.Aurora.Webapp.Path, "/")
+	} else if len(strings.TrimPrefix(v.Aurora.Path, "/")) > 0 {
+		logrus.Warnf("web.path in openshift.json is deprecated. Please use web.webapp.path when setting path: %s", v.Aurora.Path)
 		path = "/" + strings.TrimPrefix(v.Aurora.Path, "/")
-	}
+	} 
 
 	if !strings.HasSuffix(path, "/") {
 		path = path + "/"
