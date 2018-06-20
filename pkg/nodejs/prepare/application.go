@@ -271,7 +271,7 @@ func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string
 	} else if len(strings.TrimPrefix(v.Aurora.Path, "/")) > 0 {
 		logrus.Warnf("web.path in openshift.json is deprecated. Please use web.webapp.path when setting path: %s", v.Aurora.Path)
 		path = "/" + strings.TrimPrefix(v.Aurora.Path, "/")
-	} 
+	}
 
 	if !strings.HasSuffix(path, "/") {
 		path = path + "/"
