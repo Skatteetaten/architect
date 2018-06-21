@@ -28,15 +28,15 @@
                     },
                     {
                       "name": "ARTIFACT_ID",
-                      "value": "sprocket"
+                      "value": "openshift-reference-springboot-server"
                     },
                     {
                       "name": "GROUP_ID",
-                      "value": "ske.aurora.openshift"
+                      "value": "no.skatteetaten.aurora.openshift"
                     },
                     {
                       "name": "VERSION",
-                      "value": "feature_sommerfikser-SNAPSHOT"
+                      "value": "staging-SNAPSHOT"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",

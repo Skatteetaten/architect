@@ -129,7 +129,7 @@ func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
 		baseImage runtime.DockerImage) ([]docker.DockerBuildConfig, error) {
 
-		preparedImages, err := prepare(cfg.ApplicationSpec, auroraVersion, deliverable, baseImage)
+		preparedImages, err := prepare(*cfg, auroraVersion, deliverable, baseImage)
 		if err != nil {
 			return nil, err
 		}
@@ -147,9 +147,12 @@ func Prepper() process.Prepper {
 	}
 }
 
-func prepare(c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
+/*
+func prepare(dockerSpec config.DockerSpec, c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
+	deliverable nexus.Deliverable, baseImage runtime.DockerImage) ([]PreparedImage, error) {*/
+func prepare(cfg config.Config, auroraVersion *runtime.AuroraVersion,
 	deliverable nexus.Deliverable, baseImage runtime.DockerImage) ([]PreparedImage, error) {
-	logrus.Debug("Building %s", c.MavenGav.Name())
+	logrus.Debug("Building %s", cfg.ApplicationSpec.MavenGav.Name())
 
 	openshiftJson, err := findOpenshiftJsonInTarball(deliverable.Path)
 	if err != nil {
@@ -162,7 +165,7 @@ func prepare(c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
 	}
 
 	imageBuildTime := docker.GetUtcTimestamp()
-	err = prepareImage(openshiftJson, baseImage, auroraVersion, util.NewFileWriter(pathToApplication), imageBuildTime)
+	err = prepareImage(cfg.DockerSpec, openshiftJson, baseImage, auroraVersion, util.NewFileWriter(pathToApplication), imageBuildTime)
 	if err != nil {
 		return nil, err
 	}
@@ -173,10 +176,10 @@ func prepare(c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
 	}}, nil
 }
 
-func prepareImage(v *openshiftJson, baseImage runtime.DockerImage, auroraVersion *runtime.AuroraVersion, writer util.FileWriter,
+func prepareImage(dockerSpec config.DockerSpec, v *openshiftJson, baseImage runtime.DockerImage, auroraVersion *runtime.AuroraVersion, writer util.FileWriter,
 	imageBuildTime string) error {
 	completeDockerName := baseImage.GetCompleteDockerTagName()
-	input, err := mapOpenShiftJsonToTemplateInput(v, completeDockerName, imageBuildTime, auroraVersion)
+	input, err := mapOpenShiftJsonToTemplateInput(dockerSpec, v, completeDockerName, imageBuildTime, auroraVersion)
 
 	if err != nil {
 		return errors.Wrap(err, "Error processing AuroraConfig")
@@ -255,7 +258,7 @@ func findMaintainer(dockerMetadata dockerMetadata) string {
 	return dockerMetadata.Maintainer
 }
 
-func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string, imageBuildTime string, auroraVersion *runtime.AuroraVersion) (*templateInput, error) {
+func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJson, completeDockerName string, imageBuildTime string, auroraVersion *runtime.AuroraVersion) (*templateInput, error) {
 	labels := make(map[string]string)
 	if v.DockerMetadata.Labels != nil {
 		for k, v := range v.DockerMetadata.Labels {
@@ -311,6 +314,7 @@ func mapOpenShiftJsonToTemplateInput(v *openshiftJson, completeDockerName string
 	env["PROXY_PASS_PORT"] = "9090"
 	env["APP_VERSION"] = string(auroraVersion.GetAppVersion())
 	env["AURORA_VERSION"] = string(auroraVersion.GetCompleteVersion())
+	env["PUSH_EXTRA_TAGS"] = dockerSpec.PushExtraTags.ToStringValue()
 
 	return &templateInput{
 		Baseimage:            completeDockerName,
