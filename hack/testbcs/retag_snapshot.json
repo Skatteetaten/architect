@@ -36,7 +36,7 @@
                     },
                     {
                       "name": "VERSION",
-                      "value": "staging-SNAPSHOT"
+                      "value": "test_retag-SNAPSHOT"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",

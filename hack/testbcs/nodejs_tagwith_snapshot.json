@@ -19,7 +19,7 @@
             "customStrategy": {
                 "from": {
                     "kind": "DockerImage",
-                    "name": "tulleball"
+                    "name": "docker-registry.aurora.sits.no:5000/aurora/architect:playtime-develop-SNAPSHOT-go"
                 },
                 "env": [
                     {
@@ -27,16 +27,24 @@
                       "value": "uil0paas-utv-registry01.skead.no:5000"
                     },
                     {
+                      "name": "APPLICATION_TYPE",
+                      "value": "nodejs"
+                    },
+                    {
                       "name": "ARTIFACT_ID",
-                      "value": "openshift-reference-springboot-server"
+                      "value": "openshift-referanse-react"
                     },
                     {
                       "name": "GROUP_ID",
-                      "value": "no.skatteetaten.aurora.openshift"
+                      "value": "no.skatteetaten.aurora"
                     },
                     {
                       "name": "VERSION",
-                      "value": "test_retag-SNAPSHOT"
+                      "value": "test-SNAPSHOT"
+                    },
+                    {
+                      "name": "TAG_WITH",
+                      "value": "tagwithnodetest"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",
@@ -44,15 +52,15 @@
                     },
                     {
                       "name": "DOCKER_BASE_NAME",
-                      "value": "aurora/wingnut"
+                      "value": "aurora/wrench"
                     },
                     {
                       "name": "TAG_OVERWRITE",
                       "value": "true"
                     },
                     {
-                      "name": "TAG_WITH",
-                      "value": "tagwithtest"
+                      "name": "SPLUNK_INDEX",
+                      "value": "openshift-test"
                     }
                 ],
                 "exposeDockerSocket": true
@@ -61,7 +69,7 @@
         "output": {
             "to": {
                 "kind": "DockerImage",
-                "name": "uil0paas-utv-registry01.skead.no:5000/aurora/architecttest"
+                "name": "uil0paas-utv-registry01.skead.no:5000/aurora/webleveransetest"
             }
         },
         "resources": {},
