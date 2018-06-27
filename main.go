@@ -48,21 +48,15 @@ func initializeAndRunOnOpenShift() {
 	logrus.Debugf("Using Maven repo on %s", mavenRepo)
 	// Read build config
 	configReader := config.NewInClusterConfigReader()
-	c, err := configReader.ReadConfig()
-	if err != nil {
-		logrus.Fatalf("Could not read configuration: %s", err)
-	}
-
 	cfg, err := configReader.ReadConfig()
-
 	if err != nil {
 		logrus.Fatalf("Error reading config: %s", err)
 	}
 	var nexusDownloader nexus.Downloader
-	if c.BinaryBuild {
+	if cfg.BinaryBuild {
 		binaryInput, err := util.ExtractBinaryFromStdIn()
 		if err != nil {
-			logrus.Fatalf("Could not read binary input", err)
+			logrus.Fatalln("Could not read binary input", err)
 		}
 		nexusDownloader = nexus.NewBinaryDownloader(binaryInput)
 	} else {
