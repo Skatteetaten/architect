@@ -309,12 +309,15 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 
 	env := make(map[string]string)
 	env["MAIN_JAVASCRIPT_FILE"] = "/u01/application/" + nodejsMainfile
-	env["IMAGE_BUILD_TIME"] = imageBuildTime
 	env["PROXY_PASS_HOST"] = "localhost"
 	env["PROXY_PASS_PORT"] = "9090"
-	env["APP_VERSION"] = string(auroraVersion.GetAppVersion())
-	env["AURORA_VERSION"] = string(auroraVersion.GetCompleteVersion())
-	env["PUSH_EXTRA_TAGS"] = dockerSpec.PushExtraTags.ToStringValue()
+	env[docker.IMAGE_BUILD_TIME] = imageBuildTime
+	env[docker.ENV_APP_VERSION] = string(auroraVersion.GetAppVersion())
+	env[docker.ENV_AURORA_VERSION] = string(auroraVersion.GetCompleteVersion())
+	env[docker.ENV_PUSH_EXTRA_TAGS] = dockerSpec.PushExtraTags.ToStringValue()
+	if auroraVersion.Snapshot {
+		env[docker.ENV_SNAPSHOT_TAG] = auroraVersion.GetGivenVersion()
+	}
 
 	return &templateInput{
 		Baseimage:            completeDockerName,
