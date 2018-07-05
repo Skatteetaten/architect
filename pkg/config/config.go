@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config/api"
 	"io/ioutil"
+	"net"
 	"os"
 	"strings"
 )
@@ -36,7 +37,7 @@ func (m *FileConfigReader) ReadConfig() (*Config, error) {
 		return nil, err
 	}
 
-	return newConfig(dat)
+	return newConfig(dat, false)
 }
 
 func (m *InClusterConfigReader) ReadConfig() (*Config, error) {
@@ -46,10 +47,10 @@ func (m *InClusterConfigReader) ReadConfig() (*Config, error) {
 		return nil, errors.New("Expected a build config environment variable to be present.")
 	}
 
-	return newConfig([]byte(buildConfig))
+	return newConfig([]byte(buildConfig), true)
 }
 
-func newConfig(buildConfig []byte) (*Config, error) {
+func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, error) {
 	build := api.Build{}
 	err := json.Unmarshal(buildConfig, &build)
 	if err != nil {
@@ -153,10 +154,15 @@ func newConfig(buildConfig []byte) (*Config, error) {
 	}
 
 	outputKind := build.Spec.Output.To.Kind
+	logrus.Debugf("Output Kind is: %s ", outputKind)
 	if outputKind == "DockerImage" {
 		output := build.Spec.Output.To.Name
 
-		dockerSpec.OutputRegistry, err = findOutputRegistry(output)
+		outputRegistry, err := findOutputRegistry(output)
+		if err != nil {
+			return nil, err
+		}
+		dockerSpec.OutputRegistry, err = resolveIpIfInternalRegistry(outputRegistry, rewriteDockerRepositoryName)
 		if err != nil {
 			return nil, err
 		}
@@ -177,7 +183,7 @@ func newConfig(buildConfig []byte) (*Config, error) {
 			logrus.Error("Expected OUTPUT_REGISTRY environment variable when outputKind is ImageStreamTag")
 			return nil, errors.New("No output registry")
 		}
-		dockerSpec.OutputRegistry = outputRegistry
+		dockerSpec.OutputRegistry, err = resolveIpIfInternalRegistry(outputRegistry, rewriteDockerRepositoryName)
 		if err != nil {
 			return nil, err
 		}
@@ -186,7 +192,7 @@ func newConfig(buildConfig []byte) (*Config, error) {
 			logrus.Error("Expected OUTPUT_IMAGE environment variable when outputKind is ImageStreamTag")
 			return nil, errors.New("No output image")
 		}
-		dockerUrl := outputRegistry + "/" + outputImage
+		dockerUrl := dockerSpec.OutputRegistry + "/" + outputImage
 		dockerSpec.TagWith, err = findOutputTag(dockerUrl)
 		if err != nil {
 			return nil, err
@@ -208,6 +214,42 @@ func newConfig(buildConfig []byte) (*Config, error) {
 		BinaryBuild:     build.Spec.Source.Type == api.BuildSourceBinary,
 	}
 	return c, nil
+}
+
+//resolveIpIfInternalRegistry To fix AOT-263
+func resolveIpIfInternalRegistry(registryWithPort string, rewrite bool) (string, error) {
+	if !rewrite {
+		return registryWithPort, nil
+	}
+	host, port, err := net.SplitHostPort(registryWithPort)
+	if err != nil {
+		logrus.Warnf("Error splitting host and port of %s.. Try to continue", registryWithPort)
+	}
+	//We have a IP (OCP < 3.9)
+	if net.ParseIP(host) != nil {
+		return registryWithPort, nil
+	}
+	canonical, err := net.LookupCNAME(host)
+	if err != nil {
+		return "", err
+	}
+	/*
+		We assume that intern registry has cluster.local suffix.. This is valid today, but not necessary in the future
+	*/
+	if strings.HasSuffix(canonical, "cluster.local.") {
+		ips, err := net.LookupIP(canonical)
+		if err != nil {
+			return "", err
+		}
+		for _, ip := range ips {
+			ipv4 := ip.To4()
+			if ipv4 != nil {
+				return net.JoinHostPort(ipv4.String(), port), nil
+			}
+		}
+		return "", errors.Errorf("Unable to lookup IP for %s", canonical)
+	}
+	return registryWithPort, nil
 }
 
 func findBaseImage(env map[string]string) (DockerBaseImageSpec, error) {
