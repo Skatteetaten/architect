@@ -53,8 +53,6 @@ func initializeAndRunOnOpenShift() {
 		logrus.Fatalf("Could not read configuration: %s", err)
 	}
 
-	cfg, err := configReader.ReadConfig()
-
 	if err != nil {
 		logrus.Fatalf("Error reading config: %s", err)
 	}
@@ -69,8 +67,8 @@ func initializeAndRunOnOpenShift() {
 		nexusDownloader = nexus.NewNexusDownloader(mavenRepo)
 	}
 	runConfig := architect.RunConfiguration{
-		Config:    cfg,
-		NexusDownloader: nexusDownloader,
+		Config:                  c,
+		NexusDownloader:         nexusDownloader,
 		RegistryCredentialsFunc: docker.CusterRegistryCredentials(),
 	}
 	architect.RunArchitect(runConfig)
