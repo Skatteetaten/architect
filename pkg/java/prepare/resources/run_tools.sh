@@ -26,6 +26,16 @@ _meta = environment::$POD_NAMESPACE application::${APP_NAME} nodetype::openshift
 host = $HOSTNAME
 # --- end/stanza
 
+# --- start/stanza EVENTS
+[monitor://./logs/*.events]
+disabled = false
+followTail = 0
+sourcetype = log4j
+index = $SPLUNK_INDEX
+_meta = environment::$POD_NAMESPACE application::${APP_NAME} nodetype::openshift
+host = $HOSTNAME
+# --- end/stanza
+
 # --- start/stanza ACCESS_LOG
 [monitor://./logs/*.access]
 disabled = false
