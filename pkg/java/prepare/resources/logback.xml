@@ -47,6 +47,6 @@
   </root>
   <logger name="EventLogger" additivity="false">
     <level value="INFO"/>
-    <appender appender-ref="EVENTS"/>
+    <appender-ref ref="EVENTS"/>
   </logger>
 </configuration>
