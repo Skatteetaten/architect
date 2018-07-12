@@ -30,7 +30,7 @@ host = $HOSTNAME
 [monitor://./logs/*.events]
 disabled = false
 followTail = 0
-sourcetype = log4j
+sourcetype = _json
 index = $SPLUNK_INDEX
 _meta = environment::$POD_NAMESPACE application::${APP_NAME} nodetype::openshift
 host = $HOSTNAME
