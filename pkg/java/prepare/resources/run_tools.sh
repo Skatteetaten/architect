@@ -26,13 +26,13 @@ _meta = environment::$POD_NAMESPACE application::${APP_NAME} nodetype::openshift
 host = $HOSTNAME
 # --- end/stanza
 
-# --- start/stanza EVENTS
-[monitor://./logs/*.events]
+# --- start/stanza AUDIT
+[monitor://./logs/*.audit.json]
 disabled = false
 followTail = 0
 sourcetype = _json
 index = $SPLUNK_INDEX
-_meta = environment::$POD_NAMESPACE application::${APP_NAME} nodetype::openshift
+_meta = environment::$POD_NAMESPACE application::${APP_NAME} nodetype::openshift logtype::audit
 host = $HOSTNAME
 # --- end/stanza
 
