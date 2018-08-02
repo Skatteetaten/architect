@@ -20,9 +20,16 @@ func TestPrepare(t *testing.T) {
 
 	dockerBuildPath, err := prepare.Prepare(global.DockerSpec{}, auroraVersions,
 		nexus.Deliverable{"testdata/minarch-1.2.22-Leveransepakke.zip"},
-		runtime.DockerImage{
-			Repository: "test",
-			Tag:        "1",
+		runtime.BaseImage{
+			DockerImage: runtime.DockerImage{
+				Repository: "test",
+				Tag:        "1",
+			},
+			ImageInfo: &runtime.ImageInfo{
+				CompleteBaseImageVersion: "hei",
+				Enviroment:               make(map[string]string),
+				Labels:                   make(map[string]string),
+			},
 		})
 
 	assert.NoError(t, err)

@@ -38,15 +38,15 @@ func NewByteWriter(data []byte) WriterFunc {
 }
 
 func NewFileWriter(targetFolder string) FileWriter {
-	return func(writerFunc WriterFunc, elem ...string) error {
-		elem = append(elem, "")
-		copy(elem[1:], elem[0:])
-		elem[0] = targetFolder
-		fp := filepath.Join(elem...)
+	return func(writerFunc WriterFunc, fileAsPath ...string) error {
+		fileAsPath = append(fileAsPath, "")
+		copy(fileAsPath[1:], fileAsPath[0:])
+		fileAsPath[0] = targetFolder
+		fp := filepath.Join(fileAsPath...)
 		os.MkdirAll(path.Dir(fp), os.ModeDir|0755)
 		fileToWriteTo, err := os.Create(fp)
 		if err != nil {
-			return errors.Wrapf(err, "Error creating %+t", elem)
+			return errors.Wrapf(err, "Error creating %+t", fileAsPath)
 		}
 		defer fileToWriteTo.Close()
 		err = writerFunc(fileToWriteTo)
@@ -55,7 +55,7 @@ func NewFileWriter(targetFolder string) FileWriter {
 		}
 		err = fileToWriteTo.Sync()
 		if err != nil {
-			return errors.Wrapf(err, "Error writing %+t", elem)
+			return errors.Wrapf(err, "Error writing %+t", fileAsPath)
 		}
 		return nil
 	}

@@ -6,21 +6,15 @@ import (
 	"fmt"
 	"github.com/docker/docker/image"
 	"github.com/pkg/errors"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"io/ioutil"
 	"net/http"
 	"strings"
 )
 
 type ImageInfoProvider interface {
-	GetCompleteBaseImageVersion(repository string, tag string) (string, error)
+	GetImageInfo(repository string, tag string) (*runtime.ImageInfo, error)
 	GetTags(repository string) (*TagsAPIResponse, error)
-	GetManifestEnvMap(repository string, tag string) (map[string]string, error)
-}
-
-type ContainerImageV1 struct {
-	ContainerConfig struct {
-		Env []string `json:"Env"`
-	} `json:"config"`
 }
 
 type Manifest struct {
@@ -76,7 +70,7 @@ func (registry *RegistryClient) getRegistryBlob(repository string, digestID stri
 	return body, nil
 }
 
-func (registry *RegistryClient) GetManifestEnvMap(repository string, tag string) (map[string]string, error) {
+func (registry *RegistryClient) GetImageInfo(repository string, tag string) (*runtime.ImageInfo, error) {
 	body, err := registry.getRegistryManifest(repository, tag)
 
 	if err != nil {
@@ -90,17 +84,13 @@ func (registry *RegistryClient) GetManifestEnvMap(repository string, tag string)
 		return nil, errors.Wrapf(err, "Failed to unmarshal manifest for repository %s, tag %s from Docker registry %s", repository, tag, registry.address)
 	}
 
+	var v1Image image.V1Image
 	if manifestMeta.SchemaVersion == 1 {
 		if len(manifestMeta.History) > 0 {
-			envMap, err := getEnvMapFromV1Data(manifestMeta.History[0].V1Compatibility)
-
-			if err != nil {
-				return nil, errors.Wrap(err, "Unable to get environment map for schemaVersion 1")
+			if err := json.Unmarshal([]byte(manifestMeta.History[0].V1Compatibility), &v1Image); err != nil {
+				return nil, errors.Wrapf(err, "Failed to unmarshal image from manifest")
 			}
-
-			return envMap, nil
 		}
-		return nil, errors.New("Error in Manifest for schemaVersion 1. Incomplete History list")
 	} else if manifestMeta.Config.Digest != "" {
 		digestID := manifestMeta.Config.Digest
 
@@ -109,26 +99,36 @@ func (registry *RegistryClient) GetManifestEnvMap(repository string, tag string)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to read image meta from blob in repository %s, digestID %s from Docker registry %s", repository, digestID, registry.address)
 		}
-
-		imageMeta := ContainerImageV1{}
-		err = json.Unmarshal(body, &imageMeta)
+		err = json.Unmarshal(body, &v1Image)
 
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to unmarshal image meta from blob in repository %s, digestID %s from Docker registry %s", repository, digestID, registry.address)
 		}
 
-		envMap := make(map[string]string)
-		for _, entry := range imageMeta.ContainerConfig.Env {
-			key, value, err := envKeyValue(entry)
-			if err != nil {
-				return nil, errors.Wrap(err, "Failed to read env variable")
-			}
-			envMap[key] = value
-		}
-
-		return envMap, nil
+	} else {
+		return nil, errors.Errorf("Error getting image manifest for %s from docker registry %s", repository, registry.address)
 	}
-	return nil, errors.Errorf("Failed creating environment map from manifest in registry %s and repository %s", registry.address, repository)
+
+	envMap := make(map[string]string)
+	for _, entry := range v1Image.Config.Env {
+		key, value, err := envKeyValue(entry)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to read env variable")
+		}
+		envMap[key] = value
+	}
+
+	baseImageVersion, exists := envMap["BASE_IMAGE_VERSION"]
+
+	if !exists {
+		return nil, errors.Errorf("Unable to get BASE_IMAGE_VERSION. %s is not a compatible image", repository)
+	}
+
+	return &runtime.ImageInfo{
+		Labels:                   v1Image.Config.Labels,
+		Enviroment:               envMap,
+		CompleteBaseImageVersion: baseImageVersion,
+	}, nil
 }
 
 func (registry *RegistryClient) GetTags(repository string) (*TagsAPIResponse, error) {
@@ -161,50 +161,6 @@ func (registry *RegistryClient) GetTags(repository string) (*TagsAPIResponse, er
 	}
 
 	return &tagsList, nil
-}
-
-func (registry *RegistryClient) GetCompleteBaseImageVersion(repository string, tag string) (string, error) {
-
-	envMap, err := registry.GetManifestEnvMap(repository, tag)
-
-	if err != nil {
-		return "", errors.Wrap(err, "Unable to get environment map")
-	}
-
-	value, ok := envMap["BASE_IMAGE_VERSION"]
-
-	if !ok {
-		return "", errors.Errorf("Env variable %s not in manifest", "BASE_IMAGE_VERSION")
-	}
-
-	if value == "" {
-		return "", errors.Errorf("Failed to extract version in getBaseImageVersion, registry: %s, "+
-			"BaseImage: %s, BaseVersion: %s EnvMap: %v",
-			registry, repository, tag, envMap)
-	}
-	return value, nil
-}
-
-func getEnvMapFromV1Data(v1data string) (map[string]string, error) {
-	var v1image image.V1Image
-
-	envMap := make(map[string]string)
-
-	if err := json.Unmarshal([]byte(v1data), &v1image); err != nil {
-		return nil, errors.Wrapf(err, "Failed to unmarshal image from manifest")
-	}
-
-	for _, entry := range v1image.Config.Env {
-		key, value, err := envKeyValue(entry)
-
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to read env variable")
-		}
-
-		envMap[key] = value
-	}
-
-	return envMap, nil
 }
 
 func envKeyValue(target string) (string, string, error) {

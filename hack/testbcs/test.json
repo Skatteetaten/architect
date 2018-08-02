@@ -12,7 +12,7 @@
         "triggers": [],
         "runPolicy": "Serial",
         "source": {
-            "type": "None"
+            "type": "Binary"
         },
         "strategy": {
             "type": "Custom",
@@ -36,11 +36,11 @@
                     },
                     {
                       "name": "VERSION",
-                      "value": "test_retag-SNAPSHOT"
+                      "value": "1.0-SNAPSHOT"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",
-                      "value": "latest"
+                      "value": "1.1.0-beta"
                     },
                     {
                       "name": "DOCKER_BASE_NAME",
