@@ -137,6 +137,26 @@ func TestGetTags(t *testing.T) {
 	verifyTagListContent(tags.Tags, expectedTags, t)
 }
 
+func TestReadingOfEnvStrings(t *testing.T) {
+	key, value, err := envKeyValue("JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true")
+	assert.NoError(t, err)
+	assert.Equal(t, "JAVA_TOOL_OPTIONS", key)
+	assert.Equal(t, "-Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true", value)
+
+	key, value, err = envKeyValue("KEY=value")
+	assert.NoError(t, err)
+	assert.Equal(t, "KEY", key)
+	assert.Equal(t, "value", value)
+
+	key, value, err = envKeyValue("KEY=")
+	assert.NoError(t, err)
+	assert.Equal(t, "KEY", key)
+	assert.Equal(t, "", value)
+
+	key, value, err = envKeyValue("KEY")
+	assert.Error(t, err)
+}
+
 func verifyTagListContent(actualList []string, expectedList []string, t *testing.T) {
 	if len(actualList) != len(expectedList) {
 		t.Errorf("Expected %d tags, actual is %d", len(expectedList), len(actualList))

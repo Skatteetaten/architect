@@ -9,6 +9,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -164,11 +165,10 @@ func (registry *RegistryClient) GetTags(repository string) (*TagsAPIResponse, er
 }
 
 func envKeyValue(target string) (string, string, error) {
-	s := strings.Split(target, "=")
-
-	if len(s) != 2 {
-		return "", "", errors.Errorf("Invalid env declaration: %s", target)
+	regex := regexp.MustCompile("(.*?)=(.*)")
+	if regex.MatchString(target) {
+		matches := regex.FindStringSubmatch(target)
+		return strings.TrimSpace(matches[1]), strings.TrimSpace(matches[2]), nil
 	}
-
-	return strings.TrimSpace(s[0]), strings.TrimSpace(s[1]), nil
+	return "", "", errors.Errorf("Invalid env declaration: %s", target)
 }
