@@ -13,7 +13,7 @@ import (
 
 func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
-		baseImage runtime.DockerImage) ([]docker.DockerBuildConfig, error) {
+		baseImage runtime.BaseImage) ([]docker.DockerBuildConfig, error) {
 
 		logrus.Debug("Prepare output image")
 		buildPath, err := prepare.Prepare(cfg.DockerSpec, auroraVersion, deliverable, baseImage)
@@ -26,7 +26,7 @@ func Prepper() process.Prepper {
 			AuroraVersion:    auroraVersion,
 			BuildFolder:      buildPath,
 			DockerRepository: cfg.DockerSpec.OutputRepository,
-			Baseimage:        baseImage,
+			Baseimage:        baseImage.DockerImage,
 		}
 		return []docker.DockerBuildConfig{buildConf}, nil
 	}

@@ -27,10 +27,12 @@ func TestApplicationPrepare(t *testing.T) {
 	imageInfoProvider := &testImageInfoProvider{}
 	auroraVersion := runtime.NewAuroraVersion("0.1.2", false, "0.1.2", runtime.CompleteVersion("0.1.2-b--baseimageversion"))
 	prepper := prepare.Prepper()
-	baseImage := runtime.DockerImage{
-		Tag:        "test",
-		Repository: "tull",
-		Registry:   "tullogtoys",
+	baseImage := runtime.BaseImage{
+		DockerImage: runtime.DockerImage{
+			Tag:        "test",
+			Repository: "tull",
+			Registry:   "tullogtoys",
+		},
 	}
 	deliverable := nexus.Deliverable{Path: "testfiles/openshift-referanse-react-snapshot_test-SNAPSHOT-Webleveransepakke.tgz"}
 	bc, err := prepper(&c, auroraVersion, deliverable, baseImage)

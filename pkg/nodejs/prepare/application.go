@@ -114,7 +114,7 @@ For example; Accepting very large client_max_body_size would make a DOS attack v
 var allowedNginxOverrides = map[string]func(string) error{
 	"client_max_body_size": func(s string) error {
 		// between 1 and 20
-		match, err := regexp.MatchString("^([1-9]|[1-2][0-9])m$", s)
+		match, err := regexp.MatchString("^([1-9]|[1][0-9]|[2][0])m$", s)
 		if err != nil {
 			return err
 		}
@@ -127,9 +127,9 @@ var allowedNginxOverrides = map[string]func(string) error{
 
 func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
-		baseImage runtime.DockerImage) ([]docker.DockerBuildConfig, error) {
+		baseImage runtime.BaseImage) ([]docker.DockerBuildConfig, error) {
 
-		preparedImages, err := prepare(*cfg, auroraVersion, deliverable, baseImage)
+		preparedImages, err := prepare(*cfg, auroraVersion, deliverable, baseImage.DockerImage)
 		if err != nil {
 			return nil, err
 		}
