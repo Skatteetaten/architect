@@ -9,9 +9,19 @@ import (
 	"strings"
 )
 
+type ImageInfo struct {
+	CompleteBaseImageVersion string
+	Labels                   map[string]string
+	Enviroment               map[string]string
+}
+
+type BaseImage struct {
+	DockerImage
+	ImageInfo *ImageInfo
+}
+
 // The Docker naming scheme sucks..
 // https://docs.docker.com/glossary/?term=repository
-
 type DockerImage struct {
 	Tag        string
 	Repository string

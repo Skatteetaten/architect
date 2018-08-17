@@ -13,15 +13,15 @@ import (
 // The base directory where all code is copied in the Docker image
 const DockerBasedir = "/u01"
 
-// The root of the application
-const ApplicationRoot = "app"
+// Where in the build folder the application is put
+const DockerfileApplicationFolder = "app"
 
 const ApplicationFolder = "application"
 
 // The directory where the application is prepared
-const ApplicationBuildFolder = ApplicationRoot + "/" + ApplicationFolder
+const ApplicationBuildFolder = DockerfileApplicationFolder + "/" + ApplicationFolder
 
-var dockerfileTemplate string = `FROM {{.BaseImage}}
+var legacyDockerFileTemplate string = `FROM {{.BaseImage}}
 
 MAINTAINER {{.Maintainer}}
 LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
@@ -35,6 +35,21 @@ RUN chmod -R 777 $HOME && \
 ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
 `
 
+var radishDockerFileTemplate string = `FROM {{.BaseImage}}
+
+MAINTAINER {{.Maintainer}}
+LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
+
+COPY ./app radish.json $HOME/
+RUN find $HOME/application -type d -exec chmod 755 {} + && \
+	find $HOME/application -type f -exec chmod 644 {} + && \
+	mkdir -p $HOME/logs && \
+	chmod 777 $HOME/logs && \
+	ln -s $HOME/logs $HOME/application/logs
+
+ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
+`
+
 type DockerfileData struct {
 	BaseImage  string
 	Maintainer string
@@ -42,8 +57,7 @@ type DockerfileData struct {
 	Env        map[string]string
 }
 
-func createEnv(auroraVersion runtime.AuroraVersion, pushextratags global.PushExtraTags,
-	meta config.DeliverableMetadata, imageBuildTime string) map[string]string {
+func createEnv(auroraVersion runtime.AuroraVersion, pushextratags global.PushExtraTags, imageBuildTime string) map[string]string {
 	env := make(map[string]string)
 	env[docker.ENV_APP_VERSION] = string(auroraVersion.GetAppVersion())
 	env[docker.ENV_AURORA_VERSION] = auroraVersion.GetCompleteVersion()
@@ -55,25 +69,11 @@ func createEnv(auroraVersion runtime.AuroraVersion, pushextratags global.PushExt
 		env[docker.ENV_SNAPSHOT_TAG] = auroraVersion.GetGivenVersion()
 	}
 
-	if meta.Openshift != nil {
-		if meta.Openshift.ReadinessURL != "" {
-			env[docker.ENV_READINESS_CHECK_URL] = meta.Openshift.ReadinessURL
-		}
-
-		if meta.Openshift.ReadinessOnManagementPort == "" || meta.Openshift.ReadinessOnManagementPort == "true" {
-			env[docker.ENV_READINESS_ON_MANAGEMENT_PORT] = "true"
-		}
-	} else if meta.Java != nil && meta.Java.ReadinessURL != "" {
-		env[docker.ENV_READINESS_CHECK_URL] = meta.Java.ReadinessURL
-	}
-
-	env["LOGBACK_FILE"] = "$HOME/architect/logback.xml"
-
 	return env
 }
 
 func createLabels(meta config.DeliverableMetadata) map[string]string {
-	var labels map[string]string = make(map[string]string)
+	var labels = make(map[string]string)
 
 	for k, v := range meta.Docker.Labels {
 		labels[k] = v
@@ -93,21 +93,52 @@ func verifyMetadata(meta config.DeliverableMetadata) error {
 	return nil
 }
 
-func NewDockerfile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVersion, meta config.DeliverableMetadata,
+func NewRadishDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVersion, meta config.DeliverableMetadata,
 	baseImage runtime.DockerImage, imageBuildTime string) util.WriterFunc {
 	return func(writer io.Writer) error {
 
 		if err := verifyMetadata(meta); err != nil {
 			return err
 		}
-
+		env := createEnv(auroraVersion, dockerSpec.PushExtraTags, imageBuildTime)
 		data := &DockerfileData{
 			BaseImage:  baseImage.GetCompleteDockerTagName(),
 			Maintainer: meta.Docker.Maintainer,
 			Labels:     createLabels(meta),
-			Env:        createEnv(auroraVersion, dockerSpec.PushExtraTags, meta, imageBuildTime),
+			Env:        env,
 		}
 
-		return util.NewTemplateWriter(data, "Dockerfile", dockerfileTemplate)(writer)
+		return util.NewTemplateWriter(data, "Dockerfile", radishDockerFileTemplate)(writer)
+	}
+}
+
+func NewLegacyDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVersion, meta config.DeliverableMetadata,
+	baseImage runtime.DockerImage, imageBuildTime string) util.WriterFunc {
+	return func(writer io.Writer) error {
+
+		if err := verifyMetadata(meta); err != nil {
+			return err
+		}
+		env := createEnv(auroraVersion, dockerSpec.PushExtraTags, imageBuildTime)
+		env["LOGBACK_FILE"] = "$HOME/architect/logback.xml"
+		if meta.Openshift != nil {
+			if meta.Openshift.ReadinessURL != "" {
+				env[docker.ENV_READINESS_CHECK_URL] = meta.Openshift.ReadinessURL
+			}
+
+			if meta.Openshift.ReadinessOnManagementPort == "" || meta.Openshift.ReadinessOnManagementPort == "true" {
+				env[docker.ENV_READINESS_ON_MANAGEMENT_PORT] = "true"
+			}
+		} else if meta.Java != nil && meta.Java.ReadinessURL != "" {
+			env[docker.ENV_READINESS_CHECK_URL] = meta.Java.ReadinessURL
+		}
+		data := &DockerfileData{
+			BaseImage:  baseImage.GetCompleteDockerTagName(),
+			Maintainer: meta.Docker.Maintainer,
+			Labels:     createLabels(meta),
+			Env:        env,
+		}
+
+		return util.NewTemplateWriter(data, "Dockerfile", legacyDockerFileTemplate)(writer)
 	}
 }

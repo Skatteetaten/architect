@@ -32,11 +32,13 @@ func (m *retagger) Retag() error {
 	logrus.Debug("Get ENV from image manifest")
 	manifestProvider := docker.NewRegistryClient(m.Config.DockerSpec.ExternalDockerRegistry)
 
-	envMap, err := manifestProvider.GetManifestEnvMap(repository, tag)
+	imageInfo, err := manifestProvider.GetImageInfo(repository, tag)
 
 	if err != nil {
 		return errors.Wrap(err, "Failed to retag image")
 	}
+
+	envMap := imageInfo.Enviroment
 
 	// Get AURORA_VERSION
 	auroraVersion, ok := envMap[docker.ENV_AURORA_VERSION]

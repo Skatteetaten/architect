@@ -24,9 +24,9 @@ func TestGetManifestEnvSchemaV1(t *testing.T) {
 
 	target := NewRegistryClient(server.URL)
 
-	manifestEnvMap, err := target.GetManifestEnvMap(repository, tag)
+	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
-	actualVersion := manifestEnvMap["BASE_IMAGE_VERSION"]
+	actualVersion := imageInfo.Enviroment["BASE_IMAGE_VERSION"]
 	assert.Equal(t, expectedVersion, actualVersion)
 }
 
@@ -41,9 +41,9 @@ func TestGetCompleteBaseImageVersionSchemaV1(t *testing.T) {
 
 	target := NewRegistryClient(server.URL)
 
-	actualVersion, err := target.GetCompleteBaseImageVersion(repository, tag)
+	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
-	assert.Equal(t, expectedVersion, actualVersion)
+	assert.Equal(t, expectedVersion, imageInfo.CompleteBaseImageVersion)
 }
 
 func TestGetManifestEnvMapSchemaV1(t *testing.T) {
@@ -57,11 +57,11 @@ func TestGetManifestEnvMapSchemaV1(t *testing.T) {
 
 	target := NewRegistryClient(server.URL)
 
-	envMap, err := target.GetManifestEnvMap(repository, tag)
+	imageInfo, err := target.GetImageInfo(repository, tag)
 
 	assert.NoError(t, err)
 
-	actualLength := len(envMap)
+	actualLength := len(imageInfo.Enviroment)
 	assert.Equal(t, expectedLength, actualLength)
 }
 
@@ -76,9 +76,9 @@ func TestGetManifestEnvSchemaV2(t *testing.T) {
 
 	target := NewRegistryClient(server.URL)
 
-	manifestEnvMap, err := target.GetManifestEnvMap(repository, tag)
+	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
-	actualVersion := manifestEnvMap["BASE_IMAGE_VERSION"]
+	actualVersion := imageInfo.Enviroment["BASE_IMAGE_VERSION"]
 	assert.Equal(t, expectedVersion, actualVersion)
 }
 
@@ -93,9 +93,9 @@ func TestGetCompleteBaseImageVersionSchemaV2(t *testing.T) {
 
 	target := NewRegistryClient(server.URL)
 
-	actualVersion, err := target.GetCompleteBaseImageVersion(repository, tag)
+	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
-	assert.Equal(t, expectedVersion, actualVersion)
+	assert.Equal(t, expectedVersion, imageInfo.CompleteBaseImageVersion)
 }
 
 func TestGetManifestEnvMapSchemaV2(t *testing.T) {
@@ -109,11 +109,11 @@ func TestGetManifestEnvMapSchemaV2(t *testing.T) {
 
 	target := NewRegistryClient(server.URL)
 
-	envMap, err := target.GetManifestEnvMap(repository, tag)
+	imageInfo, err := target.GetImageInfo(repository, tag)
 
 	assert.NoError(t, err)
 
-	actualLength := len(envMap)
+	actualLength := len(imageInfo.Enviroment)
 	assert.Equal(t, expectedLength, actualLength)
 }
 
@@ -135,6 +135,26 @@ func TestGetTags(t *testing.T) {
 	assert.NoError(t, err)
 
 	verifyTagListContent(tags.Tags, expectedTags, t)
+}
+
+func TestReadingOfEnvStrings(t *testing.T) {
+	key, value, err := envKeyValue("JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true")
+	assert.NoError(t, err)
+	assert.Equal(t, "JAVA_TOOL_OPTIONS", key)
+	assert.Equal(t, "-Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true", value)
+
+	key, value, err = envKeyValue("KEY=value")
+	assert.NoError(t, err)
+	assert.Equal(t, "KEY", key)
+	assert.Equal(t, "value", value)
+
+	key, value, err = envKeyValue("KEY=")
+	assert.NoError(t, err)
+	assert.Equal(t, "KEY", key)
+	assert.Equal(t, "", value)
+
+	key, value, err = envKeyValue("KEY")
+	assert.Error(t, err)
 }
 
 func verifyTagListContent(actualList []string, expectedList []string, t *testing.T) {

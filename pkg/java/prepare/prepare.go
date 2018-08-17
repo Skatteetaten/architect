@@ -1,6 +1,7 @@
 package prepare
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
@@ -20,7 +21,7 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.DockerImage) (string, error) {
+func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (string, error) {
 
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
@@ -44,22 +45,34 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 		return "", errors.Wrap(err, "Failed to read application metadata")
 	}
 
-	// Runtime scripts
-	if err := copyDefaultRuntimeScripts(dockerBuildPath); err != nil {
-		return "", errors.Wrap(err, "Failed to add static content to Docker context")
-	}
-
-	// Prepare application
-	if err := prepareEffectiveScripts(applicationFolder, meta); err != nil {
-		return "", errors.Wrap(err, "Failed to prepare application")
-	}
-
-	// Dockerfile
 	fileWriter := util.NewFileWriter(dockerBuildPath)
 
-	if err = fileWriter(NewDockerfile(dockerSpec, *auroraVersions, *meta, baseImage, docker.GetUtcTimestamp()),
-		"Dockerfile"); err != nil {
-		return "", errors.Wrap(err, "Failed to create Dockerfile")
+	if architecture, exists := baseImage.ImageInfo.Labels["www.skatteetaten.no-imageArchitecture"]; exists && architecture == "java" {
+		logrus.Info("Running radish build")
+		if err := fileWriter(newRadishDescriptor(meta, filepath.Join(DockerBasedir, ApplicationFolder)), "radish.json"); err != nil {
+			return "", errors.Wrap(err, "Unable to create radish descriptor")
+		}
+		if err = fileWriter(NewRadishDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
+			"Dockerfile"); err != nil {
+			return "", errors.Wrap(err, "Failed to create Dockerfile")
+		}
+	} else {
+		logrus.Info("Running legacy build")
+		// Runtime scripts
+		if err := copyDefaultRuntimeScripts(dockerBuildPath); err != nil {
+			return "", errors.Wrap(err, "Failed to add static content to Docker context")
+		}
+
+		// Prepare application
+		if err := prepareEffectiveScripts(applicationFolder, meta); err != nil {
+			return "", errors.Wrap(err, "Failed to prepare application")
+		}
+
+		// Dockerfile
+		if err = fileWriter(NewLegacyDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
+			"Dockerfile"); err != nil {
+			return "", errors.Wrap(err, "Failed to create Dockerfile")
+		}
 	}
 
 	return dockerBuildPath, nil
@@ -67,7 +80,7 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 
 func extractAndRenameDeliverable(dockerBuildFolder string, deliverablePath string) error {
 
-	applicationRoot := filepath.Join(dockerBuildFolder, ApplicationRoot)
+	applicationRoot := filepath.Join(dockerBuildFolder, DockerfileApplicationFolder)
 	renamedApplicationFolder := filepath.Join(dockerBuildFolder, ApplicationBuildFolder)
 	if err := os.MkdirAll(dockerBuildFolder, 0755); err != nil {
 		return errors.Wrap(err, "Failed to create application directory in Docker context")

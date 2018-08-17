@@ -23,16 +23,21 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, download
 	application := cfg.ApplicationSpec
 	logrus.Debug("Extract build info")
 
-	completeBaseImageVersion, err := provider.GetCompleteBaseImageVersion(application.BaseImageSpec.BaseImage,
+	imageInfo, err := provider.GetImageInfo(application.BaseImageSpec.BaseImage,
 		application.BaseImageSpec.BaseVersion)
 	if err != nil {
 		return errors.Wrap(err, "Unable to get the complete build version")
 	}
 
-	baseImage := runtime.DockerImage{
-		Tag:        completeBaseImageVersion,
-		Repository: application.BaseImageSpec.BaseImage,
-		Registry:   cfg.DockerSpec.GetExternalRegistryWithoutProtocol(),
+	completeBaseImageVersion := imageInfo.CompleteBaseImageVersion
+
+	baseImage := runtime.BaseImage{
+		DockerImage: runtime.DockerImage{
+			Tag:        completeBaseImageVersion,
+			Repository: application.BaseImageSpec.BaseImage,
+			Registry:   cfg.DockerSpec.GetExternalRegistryWithoutProtocol(),
+		},
+		ImageInfo: imageInfo,
 	}
 
 	buildImage := &runtime.ArchitectImage{
@@ -41,7 +46,7 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, download
 	snapshot := application.MavenGav.IsSnapshot()
 	appVersion := nexus.GetSnapshotTimestampVersion(application.MavenGav, deliverable)
 	auroraVersion := runtime.NewAuroraVersionFromBuilderAndBase(appVersion, snapshot,
-		application.MavenGav.Version, buildImage, baseImage)
+		application.MavenGav.Version, buildImage, baseImage.DockerImage)
 	if err != nil {
 		return errors.Wrap(err, "Error creating version information")
 	}
