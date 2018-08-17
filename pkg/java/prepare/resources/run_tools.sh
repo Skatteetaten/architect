@@ -4,7 +4,13 @@ function create_splunk_stanza()
     OUTPUT_FILE="$2"
     SPLUNK_STANZA="$3"
 
+    SPLUNK_AUDIT_INDEX="audit-test"
+
     if [ -n "$SPLUNK_INDEX" ]; then
+
+        if [[ $SPLUNK_INDEX =~ .*-prod ]]; then
+          SPLUNK_AUDIT_INDEX="audit-prod"
+        fi
 
         if [ -z "$SPLUNK_STANZA"  ]; then
             # In Openshift the host name is the same as pod name. The pod name, by convention, is the application name followed
@@ -31,7 +37,7 @@ host = $HOSTNAME
 disabled = false
 followTail = 0
 sourcetype = _json
-index = $SPLUNK_INDEX
+index = $SPLUNK_AUDIT_INDEX
 _meta = environment::$POD_NAMESPACE application::${APP_NAME} nodetype::openshift logtype::audit
 host = $HOSTNAME
 # --- end/stanza
