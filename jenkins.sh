@@ -15,4 +15,13 @@ export COBERTURA_REPORT=coverage.xml
 # Go get is not the best way of installing.... :/
 export PATH=$PATH:$HOME/go/bin
 
-make clean test
+make clean 
+
+#Create executable in /bin/amd64
+make
+
+#Run test and coverage
+make test
+
+cd bin/amd64
+tar -cvzf architect.tar.gz architect
