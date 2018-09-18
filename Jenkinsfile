@@ -32,7 +32,7 @@ node {
 
     stage 'OpenShift build'
     def namespace = openshift.jenkinsNamespace()
-    def result = openshift.oc("start-build architect -e ARTIFACT_NAME=architect -e ARTIFACT_VERSION=${tagVersion} -n=${namespace} -F")
+    def result = openshift.oc("start-build architect -e ARTIFACT_NAME=architect -e GROUP_ID=ske.aurora.openshift -e ARTIFACT_VERSION=${tagVersion} -n=${namespace} -F")
     if(!result) {
         error("Building docker image failed")
     }
