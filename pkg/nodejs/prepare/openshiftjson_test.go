@@ -77,13 +77,13 @@ func TestThatOverridesAreWhitelistedAndSetCorrectly(t *testing.T) {
 	assert.EqualError(t, err, "Config a_value_not_whitelisted is not allowed to override with Architect.")
 
 	openshiftJson.Aurora.NodeJS.Overrides = map[string]string{
-		"client_max_body_size": "30m",
+		"client_max_body_size": "51m",
 	}
 	_, err = mapObject(&openshiftJson)
-	assert.EqualError(t, err, "Value on client_max_body_size should be on the form Nm where N is between 1 and 20")
+	assert.EqualError(t, err, "Value on client_max_body_size should be on the form Nm where N is between 1 and 50")
 
 	openshiftJson.Aurora.NodeJS.Overrides = map[string]string{
-		"client_max_body_size": "20m",
+		"client_max_body_size": "50m",
 	}
 	_, err = mapObject(&openshiftJson)
 	assert.NoError(t, err)
