@@ -1,11 +1,16 @@
 package tagger
 
 import (
+	"fmt"
 	"github.com/Sirupsen/logrus"
+	extVersion "github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
+	"regexp"
+	"sort"
+	"strings"
 )
 
 type TagResolver interface {
@@ -43,19 +48,182 @@ func findCandidateTags(appVersion *runtime.AuroraVersion, tagOverwrite bool, out
 	var repositoryTags []string
 	if !tagOverwrite {
 
-		repositoryTags, err := provider.GetTags(outputRepository)
-		logrus.Debug("Tags in repository ", repositoryTags)
-
+		tagsInRepo, err := provider.GetTags(outputRepository)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error in GetTags, repository=%s", outputRepository)
 		}
+		logrus.Debug("Tags in repository ", tagsInRepo.Tags)
+		repositoryTags = tagsInRepo.Tags
+	}
+	if appVersion.IsSemanticReleaseVersion() {
+		logrus.Debugf("%s is semantic version. Filter tags", string(appVersion.GetAppVersion()))
+		candidateTags, err := getSemtanticVersionTags(appVersion, pushExtraTags)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Error in FilterVersionTags, app_version=%s, repositoryTags=%v",
+				appVersion, repositoryTags)
+		}
+		filteredTags, err := filterTagsFromRepository(appVersion, candidateTags, repositoryTags)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Error in FilterVersionTags, app_version=%s, "+
+				"candidateTags=%v, repositoryTags=%v", appVersion, candidateTags, repositoryTags)
+		}
+		return filteredTags, nil
+	} else {
+		versions := make([]string, 0, 10)
+		logrus.Debug("Is not semantic version. Append only complete version and given version")
+		versions = append(versions, string(appVersion.GetCompleteVersion()))
+		if appVersion.Snapshot {
+			versions = append(versions, string(appVersion.GetGivenVersion()))
+		}
+		return versions, nil
+	}
+}
 
-	}
-	versionTags, err := appVersion.GetApplicationVersionTagsToPush(repositoryTags, pushExtraTags)
+func filterTagsFromRepository(version *runtime.AuroraVersion, candidateTags []string,
+	repositoryTags []string) ([]string, error) {
+
+	var excludeMinor, excludeMajor, excludeLatest = true, true, true
+
+	minorTagName, err := getMinor(string(version.GetAppVersion()), true)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error in FilterVersionTags, app_version=%s, "+
-			"versionTags=%v, repositoryTags=%v",
-			appVersion, versionTags, repositoryTags)
+		return nil, err
 	}
-	return versionTags, nil
+	excludeMinor, err = tagCompare("> "+string(version.GetAppVersion())+", < "+minorTagName, repositoryTags)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Debugf("Minor tag name: %s. Exclude: %t", minorTagName, excludeMinor)
+
+	majorTagName, err := getMajor(string(version.GetAppVersion()), true)
+	if err != nil {
+		return nil, err
+	}
+
+	excludeMajor, err = tagCompare("> "+string(version.GetAppVersion())+", < "+majorTagName, repositoryTags)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Debugf("Major tag name: %s. Exclude: %t", majorTagName, excludeMajor)
+
+	excludeLatest, err = tagCompare("> "+string(version.GetAppVersion()), repositoryTags)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Debugf("Exclude latest: %t", excludeLatest)
+
+	versions := make([]string, 0, 10)
+	sort.StringSlice(candidateTags).Sort()
+	for _, tag := range candidateTags {
+		if strings.EqualFold(strings.TrimSpace(tag), "latest") {
+			if !excludeLatest {
+				versions = append(versions, tag)
+			}
+		} else if isMinor(tag) {
+			if !excludeMinor {
+				versions = append(versions, tag)
+			}
+		} else if isMajor(tag) {
+			if !excludeMajor {
+				versions = append(versions, tag)
+			}
+		} else {
+			versions = append(versions, tag)
+		}
+	}
+	return versions, nil
+}
+
+func tagCompare(versionConstraint string, tags []string) (bool, error) {
+	c, err := extVersion.NewConstraint(versionConstraint)
+
+	if err != nil {
+		return false, errors.Wrapf(err, "Could not create version constraint %s", versionConstraint)
+	}
+	for _, tag := range tags {
+		v, err := extVersion.NewVersion(tag)
+
+		if err != nil {
+			// We won't fail on random tags in the reposiority
+			continue
+		}
+
+		if c.Check(v) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func getSemtanticVersionTags(version *runtime.AuroraVersion, extraTags config.PushExtraTags) ([]string, error) {
+	versions := make([]string, 0, 10)
+
+	if extraTags.Latest {
+		versions = append(versions, "latest")
+	}
+
+	if extraTags.Major {
+		majorVersion, err := getMajor(string(version.GetAppVersion()), false)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to get major version")
+		}
+		versions = append(versions, majorVersion)
+	}
+	if extraTags.Minor {
+		minorVersion, err := getMinor(string(version.GetAppVersion()), false)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to get minor version")
+		}
+		versions = append(versions, minorVersion)
+	}
+	if extraTags.Patch {
+		versions = append(versions, string(version.GetAppVersion()))
+	}
+
+	versions = append(versions, string(version.GetCompleteVersion()))
+
+	return versions, nil
+}
+
+func getMajor(version string, increment bool) (string, error) {
+	build_version, err := extVersion.NewVersion(version)
+
+	if err != nil {
+		return "", errors.Wrap(err, "Error in parsing major version: "+version)
+	}
+	versionMajor := build_version.Segments()[0]
+	if increment {
+		versionMajor++
+	}
+	return fmt.Sprintf("%d", versionMajor), nil
+}
+
+func getMinor(version string, increment bool) (string, error) {
+	build_version, err := extVersion.NewVersion(version)
+
+	if err != nil {
+		return "", errors.Wrap(err, "Error in parsing minor version: "+version)
+	}
+
+	versionMinor := build_version.Segments()[1]
+	if increment {
+		versionMinor++
+	}
+	return fmt.Sprintf("%d.%d", build_version.Segments()[0], versionMinor), nil
+}
+
+func isMinor(version string) bool {
+	var validStr = regexp.MustCompile(`^[0-9]+.[0-9]+$`)
+	if validStr.MatchString(version) {
+		return true
+	}
+	return false
+}
+
+func isMajor(version string) bool {
+	var validStr = regexp.MustCompile(`^[0-9]+$`)
+	if validStr.MatchString(version) {
+		return true
+	}
+	return false
 }
