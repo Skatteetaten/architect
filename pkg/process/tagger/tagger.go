@@ -57,7 +57,7 @@ func findCandidateTags(appVersion *runtime.AuroraVersion, tagOverwrite bool, out
 	}
 	if appVersion.IsSemanticReleaseVersion() {
 		logrus.Debugf("%s is semantic version. Filter tags", string(appVersion.GetAppVersion()))
-		candidateTags, err := getSemtanticVersionTags(appVersion, pushExtraTags)
+		candidateTags, err := getSemanticVersionTags(appVersion, pushExtraTags)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error in FilterVersionTags, app_version=%s, repositoryTags=%v",
 				appVersion, repositoryTags)
@@ -143,7 +143,7 @@ func tagCompare(versionConstraint string, tags []string) (bool, error) {
 		v, err := extVersion.NewVersion(tag)
 
 		if err != nil {
-			// We won't fail on random tags in the reposiority
+			// We won't fail on random tags in the repository
 			continue
 		}
 
@@ -155,7 +155,7 @@ func tagCompare(versionConstraint string, tags []string) (bool, error) {
 	return false, nil
 }
 
-func getSemtanticVersionTags(version *runtime.AuroraVersion, extraTags config.PushExtraTags) ([]string, error) {
+func getSemanticVersionTags(version *runtime.AuroraVersion, extraTags config.PushExtraTags) ([]string, error) {
 	versions := make([]string, 0, 10)
 
 	if extraTags.Latest {
