@@ -6,6 +6,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
+	"github.com/skatteetaten/architect/pkg/process/tagger"
 )
 
 type retagger struct {
@@ -62,14 +63,19 @@ func (m *retagger) Retag() error {
 	appVersion := runtime.NewAuroraVersion(appVersionString, snapshot, givenVersionString, runtime.CompleteVersion(auroraVersion))
 
 	extratags, ok := envMap[docker.ENV_PUSH_EXTRA_TAGS]
-
 	if !ok {
 		return errors.Errorf("Failed to extract ENV variable %s from temporary image manifest", docker.ENV_PUSH_EXTRA_TAGS)
 	}
 
-	logrus.Debugf("Extract tag info, auroraVersion=%s, appVersion=%s, extraTags=%s", auroraVersion, appVersion, extratags)
+	pushExtraTags := config.ParseExtraTags(extratags)
 
-	provider := docker.NewRegistryClient(m.Config.DockerSpec.ExternalDockerRegistry)
+	t := tagger.NormalTagResolver{
+		Repository: m.Config.DockerSpec.OutputRepository,
+		Registry:   m.Config.DockerSpec.OutputRegistry,
+		Provider:   docker.NewRegistryClient(m.Config.DockerSpec.ExternalDockerRegistry),
+		Overwrite:  m.Config.DockerSpec.TagOverwrite,
+	}
+	logrus.Debugf("Extract tag info, auroraVersion=%s, appVersion=%s, extraTags=%s", auroraVersion, appVersion, extratags)
 
 	if err != nil {
 		return errors.Wrap(err, "Unable to get version tags")
@@ -81,30 +87,11 @@ func (m *retagger) Retag() error {
 		Tag:        m.Config.DockerSpec.RetagWith,
 	}
 
-	var repositoryTags []string
-
-	if !m.Config.DockerSpec.TagOverwrite {
-		logrus.Debug("Tags Overwrite diabled, filtering tags")
-
-		rt, err := provider.GetTags(m.Config.DockerSpec.OutputRepository)
-
-		if err != nil {
-			return errors.Wrapf(err, "Error in GetTags, repository=%s", m.Config.DockerSpec.OutputRepository)
-
-		}
-		repositoryTags = rt.Tags
-
-	}
-
-	versionTags, err := appVersion.GetApplicationVersionTagsToPush(repositoryTags, config.ParseExtraTags(extratags))
+	tagsToPush, err := t.ResolveTags(appVersion, pushExtraTags)
 
 	if err != nil {
 		return err
 	}
-
-	tagsToPush := docker.CreateImageNameFromSpecAndTags(versionTags,
-		m.Config.DockerSpec.OutputRegistry,
-		m.Config.DockerSpec.OutputRepository)
 
 	client, err := docker.NewDockerClient()
 	if err != nil {
@@ -115,7 +102,7 @@ func (m *retagger) Retag() error {
 	//on the registry when we get v2 registry!:)
 	client.PullImage(imageId)
 
-	logrus.Debugf("Retagging temporary image, versionTags=%-v", versionTags)
+	logrus.Debugf("Retagging temporary image, versionTags=%-v", tagsToPush)
 	for _, tag := range tagsToPush {
 		sourceTag := imageId.GetCompleteDockerTagName()
 		logrus.Infof("Tag image %s with alias %s", sourceTag, tag)

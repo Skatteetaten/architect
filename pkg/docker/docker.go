@@ -49,7 +49,7 @@ func NewDockerClient() (*DockerClient, error) {
 //THIS IS BUGGY!
 func (d *DockerClient) PullImage(baseimage runtime.DockerImage) error {
 	logrus.Infof("Pulling %s", baseimage.GetCompleteDockerTagName())
-	output, err := d.Client.ImagePull(context.Background(), baseimage.GetCompleteDockerTagName(), types.ImagePullOptions{})
+	output, err := d.Client.ImagePull(context.TODO(), baseimage.GetCompleteDockerTagName(), types.ImagePullOptions{})
 
 	// ImageBuild will not return error message if build fails.
 	var bodyLine string = ""
@@ -94,7 +94,7 @@ func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
 }
 
 func (d *DockerClient) TagImage(imageId string, tag string) error {
-	if err := d.Client.ImageTag(context.Background(), imageId, tag); err != nil {
+	if err := d.Client.ImageTag(context.TODO(), imageId, tag); err != nil {
 		return err
 	}
 	return nil
@@ -115,7 +115,7 @@ func (d *DockerClient) PushImage(tag string, credentials *RegistryCredentials) e
 	}
 	pushOptions := createImagePushOptions(encodedCredentials)
 
-	push, err := d.Client.ImagePush(context.Background(), tag, pushOptions)
+	push, err := d.Client.ImagePush(context.TODO(), tag, pushOptions)
 
 	if err != nil {
 		return err
