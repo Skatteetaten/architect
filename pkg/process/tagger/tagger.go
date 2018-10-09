@@ -8,6 +8,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
+	"github.com/skatteetaten/architect/pkg/util"
 	"regexp"
 	"sort"
 	"strings"
@@ -140,11 +141,13 @@ func tagCompare(versionConstraint string, tags []string) (bool, error) {
 		return false, errors.Wrapf(err, "Could not create version constraint %s", versionConstraint)
 	}
 	for _, tag := range tags {
+		if !util.IsSemanticVersion(tag) {
+			continue
+		}
 		v, err := extVersion.NewVersion(tag)
 
 		if err != nil {
-			// We won't fail on random tags in the repository
-			continue
+			return false, errors.Wrapf(err, "Error parsing version %s", tag)
 		}
 
 		if c.Check(v) {
