@@ -1,10 +1,13 @@
 package tagger
 
 import (
+	"bufio"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/stretchr/testify/assert"
+	"log"
+	"os"
 	"sort"
 	"testing"
 )
@@ -44,6 +47,33 @@ var tagger = NormalTagResolver{
 	},
 }
 
+var supertagger = NormalTagResolver{
+	Registry:   "testregistry",
+	Repository: "aurora/test",
+	Provider: &RegistryMock{
+		tagsFromRegistry: readTags(),
+	},
+}
+
+func readTags() []string {
+	versions := make([]string, 0, 1000)
+	file, err := os.Open("versions.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		versions = append(versions, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+	return versions
+}
+
 func TestTagInfoRelease(t *testing.T) {
 	appVersion := runtime.NewAuroraVersion(APP_VERSION, false, APP_VERSION, runtime.CompleteVersion(AURORA_VERSION))
 	tags, err := tagger.ResolveTags(appVersion, config.ParseExtraTags(CFG_PUSH_EXTRA_TAGS))
@@ -68,7 +98,8 @@ func TestTagInfoSnapshot(t *testing.T) {
 
 func TestFilterTags(t *testing.T) {
 	r := repositoryTester{
-		t: t,
+		t:           t,
+		tagResolver: &tagger,
 	}
 	r.testTagFiltering(
 		runtime.NewAuroraVersion("1.1.1", false, "1.1.1", runtime.CompleteVersion("COMPLETE")),
@@ -93,16 +124,26 @@ func TestFilterTags(t *testing.T) {
 	r.testTagFiltering(
 		runtime.NewAuroraVersion("1.1.1-SNAPSHOT", true, "1.1.1-SNAPSHOT", runtime.CompleteVersion("COMPLETE")),
 		[]string{"1.1.1-SNAPSHOT", "COMPLETE"})
+
+}
+
+func TestFilterTagsWithWeirdTagsInRepo(t *testing.T) {
+	r := repositoryTester{
+		t:           t,
+		tagResolver: &supertagger,
+	}
+	r.testTagFiltering(
+		runtime.NewAuroraVersion("1.106.1", false, "1.106.1", runtime.CompleteVersion("COMPLETE")),
+		[]string{"1.106.1", "1.106", "1", "latest", "COMPLETE"})
 }
 
 type repositoryTester struct {
-	t                *testing.T
-	tagsFromRegistry []string
+	t           *testing.T
+	tagResolver TagResolver
 }
 
 func (m repositoryTester) testTagFiltering(auroraVersion *runtime.AuroraVersion, excpectedFilteringResult []string) {
-
-	tagsToPush, err := tagger.ResolveTags(auroraVersion, config.ParseExtraTags("latest major minor patch"))
+	tagsToPush, err := m.tagResolver.ResolveTags(auroraVersion, config.ParseExtraTags("latest major minor patch"))
 	assert.NoError(m.t, err)
 	verifyTagListContent(m.t, tagsToPush, excpectedFilteringResult)
 }

@@ -2,7 +2,7 @@ package runtime
 
 import (
 	"fmt"
-	"regexp"
+	"github.com/skatteetaten/architect/pkg/util"
 	"strings"
 )
 
@@ -122,9 +122,5 @@ func (m *AuroraVersion) IsSemanticReleaseVersion() bool {
 	if m.Snapshot {
 		return false
 	}
-	var validStr = regexp.MustCompile(`^[0-9]+.[0-9]+.[0-9]+$`)
-	if validStr.MatchString(string(m.appVersion)) {
-		return true
-	}
-	return false
+	return util.IsFullSemanticVersion(string(m.appVersion))
 }
