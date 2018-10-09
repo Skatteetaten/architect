@@ -11,6 +11,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/process/retag"
 	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 var localRepo bool
@@ -81,6 +82,7 @@ func init() {
 func RunArchitect(configuration RunConfiguration) {
 	c := configuration.Config
 	logrus.Debugf("Config %+v", c)
+	logrus.Infof("ARCHITECT_APP_VERSION=%s,ARCHITECT_AURORA_VERSION=%s", os.Getenv("APP_VERSION"), os.Getenv("AURORA_VERSION"))
 
 	registryCredentials, err := configuration.RegistryCredentialsFunc(c.DockerSpec.OutputRegistry)
 
