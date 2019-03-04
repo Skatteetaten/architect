@@ -47,6 +47,7 @@ func (m *NormalTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushE
 func findCandidateTags(appVersion *runtime.AuroraVersion, tagOverwrite bool, outputRepository string,
 	pushExtraTags config.PushExtraTags, provider docker.ImageInfoProvider) ([]string, error) {
 	var repositoryTags []string
+	logrus.Debugf("Version is:%s, meta is:%s", appVersion.GetCompleteVersion(), util.GetVersionMetadata(string(appVersion.GetAppVersion())))
 	if !tagOverwrite {
 
 		tagsInRepo, err := provider.GetTags(outputRepository)
@@ -89,7 +90,7 @@ func filterTagsFromRepository(version *runtime.AuroraVersion, candidateTags []st
 	if err != nil {
 		return nil, err
 	}
-	excludeMinor, err = tagCompare("> "+string(version.GetAppVersion())+", < "+minorTagName, repositoryTags)
+	excludeMinor, err = tagCompare("> "+string(version.GetAppVersion())+", < "+minorTagName, repositoryTags, version)
 	if err != nil {
 		return nil, err
 	}
@@ -100,21 +101,25 @@ func filterTagsFromRepository(version *runtime.AuroraVersion, candidateTags []st
 		return nil, err
 	}
 
-	excludeMajor, err = tagCompare("> "+string(version.GetAppVersion())+", < "+majorTagName, repositoryTags)
+	excludeMajor, err = tagCompare("> "+string(version.GetAppVersion())+", < "+majorTagName, repositoryTags, version)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Debugf("Major tag name: %s. Exclude: %t", majorTagName, excludeMajor)
 
-	excludeLatest, err = tagCompare("> "+string(version.GetAppVersion()), repositoryTags)
-	if err != nil {
-		return nil, err
+	// If meta in tag we exlude latest.
+	if !util.IsSemanticVersionWithMeta(string(version.GetAppVersion())) {
+		excludeLatest, err = tagCompare("> "+string(version.GetAppVersion()), repositoryTags, version)
+		if err != nil {
+			return nil, err
+		}
 	}
 	logrus.Debugf("Exclude latest: %t", excludeLatest)
 
 	versions := make([]string, 0, 10)
 	sort.StringSlice(candidateTags).Sort()
 	for _, tag := range candidateTags {
+		logrus.Debugf("Looping and checking candidate tag %s", tag)
 		if strings.EqualFold(strings.TrimSpace(tag), "latest") {
 			if !excludeLatest {
 				versions = append(versions, tag)
@@ -134,7 +139,7 @@ func filterTagsFromRepository(version *runtime.AuroraVersion, candidateTags []st
 	return versions, nil
 }
 
-func tagCompare(versionConstraint string, tags []string) (bool, error) {
+func tagCompare(versionConstraint string, tags []string, version *runtime.AuroraVersion) (bool, error) {
 	c, err := extVersion.NewConstraint(versionConstraint)
 
 	if err != nil {
@@ -142,6 +147,10 @@ func tagCompare(versionConstraint string, tags []string) (bool, error) {
 	}
 	for _, tag := range tags {
 		if !util.IsSemanticVersion(tag) {
+			continue
+		}
+		// At this point in time we only check meta vs meta. This does not comply to normal semver versioning
+		if util.GetVersionMetadata(tag) != util.GetVersionMetadata(string(version.GetAppVersion())) {
 			continue
 		}
 		v, err := extVersion.NewVersion(tag)
@@ -198,6 +207,9 @@ func getMajor(version string, increment bool) (string, error) {
 	if increment {
 		versionMajor++
 	}
+	if len(build_version.Metadata()) > 0 {
+		return fmt.Sprintf("%d+%s", versionMajor, build_version.Metadata()), nil
+	}
 	return fmt.Sprintf("%d", versionMajor), nil
 }
 
@@ -212,11 +224,14 @@ func getMinor(version string, increment bool) (string, error) {
 	if increment {
 		versionMinor++
 	}
+	if len(build_version.Metadata()) > 0 {
+		return fmt.Sprintf("%d.%d+%s", build_version.Segments()[0], versionMinor, build_version.Metadata()), nil
+	}
 	return fmt.Sprintf("%d.%d", build_version.Segments()[0], versionMinor), nil
 }
 
 func isMinor(version string) bool {
-	var validStr = regexp.MustCompile(`^[0-9]+.[0-9]+$`)
+	var validStr = regexp.MustCompile(`^[0-9]+.[0-9]+(\+\w|$)`)
 	if validStr.MatchString(version) {
 		return true
 	}
@@ -224,7 +239,7 @@ func isMinor(version string) bool {
 }
 
 func isMajor(version string) bool {
-	var validStr = regexp.MustCompile(`^[0-9]+$`)
+	var validStr = regexp.MustCompile(`^[0-9]+(\+\w|$)`)
 	if validStr.MatchString(version) {
 		return true
 	}

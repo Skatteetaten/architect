@@ -137,6 +137,26 @@ func TestGetTags(t *testing.T) {
 	verifyTagListContent(tags.Tags, expectedTags, t)
 }
 
+func TestGetTagsWithMeta(t *testing.T) {
+	server, err := startMockRegistryServer("testdata/tags.list.meta.json")
+
+	defer server.Close()
+
+	assert.NoError(t, err)
+
+	expectedTags := []string{"latest", "develop-SNAPSHOT",
+		"develop-SNAPSHOT-9be2b9ca43a024415947a6c262e183406dbb090b",
+		"2.0.0+somemeta2", "1.3.0+somemeta1", "1.2.1", "1.1.2", "1.1", "1.2", "1.3+somemeta1", "2.0+somemeta2", "2+somemeta2", "1+somemeta1"}
+
+	target := NewRegistryClient(server.URL)
+
+	tags, err := target.GetTags("aurora/oracle8")
+
+	assert.NoError(t, err)
+
+	verifyTagListContent(tags.Tags, expectedTags, t)
+}
+
 func TestReadingOfEnvStrings(t *testing.T) {
 	key, value, err := envKeyValue("JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true")
 	assert.NoError(t, err)

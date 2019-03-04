@@ -16,6 +16,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 //TODO: Fix context!!!
@@ -48,6 +49,7 @@ func NewDockerClient() (*DockerClient, error) {
 
 //THIS IS BUGGY!
 func (d *DockerClient) PullImage(baseimage runtime.DockerImage) error {
+	startTimer := time.Now()
 	logrus.Infof("Pulling %s", baseimage.GetCompleteDockerTagName())
 	output, err := d.Client.ImagePull(context.TODO(), baseimage.GetCompleteDockerTagName(), types.ImagePullOptions{})
 
@@ -58,10 +60,12 @@ func (d *DockerClient) PullImage(baseimage runtime.DockerImage) error {
 		bodyLine = scanner.Text()
 		logrus.Debug(bodyLine)
 	}
+	logrus.Infof("Timer stage=PullImage timetaken=%.3fs", time.Since(startTimer).Seconds())
 	return err
 }
 
 func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
+	startTimer := time.Now()
 	dockerOpt := types.ImageBuildOptions{
 		SuppressOutput: false,
 		Remove:         true,
@@ -89,12 +93,13 @@ func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
 	}
 	// Get image id.
 	msg, err := JsonMapToString(bodyLine, "stream")
+	logrus.Infof("Timer stage=BuildImage timetaken=%.3fs", time.Since(startTimer).Seconds())
 
 	return strings.TrimSpace(strings.TrimPrefix(msg, "Successfully built ")), nil
 }
 
 func (d *DockerClient) TagImage(imageId string, tag string) error {
-	if err := d.Client.ImageTag(context.TODO(), imageId, tag); err != nil {
+	if err := d.Client.ImageTag(context.TODO(), imageId, ConvertTagToRepositoryTag(tag)); err != nil {
 		return err
 	}
 	return nil
@@ -115,7 +120,7 @@ func (d *DockerClient) PushImage(tag string, credentials *RegistryCredentials) e
 	}
 	pushOptions := createImagePushOptions(encodedCredentials)
 
-	push, err := d.Client.ImagePush(context.TODO(), tag, pushOptions)
+	push, err := d.Client.ImagePush(context.TODO(), ConvertTagToRepositoryTag(tag), pushOptions)
 
 	if err != nil {
 		return err
@@ -136,17 +141,19 @@ func (d *DockerClient) PushImage(tag string, credentials *RegistryCredentials) e
 			return errors.New(msg)
 		}
 	}
-
 	return nil
 }
 
 func (d *DockerClient) PushImages(tags []string, credentials *RegistryCredentials) error {
+	startTimer := time.Now()
 	for _, tag := range tags {
 		err := d.PushImage(tag, credentials)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to push %s", tag)
 		}
 	}
+	logrus.Infof("Timer stage=PushImages numtags=%d timetaken=%.3fs", len(tags), time.Since(startTimer).Seconds())
+
 	return nil
 }
 

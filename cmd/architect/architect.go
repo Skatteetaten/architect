@@ -12,6 +12,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/spf13/cobra"
 	"os"
+	"time"
 )
 
 var localRepo bool
@@ -81,6 +82,7 @@ func init() {
 
 func RunArchitect(configuration RunConfiguration) {
 	c := configuration.Config
+	startTimer := time.Now()
 	logrus.Debugf("Config %+v", c)
 	logrus.Infof("ARCHITECT_APP_VERSION=%s,ARCHITECT_AURORA_VERSION=%s", os.Getenv("APP_VERSION"), os.Getenv("AURORA_VERSION"))
 
@@ -99,14 +101,13 @@ func RunArchitect(configuration RunConfiguration) {
 		performBuild(&configuration, c, registryCredentials)
 
 	}
-
+	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
 }
 func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.RegistryCredentials) {
 	var prepper process.Prepper
 	if c.ApplicationType == config.JavaLeveransepakke {
 		logrus.Info("Perform Java build")
 		prepper = java.Prepper()
-
 	} else if c.ApplicationType == config.NodeJsLeveransepakke {
 		logrus.Info("Perform Webleveranse build")
 		prepper = prepare.Prepper()

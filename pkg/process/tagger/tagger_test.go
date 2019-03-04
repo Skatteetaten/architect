@@ -43,7 +43,7 @@ var tagger = NormalTagResolver{
 	Registry:   "testregistry",
 	Repository: "aurora/test",
 	Provider: &RegistryMock{
-		tagsFromRegistry: []string{"latest", "1.1.2", "1.1", "1", "1.2.1", "1.2", "1.3.0", "1.3", "1.1.0", "2.0.0", "2.0", "2"},
+		tagsFromRegistry: []string{"latest", "1.1.2", "1.1", "1", "1.2.1", "1.2", "1.3.0", "1.3", "1.1.0", "2.0.0", "2.0", "2", "3+metadata", "3.2+metadata", "3.2.1+metadata"},
 	},
 }
 
@@ -124,7 +124,49 @@ func TestFilterTags(t *testing.T) {
 	r.testTagFiltering(
 		runtime.NewAuroraVersion("1.1.1-SNAPSHOT", true, "1.1.1-SNAPSHOT", runtime.CompleteVersion("COMPLETE")),
 		[]string{"1.1.1-SNAPSHOT", "COMPLETE"})
+}
 
+func TestFilterTagsWithMeta(t *testing.T) {
+	r := repositoryTester{
+		t:           t,
+		tagResolver: &tagger,
+	}
+
+	r.testTagFiltering(
+		runtime.NewAuroraVersion("1.3.1", false, "1.3.1", runtime.CompleteVersion("COMPLETE")),
+		[]string{"1.3.1", "1.3", "1", "COMPLETE"})
+
+	r.testTagFiltering(
+		runtime.NewAuroraVersion("1.3.0", false, "1.3.0", runtime.CompleteVersion("COMPLETE")),
+		[]string{"1.3.0", "1.3", "1", "COMPLETE"})
+
+	r.testTagFiltering(
+		runtime.NewAuroraVersion("1.1.1", false, "1.1.1", runtime.CompleteVersion("COMPLETE")),
+		[]string{"1.1.1", "COMPLETE"})
+
+	r.testTagFiltering(
+		runtime.NewAuroraVersion("1.2.1", false, "1.2.1", runtime.CompleteVersion("COMPLETE")),
+		[]string{"1.2.1", "1.2", "COMPLETE"})
+
+	r.testTagFiltering(
+		runtime.NewAuroraVersion("1.1.1+metadata", false, "1.1.1+metadata", runtime.CompleteVersion("COMPLETE")),
+		[]string{"1.1.1+metadata", "1.1+metadata", "1+metadata", "COMPLETE"})
+
+	r.testTagFiltering(
+		runtime.NewAuroraVersion("1.3.0+metadata", false, "1.3.0+metadata", runtime.CompleteVersion("COMPLETE")),
+		[]string{"1.3.0+metadata", "1.3+metadata", "1+metadata", "COMPLETE"})
+
+	r.testTagFiltering(
+		runtime.NewAuroraVersion("3.2.0+metadata", false, "3.2.0+metadata", runtime.CompleteVersion("COMPLETE")),
+		[]string{"3.2.0+metadata", "COMPLETE"})
+
+	r.testTagFiltering(
+		runtime.NewAuroraVersion("3.2.2+metadata", false, "3.2.2+metadata", runtime.CompleteVersion("COMPLETE")),
+		[]string{"3.2.2+metadata", "3.2+metadata", "3+metadata", "COMPLETE"})
+
+	r.testTagFiltering(
+		runtime.NewAuroraVersion("3.2.1+metadata", false, "3.2.1+metadata", runtime.CompleteVersion("COMPLETE")),
+		[]string{"3.2.1+metadata", "3.2+metadata", "3+metadata", "COMPLETE"})
 }
 
 func TestFilterTagsWithWeirdTagsInRepo(t *testing.T) {
