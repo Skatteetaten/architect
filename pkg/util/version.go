@@ -7,7 +7,7 @@ import (
 )
 
 //We limit to four digits... Git commits tend to be only nummeric as well
-var versionWithOptionalMinorAndPatch = regexp.MustCompile(`^[0-9]{1,3}(\.[0-9]+(\.[0-9]+)?)?$`)
+var versionWithOptionalMinorAndPatch = regexp.MustCompile(`^[0-9]{1,5}(\.[0-9]+(\.[0-9]+)?)?$`)
 var versionWithMinorAndPatch = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+$`)
 
 func IsFullSemanticVersion(versionString string) bool {
