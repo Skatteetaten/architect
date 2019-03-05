@@ -231,16 +231,18 @@ func getMinor(version string, increment bool) (string, error) {
 }
 
 func isMinor(version string) bool {
-	var validStr = regexp.MustCompile(`^[0-9]+.[0-9]+(\+\w|$)`)
-	if validStr.MatchString(version) {
+	var validStr = regexp.MustCompile(`^[0-9]+.[0-9]+$`)
+	versionOnly := util.GetVersionWithoutMetadata(version)
+	if validStr.MatchString(versionOnly) {
 		return true
 	}
 	return false
 }
 
 func isMajor(version string) bool {
-	var validStr = regexp.MustCompile(`^[0-9]+(\+\w|$)`)
-	if validStr.MatchString(version) {
+	var validStr = regexp.MustCompile(`^[0-9]+$`)
+	versionOnly := util.GetVersionWithoutMetadata(version)
+	if validStr.MatchString(versionOnly) {
 		return true
 	}
 	return false
