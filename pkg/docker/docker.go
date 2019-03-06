@@ -99,7 +99,7 @@ func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
 }
 
 func (d *DockerClient) TagImage(imageId string, tag string) error {
-	if err := d.Client.ImageTag(context.TODO(), imageId, ConvertTagToRepositoryTag(tag)); err != nil {
+	if err := d.Client.ImageTag(context.TODO(), imageId, tag); err != nil {
 		return err
 	}
 	return nil
@@ -120,7 +120,7 @@ func (d *DockerClient) PushImage(tag string, credentials *RegistryCredentials) e
 	}
 	pushOptions := createImagePushOptions(encodedCredentials)
 
-	push, err := d.Client.ImagePush(context.TODO(), ConvertTagToRepositoryTag(tag), pushOptions)
+	push, err := d.Client.ImagePush(context.TODO(), tag, pushOptions)
 
 	if err != nil {
 		return err
@@ -153,7 +153,7 @@ func (d *DockerClient) PushImages(tags []string, credentials *RegistryCredential
 		}
 	}
 	logrus.Infof("Timer stage=PushImages numtags=%d timetaken=%.3fs", len(tags), time.Since(startTimer).Seconds())
-
+	
 	return nil
 }
 

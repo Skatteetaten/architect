@@ -24,7 +24,7 @@ func CreateImageNameFromSpecAndTags(tags []string, outputRegistry string, output
 		name := &runtime.DockerImage{
 			Registry:   outputRegistry,
 			Repository: outputRepository,
-			Tag:        t,
+			Tag:        ConvertTagToRepositoryTag(t),
 		}
 		output[i] = name.GetCompleteDockerTagName()
 	}
