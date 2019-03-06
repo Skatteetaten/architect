@@ -42,7 +42,10 @@ func TestFullSemanticVersionWithMeta(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	assert.True(t, util.IsSemanticVersionWithMeta("1.1.1+noemeta"))
 	assert.True(t, util.IsSemanticVersionWithMeta("1.1+noemeta"))
-	assert.True(t, util.IsSemanticVersionWithMeta("1.1-pre+noemeta"))
+	assert.False(t, util.IsSemanticVersionWithMeta("1.1-pre+noemeta"))
+	assert.False(t, util.IsSemanticVersionWithMeta("1.1+noe_meta"))
+	assert.False(t, util.IsSemanticVersionWithMeta("1.1+noe-meta"))
+	assert.False(t, util.IsSemanticVersionWithMeta("1.1+noe meta"))
 	assert.False(t, util.IsSemanticVersionWithMeta("1.1-pre"))
 	assert.False(t, util.IsSemanticVersionWithMeta("1.1"))
 	assert.False(t, util.IsSemanticVersionWithMeta("1.2.3"))
@@ -54,5 +57,5 @@ func TestGetVersionOnly(t *testing.T) {
 	assert.Equal(t, "1.2", util.GetVersionWithoutMetadata("1.2"))
 	assert.Equal(t, "2.2.2", util.GetVersionWithoutMetadata("2.2.2"))
 	assert.Equal(t, "2.a.b", util.GetVersionWithoutMetadata("2.a.b"))
-	assert.Equal(t, "2.a.b+metadata", util.GetVersionWithoutMetadata("2.a.b+metadata"))
+	assert.Equal(t, "2.a.b", util.GetVersionWithoutMetadata("2.a.b+metadata"))
 }
