@@ -153,7 +153,7 @@ func (d *DockerClient) PushImages(tags []string, credentials *RegistryCredential
 		}
 	}
 	logrus.Infof("Timer stage=PushImages numtags=%d timetaken=%.3fs", len(tags), time.Since(startTimer).Seconds())
-	
+
 	return nil
 }
 
