@@ -13,6 +13,18 @@ func TestVersionWithMinorAndPatch(t *testing.T) {
 	assert.True(t, util.IsSemanticVersion("1.1.1"))
 	assert.True(t, util.IsSemanticVersion("1.11.1"))
 	assert.True(t, util.IsSemanticVersion("12.11.12"))
+	assert.True(t, util.IsSemanticVersion("12.11.12+somemeta"))
+	assert.False(t, util.IsSemanticVersion("12.11.12+some_meta"))
+	assert.False(t, util.IsSemanticVersion("12.11.12++somemeta"))
+	assert.False(t, util.IsSemanticVersion("12.11.12+some-meta"))
+	assert.False(t, util.IsSemanticVersion("12.11.12+some?meta"))
+	assert.False(t, util.IsSemanticVersion("12.11.12+some meta"))
+	assert.True(t, util.IsSemanticVersion("12.11.12+1b2345"))
+	assert.False(t, util.IsSemanticVersion("v12.11.12+1b2345"))
+	assert.False(t, util.IsSemanticVersion("12.11.12.23"))
+	assert.True(t, util.IsSemanticVersion("2019.03.08"))
+	assert.True(t, util.IsSemanticVersion("2019.03.08+dailyrelease"))
+	assert.True(t, util.IsSemanticVersion("2019.03+monthlyrelease"))
 	assert.False(t, util.IsSemanticVersion("12.11.F"))
 	assert.False(t, util.IsSemanticVersion("12.11.12-23"))
 	assert.False(t, util.IsSemanticVersion("12.11.12.2"))
@@ -36,6 +48,9 @@ func TestFullSemanticVersion(t *testing.T) {
 	assert.False(t, util.IsFullSemanticVersion("1.11-prerelase+andmeta"))
 	assert.False(t, util.IsFullSemanticVersion("1.11.2.3+meta"))
 	assert.True(t, util.IsFullSemanticVersion("1.11.2+123metaap"))
+	assert.True(t, util.IsFullSemanticVersion("2019.03.08"))
+	assert.True(t, util.IsFullSemanticVersion("2019.03.08+dailyrelease"))
+	assert.False(t, util.IsFullSemanticVersion("2019.03+monthlyrelease"))
 }
 
 func TestFullSemanticVersionWithMeta(t *testing.T) {
