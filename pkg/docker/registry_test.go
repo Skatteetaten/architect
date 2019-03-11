@@ -17,15 +17,13 @@ func TestGetManifestEnvSchemaV1(t *testing.T) {
 	expectedVersion := "1.7.0"
 
 	server, err := startMockRegistryServer("testdata/manifest.json")
-
 	defer server.Close()
-
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL)
-
 	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
+
 	actualVersion := imageInfo.Enviroment["BASE_IMAGE_VERSION"]
 	assert.Equal(t, expectedVersion, actualVersion)
 }
@@ -34,13 +32,10 @@ func TestGetCompleteBaseImageVersionSchemaV1(t *testing.T) {
 	expectedVersion := "1.7.0"
 
 	server, err := startMockRegistryServer("testdata/manifest.json")
-
 	defer server.Close()
-
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL)
-
 	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, imageInfo.CompleteBaseImageVersion)
@@ -50,15 +45,11 @@ func TestGetManifestEnvMapSchemaV1(t *testing.T) {
 	expectedLength := 14
 
 	server, err := startMockRegistryServer("testdata/manifest.json")
-
 	defer server.Close()
-
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL)
-
 	imageInfo, err := target.GetImageInfo(repository, tag)
-
 	assert.NoError(t, err)
 
 	actualLength := len(imageInfo.Enviroment)
@@ -69,15 +60,13 @@ func TestGetManifestEnvSchemaV2(t *testing.T) {
 	expectedVersion := "8.152.18"
 
 	server, err := startMockRegistryManifestServer("testdata/aurora_flange_manifest_v2.json", "testdata/aurora_flange_container_image_v1.json")
-
 	defer server.Close()
-
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL)
-
 	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
+
 	actualVersion := imageInfo.Enviroment["BASE_IMAGE_VERSION"]
 	assert.Equal(t, expectedVersion, actualVersion)
 }
@@ -86,13 +75,10 @@ func TestGetCompleteBaseImageVersionSchemaV2(t *testing.T) {
 	expectedVersion := "8.152.18"
 
 	server, err := startMockRegistryManifestServer("testdata/aurora_flange_manifest_v2.json", "testdata/aurora_flange_container_image_v1.json")
-
 	defer server.Close()
-
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL)
-
 	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, imageInfo.CompleteBaseImageVersion)
@@ -102,15 +88,11 @@ func TestGetManifestEnvMapSchemaV2(t *testing.T) {
 	expectedLength := 13
 
 	server, err := startMockRegistryManifestServer("testdata/aurora_flange_manifest_v2.json", "testdata/aurora_flange_container_image_v1.json")
-
 	defer server.Close()
-
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL)
-
 	imageInfo, err := target.GetImageInfo(repository, tag)
-
 	assert.NoError(t, err)
 
 	actualLength := len(imageInfo.Enviroment)
@@ -119,9 +101,7 @@ func TestGetManifestEnvMapSchemaV2(t *testing.T) {
 
 func TestGetTags(t *testing.T) {
 	server, err := startMockRegistryServer("testdata/tags.list.json")
-
 	defer server.Close()
-
 	assert.NoError(t, err)
 
 	expectedTags := []string{"latest", "develop-SNAPSHOT",
@@ -129,11 +109,23 @@ func TestGetTags(t *testing.T) {
 		"2.0.0", "1.3.0", "1.2.1", "1.1.2", "1.1", "1.2", "1.3", "2.0", "2", "1"}
 
 	target := NewRegistryClient(server.URL)
-
 	tags, err := target.GetTags("aurora/oracle8")
+	assert.NoError(t, err)
+	verifyTagListContent(tags.Tags, expectedTags, t)
+}
 
+func TestGetTagsWithMeta(t *testing.T) {
+	server, err := startMockRegistryServer("testdata/tags.list.meta.json")
+	defer server.Close()
 	assert.NoError(t, err)
 
+	expectedTags := []string{"latest", "develop-SNAPSHOT",
+		"develop-SNAPSHOT-9be2b9ca43a024415947a6c262e183406dbb090b",
+		"2.0.0+somemeta2", "1.3.0+somemeta1", "1.2.1", "1.1.2", "1.1", "1.2", "1.3+somemeta1", "2.0+somemeta2", "2+somemeta2", "1+somemeta1"}
+
+	target := NewRegistryClient(server.URL)
+	tags, err := target.GetTags("aurora/oracle8")
+	assert.NoError(t, err)
 	verifyTagListContent(tags.Tags, expectedTags, t)
 }
 

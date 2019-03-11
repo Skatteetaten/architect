@@ -6,6 +6,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -23,11 +24,27 @@ func CreateImageNameFromSpecAndTags(tags []string, outputRegistry string, output
 		name := &runtime.DockerImage{
 			Registry:   outputRegistry,
 			Repository: outputRepository,
-			Tag:        t,
+			Tag:        ConvertTagToRepositoryTag(t),
 		}
 		output[i] = name.GetCompleteDockerTagName()
 	}
 	return output
+}
+
+func ConvertTagToRepositoryTag(tag string) string {
+	return strings.Replace(tag, "+", "_", -1)
+}
+
+func ConvertRepositoryTagToTag(tag string) string {
+	return strings.Replace(tag, "_", "+", -1)
+}
+
+func ConvertRepositoryTagsToTags(tags []string) []string {
+	newTags := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		newTags = append(newTags, ConvertRepositoryTagToTag(tag))
+	}
+	return newTags
 }
 
 func GetUtcTimestamp() string {

@@ -141,6 +141,8 @@ The semantic versioning tags gives the user more fine grained control of the dep
 An OpenShift image stream will be notified whenever the image referenced by an image tag is updated.
  
 Semantic versioning tags allows the user to pin one or more segments of the version number, ```X.Y.Z```.
+Users can also add metadata to versions with ```+``` suffix that complies with ```[0-9A-Za-z]+```. 
+The metadata will also be used as filter when comparing versions, meaning ```1.0.0+somemeta``` differs from ```1.0.0+othermeta```.
  
 * The major tag includes only the major version ```X```. By pinning the major version number, a new deployment 
 will be triggered when either the minor or patch version is changed.

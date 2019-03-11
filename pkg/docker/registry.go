@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/image"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
@@ -53,6 +54,7 @@ func (registry *RegistryClient) getRegistryManifest(repository string, tag strin
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderManifestSchemaV2
 	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.address, repository, tag)
+	logrus.Debugf("Retrieving registry manifest from URL %s", url)
 	body, err := GetHTTPRequest(mHeader, url)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed in getRegistryManifest for request url %s and header %s", url, mHeader)
@@ -64,6 +66,7 @@ func (registry *RegistryClient) getRegistryBlob(repository string, digestID stri
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderContainerImageV1
 	url := fmt.Sprintf("%s/v2/%s/blobs/%s", registry.address, repository, digestID)
+	logrus.Debugf("Retrieving registry blob from URL %s", url)
 	body, err := GetHTTPRequest(mHeader, url)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed in getRegistryBlob for request url %s and header %s", url, mHeader)
@@ -160,6 +163,8 @@ func (registry *RegistryClient) GetTags(repository string) (*TagsAPIResponse, er
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to unmarshal tag list for repository %s from Docker registry %s", repository, url)
 	}
+
+	tagsList.Tags = ConvertRepositoryTagsToTags(tagsList.Tags)
 
 	return &tagsList, nil
 }
