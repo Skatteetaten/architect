@@ -233,8 +233,9 @@ func readRegistryCredentials(outputRegistry string, dockerConfigPath string) (*R
 	if err != nil {
 		return nil, err
 	} else if basicCredentials == nil {
-		logrus.Infof("Will not load registry credentials. No entry for %s in %s.", outputRegistry, dockerConfigPath)
-		return nil, errors.Errorf("No credentials found for registry " + outputRegistry)
+		logrus.Infof("Will not load registry credentials. No entry for %s in %s.. Trying without credentials.",
+			outputRegistry, dockerConfigPath)
+		return nil, nil
 	}
 
 	registryCredentials := RegistryCredentials{
