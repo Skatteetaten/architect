@@ -21,6 +21,69 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
+//TODO: Support nodejs
+func PrepareFiles(workspace string, deliverable nexus.Deliverable, cfg *config.Config) (string, error) {
+
+	//TODO: Her må det fikses litt
+
+	provider := docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry)
+
+	//Unzip deliverable
+	applicationFolder := filepath.Join(workspace, ApplicationBuildFolder)
+	err := ExtractAndRenameDeliverable(workspace, deliverable.Path)
+
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to extract application archive")
+	}
+
+	// Load metadata
+	meta, err := loadDeliverableMetadata(filepath.Join(applicationFolder, DeliveryMetadataPath))
+
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to read application metadata")
+	}
+
+	fileWriter := util.NewFileWriter(workspace)
+
+	logrus.Info("Running radish build")
+	if err := fileWriter(newRadishDescriptor(meta, filepath.Join(DockerBasedir, ApplicationFolder)), "radish.json"); err != nil {
+		return "", errors.Wrap(err, "Unable to create radish descriptor")
+	}
+
+	imageInfo, err := provider.GetImageInfo(cfg.ApplicationSpec.BaseImageSpec.BaseImage,
+		cfg.ApplicationSpec.BaseImageSpec.BaseVersion)
+	if err != nil {
+		return workspace, errors.Wrap(err, "Unable to get the complete build version")
+	}
+
+	completeBaseImageVersion := imageInfo.CompleteBaseImageVersion
+
+	baseImage := runtime.BaseImage{
+		DockerImage: runtime.DockerImage{
+			Tag:        completeBaseImageVersion,
+			Repository: cfg.ApplicationSpec.BaseImageSpec.BaseImage,
+			Registry:   cfg.DockerSpec.GetExternalRegistryWithoutProtocol(),
+		},
+		ImageInfo: imageInfo,
+	}
+
+	buildImage := &runtime.ArchitectImage{
+		Tag: cfg.BuilderSpec.Version,
+	}
+
+	snapshot := cfg.ApplicationSpec.MavenGav.IsSnapshot()
+	appVersion := nexus.GetSnapshotTimestampVersion(cfg.ApplicationSpec.MavenGav, deliverable)
+
+	auroraVersions := runtime.NewAuroraVersionFromBuilderAndBase(appVersion, snapshot, cfg.ApplicationSpec.MavenGav.Version, buildImage, baseImage.DockerImage)
+
+	if err = fileWriter(NewRadishDockerFile(cfg.DockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
+		"Dockerfile"); err != nil {
+		return "", errors.Wrap(err, "Failed to create Dockerfile")
+	}
+
+	return workspace, nil
+}
+
 func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (string, error) {
 
 	// Create docker build folder
@@ -32,7 +95,7 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 
 	// Unzip deliverable
 	applicationFolder := filepath.Join(dockerBuildPath, ApplicationBuildFolder)
-	err = extractAndRenameDeliverable(dockerBuildPath, deliverable.Path)
+	err = ExtractAndRenameDeliverable(dockerBuildPath, deliverable.Path)
 
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to extract application archive")
@@ -78,7 +141,7 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 	return dockerBuildPath, nil
 }
 
-func extractAndRenameDeliverable(dockerBuildFolder string, deliverablePath string) error {
+func ExtractAndRenameDeliverable(dockerBuildFolder string, deliverablePath string) error {
 
 	applicationRoot := filepath.Join(dockerBuildFolder, DockerfileApplicationFolder)
 	renamedApplicationFolder := filepath.Join(dockerBuildFolder, ApplicationBuildFolder)
@@ -86,7 +149,7 @@ func extractAndRenameDeliverable(dockerBuildFolder string, deliverablePath strin
 		return errors.Wrap(err, "Failed to create application directory in Docker context")
 	}
 
-	if err := ExtractDeliverable(deliverablePath, applicationRoot); err != nil {
+	if err := extractDeliverable(deliverablePath, applicationRoot); err != nil {
 		return errors.Wrapf(err, "Failed to extract application archive")
 	}
 

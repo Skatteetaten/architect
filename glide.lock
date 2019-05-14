@@ -1,5 +1,5 @@
-hash: d593b6fe315696add430487f08039471ea789ef70563b42682de55829da7eff5
-updated: 2019-02-06T09:21:10.468942704+01:00
+hash: 965dc0a79b5dae252275c0b964852fb5419b41814bbb9e14834326df3414c180
+updated: 2019-05-22T09:34:15.955284704+02:00
 imports:
 - name: github.com/cpuguy83/go-md2man
   version: 691ee98543af2f262f35fbb54bdd42f00b9b9cc5
@@ -43,6 +43,7 @@ imports:
   - pkg/chrootarchive
   - pkg/fileutils
   - pkg/idtools
+  - pkg/integration/cmd
   - pkg/ioutils
   - pkg/longpath
   - pkg/mount
@@ -67,6 +68,10 @@ imports:
   - tlsconfig
 - name: github.com/docker/go-units
   version: 2fb04c6466a548a03cb009c5569ee1ab1e35398e
+- name: github.com/go-check/check
+  version: 788fd78401277ebd861206a03c884797c6ec5541
+- name: github.com/google/uuid
+  version: 0cd6bf5da1e1c83f8b45653022c74f71af0538a4
 - name: github.com/gorilla/context
   version: 14f550f51af52180c2eefed15e5fd18d63c0a64a
 - name: github.com/gorilla/mux
@@ -79,6 +84,10 @@ imports:
   version: bbd0c6e271208dce66d8fda4bc536453cd27fc4a
 - name: github.com/konsorten/go-windows-terminal-sequences
   version: 5c8c8bd35d3832f5d134ae1e1e375b69a4d25242
+- name: github.com/kr/pretty
+  version: a0c635c0aede2cb0c2f8bb0f0d70485fbdd11bd4
+- name: github.com/kr/text
+  version: e2ffdb16a802fe2bb95e2e35ff34f0e53aeef34f
 - name: github.com/Microsoft/go-winio
   version: 75bf6ca3d7cb77506c52495e61472c131a254d56
 - name: github.com/opencontainers/runc

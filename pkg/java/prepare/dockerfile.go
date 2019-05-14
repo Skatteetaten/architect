@@ -68,7 +68,6 @@ func createEnv(auroraVersion runtime.AuroraVersion, pushextratags global.PushExt
 	if auroraVersion.Snapshot {
 		env[docker.ENV_SNAPSHOT_TAG] = auroraVersion.GetGivenVersion()
 	}
-
 	return env
 }
 

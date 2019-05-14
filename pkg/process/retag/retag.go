@@ -75,7 +75,7 @@ func (m *retagger) Retag() error {
 		Provider:   docker.NewRegistryClient(m.Config.DockerSpec.ExternalDockerRegistry),
 		Overwrite:  m.Config.DockerSpec.TagOverwrite,
 	}
-	logrus.Debugf("Extract tag info, auroraVersion=%s, appVersion=%s, extraTags=%s", auroraVersion, appVersion, extratags)
+	logrus.Debugf("Extract tag info, auroraVersion=%v, appVersion=%v, extraTags=%v", auroraVersion, appVersion, extratags)
 
 	if err != nil {
 		return errors.Wrap(err, "Unable to get version tags")

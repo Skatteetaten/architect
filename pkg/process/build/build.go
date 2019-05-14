@@ -2,18 +2,54 @@ package process
 
 import (
 	"github.com/Sirupsen/logrus"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/tagger"
+	"log"
+	"os"
+	"os/exec"
 )
 
-//TODO: Write some test for this..
-// Need to initialize RegistryClient and DockerClient outside of this function
-func Build(credentials *docker.RegistryCredentials, cfg *config.Config, downloader nexus.Downloader, prepper Prepper) error {
-	provider := docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry)
+
+type Builder interface {
+	Build(ruuid string, context string, buildFolder string) error
+	Push(ruuid string, tag string) error
+	Tag(ruuid string, tag string) error
+}
+
+type BuildahCmd struct {
+
+}
+
+func (BuildahCmd) Build(ruuid string, context string, buildFolder string) error{
+	build := exec.Command("buildah", "--storage-driver", "vfs", "bud", "--isolation", "chroot", "-t", ruuid, "-f", context, buildFolder)
+	build.Stdout = os.Stdout
+	build.Stderr = os.Stderr
+	return build.Run()
+}
+
+
+func (BuildahCmd) Push(ruuid string , tag string) error {
+	cmd := exec.Command("buildah", "--storage-driver", "vfs", "push", ruuid, tag)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func (BuildahCmd) Tag(ruuid string, tag string) error {
+	cmd := exec.Command("buildah", "--storage-driver", "vfs", "tag", ruuid, tag)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+
+//TODO: Implement credentials support (Vault ?)
+func Build(credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
 
 	logrus.Debugf("Download deliverable for GAV %-v", cfg.ApplicationSpec)
 	deliverable, err := downloader.DownloadArtifact(&cfg.ApplicationSpec.MavenGav)
@@ -47,9 +83,6 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, download
 	appVersion := nexus.GetSnapshotTimestampVersion(application.MavenGav, deliverable)
 	auroraVersion := runtime.NewAuroraVersionFromBuilderAndBase(appVersion, snapshot,
 		application.MavenGav.Version, buildImage, baseImage.DockerImage)
-	if err != nil {
-		return errors.Wrap(err, "Error creating version information")
-	}
 
 	dockerBuildConfig, err := prepper(cfg, auroraVersion, deliverable, baseImage)
 	if err != nil {
@@ -73,19 +106,24 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, download
 		}
 	}
 
-	client, err := docker.NewDockerClient()
-	if err != nil {
-		return errors.Wrap(err, "Error initializing Docker")
-	}
-
 	for _, buildConfig := range dockerBuildConfig {
-		client.PullImage(buildConfig.Baseimage)
-		imageid, err := client.BuildImage(buildConfig.BuildFolder)
+
+		ruuid, err := uuid.NewUUID()
+
+		if err != nil {
+			log.Fatalf("UUID generation failed: %s ", err)
+		}
+
+		context := buildConfig.BuildFolder + "/Dockerfile"
+
+		logrus.Info("Docker context ", buildConfig.BuildFolder)
+
+		err = builder.Build(ruuid.String(), context, buildConfig.BuildFolder)
 
 		if err != nil {
 			return errors.Wrap(err, "There was an error with the Docker build operation.")
 		} else {
-			logrus.Infof("Done building. Imageid: %s", imageid)
+			logrus.Infof("Done building. Imageid: %s", ruuid)
 		}
 
 		var tagResolver tagger.TagResolver
@@ -105,16 +143,20 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, download
 		}
 
 		tags, err := tagResolver.ResolveTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
-		logrus.Debugf("Tag image %s with %s", imageid, tags)
+		logrus.Debugf("Tag image %s with %s", ruuid, tags)
+
 		for _, tag := range tags {
-			err = client.TagImage(imageid, tag)
+			err = builder.Tag(ruuid.String(), tag)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "Image tag with buildah failed")
 			}
 		}
-		err = client.PushImages(tags, credentials)
-		if err != nil {
-			return errors.Wrap(err, "Error pushing images")
+
+		for _, tag := range tags {
+			err = builder.Push(ruuid.String(), tag)
+			if err != nil {
+				return errors.Wrapf(err, "Image push with buildah failed")
+			}
 		}
 	}
 	return nil

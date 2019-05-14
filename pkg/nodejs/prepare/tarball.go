@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 )
 
-func extractTarball(pathToTarball string) (string, error) {
+func ExtractTarball(pathToTarball string) (string, error) {
 	tmpdir, err := ioutil.TempDir("", "nodejs-architect")
 	tarball, err := os.Open(pathToTarball)
 	if err != nil {
@@ -76,7 +76,7 @@ func extractTarball(pathToTarball string) (string, error) {
 			}
 
 		default:
-			logrus.Infof("Dont support %s", header.Typeflag)
+			logrus.Infof("Dont support %v", header.Typeflag)
 		}
 	}
 	return tmpdir, nil
