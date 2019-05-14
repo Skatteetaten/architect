@@ -31,6 +31,8 @@ type Config struct {
 	DockerSpec      DockerSpec
 	BuilderSpec     BuilderSpec
 	BinaryBuild     bool
+	BuildahBuild    bool
+	TlsVerify       bool
 }
 
 type ApplicationSpec struct {
