@@ -12,6 +12,8 @@ import (
 	"github.com/skatteetaten/architect/pkg/util"
 	"regexp"
 	"strings"
+	"fmt"
+	"sort"
 )
 
 const WRENCH_DOCKER_FILE string = `FROM {{.Baseimage}}
@@ -81,25 +83,26 @@ http {
 
     keepalive_timeout  65;
 
-    #gzip  on;
+{{.Gzip}}
 
     index index.html;
 
     server {
-       listen 8080;
+        listen 8080;
 
-       location /api {
-          {{if or .HasNodeJSApplication .ConfigurableProxy}}proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};{{else}}return 404;{{end}}{{range $key, $value := .NginxOverrides}}
-          {{$key}} {{$value}};{{end}}
-       }
+        location /api {
+            {{if or .HasNodeJSApplication .ConfigurableProxy}}proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};{{else}}return 404;{{end}}{{range $key, $value := .NginxOverrides}}
+            {{$key}} {{$value}};{{end}}
+        }
 {{if .SPA}}
-       location {{.Path}} {
-          root /u01/static;
-          try_files $uri {{.Path}}index.html;{{else}}
-       location {{.Path}} {
-          root /u01/static;{{end}}{{range $key, $value := .ExtraStaticHeaders}}
-          add_header {{$key}} "{{$value}}";{{end}}
-       }
+        location {{.Path}} {
+            root {{.DocumentRoot}};
+            try_files $uri {{.Path}}index.html;{{else}}
+        location {{.Path}} {
+            root {{.DocumentRoot}};{{end}}{{range $key, $value := .ExtraStaticHeaders}}
+            add_header {{$key}} "{{$value}}";{{end}}
+        }
+{{.Locations}}
     }
 }
 `
@@ -268,6 +271,7 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 	labels["version"] = string(auroraVersion.GetAppVersion())
 	labels["maintainer"] = findMaintainer(v.DockerMetadata)
 
+	documentRoot := "/u01/static"
 	path := "/"
 	if v.Aurora.Webapp != nil && len(strings.TrimPrefix(v.Aurora.Webapp.Path, "/")) > 0 {
 		path = "/" + strings.TrimPrefix(v.Aurora.Webapp.Path, "/")
@@ -295,17 +299,63 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 	var static string
 	var spa bool
 	var extraHeaders map[string]string
+	nginxLocationMap := make(nginxLocations)
+
+	gzipUse := "on"
+	gzipMinLength := 10240
+	gzipVary := "on"
+	if v.Aurora.Webapp != nil && v.Aurora.Webapp.Gzip != nil {
+		if v.Aurora.Webapp.Gzip.Use == "on" || v.Aurora.Webapp.Gzip.Use == "off" {
+			gzipUse = v.Aurora.Webapp.Gzip.Use
+			if v.Aurora.Webapp.Gzip.Use == "on" || v.Aurora.Webapp.Gzip.Use == "off" {
+				gzipVary = v.Aurora.Webapp.Gzip.Use
+			}
+			if v.Aurora.Webapp.Gzip.MinLength > 0 {
+				gzipMinLength = v.Aurora.Webapp.Gzip.MinLength
+			}
+		}
+	}
+	nginxRootGzip := nginxGzip{Use: gzipUse, MinLength: gzipMinLength, Vary: gzipVary}
 
 	if v.Aurora.Webapp == nil {
 		static = v.Aurora.Static
 		spa = v.Aurora.SPA
 		extraHeaders = nil
-
 	} else {
 		static = v.Aurora.Webapp.StaticContent
 		spa = v.Aurora.Webapp.DisableTryfiles == false
 		extraHeaders = v.Aurora.Webapp.Headers
+
+		//  Locations
+		for locKey, locValue := range v.Aurora.Webapp.Locations {
+			myMap := locValue.(map[string]interface{})
+			gZip := nginxGzip{}
+
+			if val, ok := myMap["gzip"]; ok {
+				gzipMap := val.(map[string]interface{})
+				if val, ok := gzipMap["use"]; ok {
+					gZip.Use = val.(string)
+				}
+			
+				if val, ok := gzipMap["min_length"]; ok {
+					gZip.MinLength = int(val.(float64)) 
+				} 
+
+				if val, ok := gzipMap["vary"]; ok {
+					gZip.Vary = val.(string)
+				} 
+			}
+			headersMap := make(map[string]string)
+
+			for headerKey, headerValue := range myMap["headers"].(map[string]interface{}) {
+				headersMap[headerKey] = headerValue.(string)
+			}
+			nginxLocationMap[locKey] = nginxLocation{headersMap, gZip}
+		}
 	}
+
+	nginxGzipForTemplate := nginxGzipMapToString(nginxRootGzip)
+	nginxLocationForTemplate := nginxLocationsMapToString(nginxLocationMap, documentRoot, path)
 
 	env := make(map[string]string)
 	env["MAIN_JAVASCRIPT_FILE"] = "/u01/application/" + nodejsMainfile
@@ -325,14 +375,18 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 		NginxOverrides:       overrides,
 		ConfigurableProxy:    v.Aurora.ConfigurableProxy,
 		Static:               static,
+		DocumentRoot:		  documentRoot,
 		ExtraStaticHeaders:   extraHeaders,
 		SPA:                  spa,
 		Path:                 path,
 		Labels:               labels,
 		Env:                  env,
+		Locations: 			  nginxLocationForTemplate,
+		Gzip:				  nginxGzipForTemplate,
 		PackageDirectory:     "package",
 	}, nil
 }
+
 func whitelistOverrides(overrides map[string]string) error {
 	if overrides == nil {
 		return nil
@@ -349,4 +403,88 @@ func whitelistOverrides(overrides map[string]string) error {
 		}
 	}
 	return nil
+}
+
+func (m nginxLocations) sort() (index []string) {
+	for k := range m {
+		index = append(index, k)
+	}
+	sort.Strings(index)
+	return
+}
+
+func (m headers) sort() (index []string) {
+	for k := range m {
+		index = append(index, k)
+	}
+	sort.Strings(index)
+	return
+}
+
+func nginxLocationsMapToString(m nginxLocations, documentRoot string, path string) string {
+	sumLocations := "" 
+	indentN1 := strings.Repeat(" ", 8)
+	indentN2 := strings.Repeat(" ", 12)
+
+	for _, k := range m.sort() {
+		v := m[k]
+		singleLocation := fmt.Sprintf("%slocation %s%s {\n", indentN1, path, k)
+		singleLocation = fmt.Sprintf("%s%sroot %s;\n", singleLocation, indentN2, documentRoot)
+		gZipUse := strings.TrimSpace(v.Gzip.Use)
+		gZipVary := strings.TrimSpace(v.Gzip.Vary)
+		if gZipUse == "on" {
+			singleLocation = fmt.Sprintf("%s%sgzip on;\n", singleLocation, indentN2)
+			if v.Gzip.MinLength > 0 {
+				singleLocation = fmt.Sprintf("%s%sgzip_min_length %d;\n", singleLocation, indentN2, v.Gzip.MinLength)
+			}
+			if gZipVary != "" {
+				singleLocation = fmt.Sprintf("%s%sgzip_vary %s;\n", singleLocation, indentN2, gZipVary)
+			}
+			if v.Gzip.Proxied != "" {
+				singleLocation = fmt.Sprintf("%s%sgzip_proxied %s;\n", singleLocation, indentN2, v.Gzip.Proxied)
+			}
+			if v.Gzip.Types != "" {
+				singleLocation = fmt.Sprintf("%s%sgzip_types %s;\n", singleLocation, indentN2, v.Gzip.Types)
+			}
+			if v.Gzip.Disable != "" {
+				singleLocation = fmt.Sprintf("%s%sgzip_disable \"%s\";\n", singleLocation, indentN2, v.Gzip.Disable)
+			}
+		} else if gZipUse == "off" {
+			singleLocation = fmt.Sprintf("%s%sgzip off;\n", singleLocation, indentN2)
+		}
+
+		for _, k2 := range v.Headers.sort() {
+			singleLocation = fmt.Sprintf("%s%sadd_header %s \"%s\";\n", singleLocation, indentN2, k2, v.Headers[k2])
+		}
+
+		singleLocation = fmt.Sprintf("%s%s}\n", singleLocation, indentN1)
+		sumLocations = sumLocations + singleLocation
+	}
+	return sumLocations
+}
+
+func nginxGzipMapToString(gzip nginxGzip) string {
+	sumGzip := ""
+	indent := strings.Repeat(" ", 4)
+	if gzip.Use == "on" {
+		sumGzip = fmt.Sprintf("%s%sgzip on;\n", sumGzip, indent)
+		if gzip.MinLength > 0 {
+			sumGzip = fmt.Sprintf("%s%sgzip_min_length %d;\n", sumGzip, indent, gzip.MinLength)
+		}
+		if gzip.Vary != "" {
+			sumGzip = fmt.Sprintf("%s%sgzip_vary %s;\n", sumGzip, indent, gzip.Vary)
+		}
+		if gzip.Proxied != "" {
+			sumGzip = fmt.Sprintf("%s%sgzip_proxied %s;\n", sumGzip, indent, gzip.Proxied)
+		}
+		if gzip.Types != "" {
+			sumGzip = fmt.Sprintf("%s%sgzip_types %s;\n", sumGzip, indent, gzip.Types)
+		}
+		if gzip.Disable != "" {
+			sumGzip = fmt.Sprintf("%s%sgzip_disable \"%s\";\n", sumGzip, indent, gzip.Disable)
+		}
+	} else {
+		sumGzip = fmt.Sprintf("%s%sgzip off;\n", sumGzip, indent)
+	}
+	return sumGzip
 }
