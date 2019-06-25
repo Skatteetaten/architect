@@ -2,14 +2,13 @@ package prepare
 
 import (
 	"bytes"
+	"encoding/json"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"path"
 	"testing"
-	"fmt"
-	"encoding/json"
 )
 
 const buildTime = "2016-09-12T14:30:10Z"
@@ -305,7 +304,6 @@ func TestGeneratedFiledWhenNodeJSIsEnabled(t *testing.T) {
 	}, auroraVersion, testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedNodeJsDockerFile, files["Dockerfile"])
-	fmt.Println(nginxConfPrefix+expectedNginxConfFilePartial)
 	assert.Equal(t, nginxConfPrefix+expectedNginxConfFilePartial, files["nginx.conf"])
 	assert.NotEmpty(t, files["architectscripts/run"])
 	assert.NotEmpty(t, files["architectscripts/run_tools.sh"])

@@ -1,6 +1,7 @@
 package prepare
 
 import (
+	"fmt"
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
@@ -11,9 +12,8 @@ import (
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
 	"regexp"
-	"strings"
-	"fmt"
 	"sort"
+	"strings"
 )
 
 const WRENCH_DOCKER_FILE string = `FROM {{.Baseimage}}
@@ -336,14 +336,14 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 				if val, ok := gzipMap["use"]; ok {
 					gZip.Use = val.(string)
 				}
-			
+
 				if val, ok := gzipMap["min_length"]; ok {
-					gZip.MinLength = int(val.(float64)) 
-				} 
+					gZip.MinLength = int(val.(float64))
+				}
 
 				if val, ok := gzipMap["vary"]; ok {
 					gZip.Vary = val.(string)
-				} 
+				}
 			}
 			headersMap := make(map[string]string)
 
@@ -375,14 +375,14 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 		NginxOverrides:       overrides,
 		ConfigurableProxy:    v.Aurora.ConfigurableProxy,
 		Static:               static,
-		DocumentRoot:		  documentRoot,
+		DocumentRoot:         documentRoot,
 		ExtraStaticHeaders:   extraHeaders,
 		SPA:                  spa,
 		Path:                 path,
 		Labels:               labels,
 		Env:                  env,
-		Locations: 			  nginxLocationForTemplate,
-		Gzip:				  nginxGzipForTemplate,
+		Locations:            nginxLocationForTemplate,
+		Gzip:                 nginxGzipForTemplate,
 		PackageDirectory:     "package",
 	}, nil
 }
@@ -422,7 +422,7 @@ func (m headers) sort() (index []string) {
 }
 
 func nginxLocationsMapToString(m nginxLocations, documentRoot string, path string) string {
-	sumLocations := "" 
+	sumLocations := ""
 	indentN1 := strings.Repeat(" ", 8)
 	indentN2 := strings.Repeat(" ", 12)
 
