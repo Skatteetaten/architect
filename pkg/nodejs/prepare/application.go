@@ -316,6 +316,7 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 		}
 	}
 	nginxRootGzip := nginxGzip{Use: gzipUse, MinLength: gzipMinLength, Vary: gzipVary}
+	locationTryFiles := ""
 
 	if v.Aurora.Webapp == nil {
 		static = v.Aurora.Static
@@ -355,7 +356,12 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 	}
 
 	nginxGzipForTemplate := nginxGzipMapToString(nginxRootGzip)
-	nginxLocationForTemplate := nginxLocationsMapToString(nginxLocationMap, documentRoot, path)
+
+	if spa {
+		locationTryFiles = path + "index.html"
+	}
+
+	nginxLocationForTemplate := nginxLocationsMapToString(nginxLocationMap, documentRoot, path, locationTryFiles)
 
 	env := make(map[string]string)
 	env["MAIN_JAVASCRIPT_FILE"] = "/u01/application/" + nodejsMainfile
@@ -421,7 +427,7 @@ func (m headers) sort() (index []string) {
 	return
 }
 
-func nginxLocationsMapToString(m nginxLocations, documentRoot string, path string) string {
+func nginxLocationsMapToString(m nginxLocations, documentRoot string, path string, tryFiles string) string {
 	sumLocations := ""
 	indentN1 := strings.Repeat(" ", 8)
 	indentN2 := strings.Repeat(" ", 12)
@@ -430,6 +436,9 @@ func nginxLocationsMapToString(m nginxLocations, documentRoot string, path strin
 		v := m[k]
 		singleLocation := fmt.Sprintf("%slocation %s%s {\n", indentN1, path, k)
 		singleLocation = fmt.Sprintf("%s%sroot %s;\n", singleLocation, indentN2, documentRoot)
+		if tryFiles != "" {
+			singleLocation = fmt.Sprintf("%s%stry_files $uri %s;\n", singleLocation, indentN2, tryFiles)
+		}
 		gZipUse := strings.TrimSpace(v.Gzip.Use)
 		gZipVary := strings.TrimSpace(v.Gzip.Vary)
 		if gZipUse == "on" {

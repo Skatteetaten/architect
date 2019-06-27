@@ -256,6 +256,7 @@ const expectedNginxConfigWithLocations = `
         }
         location /index.html {
             root /u01/static;
+            try_files $uri /index.html;
             gzip on;
             gzip_min_length 1024;
             gzip_vary on;
@@ -265,11 +266,13 @@ const expectedNginxConfigWithLocations = `
         }
         location /index/other.html {
             root /u01/static;
+            try_files $uri /index.html;
             add_header Cache-Control "no-store";
             add_header X-XSS-Protection "1; mode=block";
         }
         location /index_other.html {
             root /u01/static;
+            try_files $uri /index.html;
             gzip off;
             add_header Cache-Control "max-age=60";
             add_header X-XSS-Protection "0";
