@@ -436,9 +436,6 @@ func nginxLocationsMapToString(m nginxLocations, documentRoot string, path strin
 		v := m[k]
 		singleLocation := fmt.Sprintf("%slocation %s%s {\n", indentN1, path, k)
 		singleLocation = fmt.Sprintf("%s%sroot %s;\n", singleLocation, indentN2, documentRoot)
-		if tryFiles != "" {
-			singleLocation = fmt.Sprintf("%s%stry_files $uri %s;\n", singleLocation, indentN2, tryFiles)
-		}
 		gZipUse := strings.TrimSpace(v.Gzip.Use)
 		gZipVary := strings.TrimSpace(v.Gzip.Vary)
 		if gZipUse == "on" {
@@ -464,6 +461,10 @@ func nginxLocationsMapToString(m nginxLocations, documentRoot string, path strin
 
 		for _, k2 := range v.Headers.sort() {
 			singleLocation = fmt.Sprintf("%s%sadd_header %s \"%s\";\n", singleLocation, indentN2, k2, v.Headers[k2])
+		}
+
+		if tryFiles != "" {
+			singleLocation = fmt.Sprintf("%s%stry_files $uri %s;\n", singleLocation, indentN2, tryFiles)
 		}
 
 		singleLocation = fmt.Sprintf("%s%s}\n", singleLocation, indentN1)
