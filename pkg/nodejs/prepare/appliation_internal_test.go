@@ -262,20 +262,17 @@ const expectedNginxConfigWithLocations = `
             add_header Cache-Control "no-cache";
             add_header X-Frame-Options "DENY";
             add_header X-XSS-Protection "1";
-            try_files $uri /index.html;
         }
         location /index/other.html {
             root /u01/static;
             add_header Cache-Control "no-store";
             add_header X-XSS-Protection "1; mode=block";
-            try_files $uri /index.html;
         }
         location /index_other.html {
             root /u01/static;
             gzip off;
             add_header Cache-Control "max-age=60";
             add_header X-XSS-Protection "0";
-            try_files $uri /index.html;
         }
 
     }
