@@ -279,6 +279,42 @@ const expectedNginxConfigWithLocations = `
 }
 `
 
+const expectedNginxConfigWithLocationsAndWithoutSomeHeaders = `
+    server {
+        listen 8080;
+
+        location /api {
+            proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};
+        }
+
+        location / {
+            root /u01/static;
+            try_files $uri /index.html;
+            add_header X-Some-Header "Verdi";
+        }
+        location /index.html {
+            root /u01/static;
+            gzip on;
+            gzip_min_length 1024;
+            gzip_vary on;
+            add_header Cache-Control "no-cache";
+            add_header X-Frame-Options "DENY";
+            add_header X-XSS-Protection "1";
+        }
+        location /index/other.html {
+            root /u01/static;
+            add_header Cache-Control "no-store";
+            add_header X-XSS-Protection "1; mode=block";
+        }
+        location /index_other.html {
+            root /u01/static;
+            gzip off;
+        }
+
+    }
+}
+`
+
 var osJson = openshiftJson{
 	Aurora: auroraApplication{
 		NodeJS: &nodeJSApplication{
@@ -469,6 +505,88 @@ func TestThatCustomLocationsIsPresentInNginx(t *testing.T) {
 
 	assert.Equal(t, expectedNodeJsDockerFileWithExtras, files["Dockerfile"])
 	assert.Equal(t, nginxConfPrefixLocations+expectedNginxConfigWithLocations, files["nginx.conf"])
+}
+
+const openshiftJsonJSONWithLocationsWithoutHeaders = `
+{
+	"docker": {
+	  "maintainer": "Aurora OpenShift Utvikling <utvpaas@skatteetaten.no>",
+	  "labels": {
+		 "io.k8s.description": "Demo application with React on Openshift.",
+		 "io.openshift.tags": "openshift,react,nodejs"
+	  }
+	},
+	"web": {
+	  "nodejs": {
+		 "assets": "api",
+		 "main": "api/server.js",
+		 "waf": "aurora-standard",
+		 "runtime": "nodeLTS"
+	  },
+	  "webapp": {
+		 "content": "app",
+		 "gzip": {
+			"use": "on",
+			"min_length": 2048,
+			"vary": "on"
+		 },
+		 "headers": {
+			"X-Some-Header": "Verdi"
+		 },
+		 "locations": {
+			"index.html": {
+			  "headers": {
+				 "Cache-Control": "no-cache",
+				 "X-XSS-Protection": "1",
+				 "X-Frame-Options": "DENY"
+			  },
+			  "gzip": {
+				 "use": "on",
+				 "min_length": 1024,
+				 "vary": "on"
+			  }
+			},
+			"index_other.html": {
+				"gzip": {
+					"use": "off"
+				 }
+			},
+			"index/other.html": {
+				"headers": {
+				   "Cache-Control": "no-store",
+				   "X-XSS-Protection": "1; mode=block"
+				}
+			}
+		 },
+		 "static": "app"
+	  }
+	}
+ } 
+`
+
+func TestThatCustomLocationsWithoutHeadersIsPresentInNginx(t *testing.T) {
+	b := []byte(openshiftJsonJSONWithLocationsWithoutHeaders)
+	var m openshiftJson
+	err := json.Unmarshal(b, &m)
+
+	if err != nil {
+		assert.Error(t, err)
+	}
+
+	assert.Equal(t, m.Aurora.NodeJS.Main, "api/server.js")
+
+	files := make(map[string]string)
+	dockerSpec := config.DockerSpec{
+		PushExtraTags: config.ParseExtraTags("major"),
+	}
+	auroraVersion := runtime.NewAuroraVersion("1.2.3", false, "1.2.3", runtime.CompleteVersion("1.2.3-b--baseimageversion"))
+	err = prepareImage(dockerSpec, &m, runtime.DockerImage{
+		Tag:        "latest",
+		Repository: "aurora/wrench",
+	}, auroraVersion, testFileWriter(files), buildTime)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedNodeJsDockerFileWithExtras, files["Dockerfile"])
+	assert.Equal(t, nginxConfPrefixLocations+expectedNginxConfigWithLocationsAndWithoutSomeHeaders, files["nginx.conf"])
 }
 
 func testFileWriter(files map[string]string) util.FileWriter {

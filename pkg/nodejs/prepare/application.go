@@ -347,8 +347,10 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 			}
 			headersMap := make(map[string]string)
 
-			for headerKey, headerValue := range myMap["headers"].(map[string]interface{}) {
-				headersMap[headerKey] = headerValue.(string)
+			if val, ok := myMap["headers"]; ok {
+				for headerKey, headerValue := range val.(map[string]interface{}) {
+					headersMap[headerKey] = headerValue.(string)
+				}
 			}
 			nginxLocationMap[locKey] = nginxLocation{headersMap, gZip}
 		}
