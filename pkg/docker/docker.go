@@ -71,13 +71,13 @@ func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
 		Remove:         true,
 		ForceRemove:    true,
 	}
+	logrus.Info("DockerClient.ImageBuild starting")
 	tarReader := createContextTarStreamReader(buildFolder)
 	build, err := d.Client.ImageBuild(context.Background(), tarReader, dockerOpt)
 	if err != nil {
 		return "", errors.Wrap(err, "Error building image")
 	}
-
-	// ImageBuild will not return error message if build fails.
+	// ImageBuild will not return error message if build fails, parsing build to detect
 	var bodyLine string = ""
 	scanner := bufio.NewScanner(build.Body)
 	for scanner.Scan() {
@@ -87,6 +87,9 @@ func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
 			msg, err := JsonMapToString(bodyLine, "error")
 			if err != nil {
 				return "", errors.Wrap(err, "Error mapping JSON error message. Error in build.")
+			}
+			if strings.Contains(msg,"lstat") && strings.Contains(msg,"no such file or directory") {
+				msg += ", check that the specified folders in metadata/openshift.json match the file structure of the build";
 			}
 			return "", errors.New(msg)
 		}
