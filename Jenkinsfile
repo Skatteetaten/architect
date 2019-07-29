@@ -16,7 +16,7 @@ node {
 
 
     stage 'Test og coverage'
-    go.buildGoWithJenkinsSh()
+    go.buildGoWithJenkinsSh("Go 1.12")
 
     stage 'Deploy to Nexus'
     def isMaster = env.BRANCH_NAME == 'master'
