@@ -47,7 +47,7 @@ exec $1
 
 //We copy this over the script in wrench if we don't have a nodejs app
 const BLOCKING_RUN_NODEJS string = `#!/bin/sh
-echo "No node. Blocking 4 ever<3!"
+echo "Use of node.js was not configured in openshift.json. Blocking run script."
 while true; do sleep 100d; done;
 `
 
