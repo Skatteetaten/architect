@@ -71,7 +71,6 @@ func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
 		Remove:         true,
 		ForceRemove:    true,
 	}
-	logrus.Info("DockerClient.ImageBuild starting")
 	tarReader := createContextTarStreamReader(buildFolder)
 	build, err := d.Client.ImageBuild(context.Background(), tarReader, dockerOpt)
 	if err != nil {
@@ -88,8 +87,8 @@ func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
 			if err != nil {
 				return "", errors.Wrap(err, "Error mapping JSON error message. Error in build.")
 			}
-			if strings.Contains(msg,"lstat") && strings.Contains(msg,"no such file or directory") {
-				msg += ", check that the specified folders in metadata/openshift.json match the file structure of the build";
+			if strings.Contains(msg, "lstat") && strings.Contains(msg, "no such file or directory") {
+				msg += ", check that the specified folders in metadata/openshift.json match the file structure of the build"
 			}
 			return "", errors.New(msg)
 		}
