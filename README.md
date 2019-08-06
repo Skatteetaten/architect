@@ -10,7 +10,7 @@ _______  _______  _______          __________________ _______  _______ _________
                                                                                  
 ```
 
-# Introduction 
+# Introduction
 
 Architect is a tool for building Docker images. It accepts a software deliverable as input, 
 usually a Maven artifact containing a runnable application, and builds a Docker image using the 
