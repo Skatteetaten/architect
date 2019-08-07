@@ -19,11 +19,11 @@ import (
 	"github.com/skatteetaten/architect/cmd"
 	"github.com/skatteetaten/architect/cmd/architect"
 	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/nexus"
+	"github.com/skatteetaten/architect/pkg/util"
 	"os"
 	"strings"
-	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/util"
 )
 
 func main() {
