@@ -307,8 +307,8 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 	if v.Aurora.Webapp != nil && v.Aurora.Webapp.Gzip != nil {
 		if v.Aurora.Webapp.Gzip.Use == "on" || v.Aurora.Webapp.Gzip.Use == "off" {
 			gzipUse = v.Aurora.Webapp.Gzip.Use
-			if v.Aurora.Webapp.Gzip.Use == "on" || v.Aurora.Webapp.Gzip.Use == "off" {
-				gzipVary = v.Aurora.Webapp.Gzip.Use
+			if v.Aurora.Webapp.Gzip.Vary == "on" || v.Aurora.Webapp.Gzip.Vary == "off" {
+				gzipVary = v.Aurora.Webapp.Gzip.Vary
 			}
 			if v.Aurora.Webapp.Gzip.MinLength > 0 {
 				gzipMinLength = v.Aurora.Webapp.Gzip.MinLength
