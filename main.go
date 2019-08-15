@@ -22,11 +22,14 @@ import (
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/util"
+	"github.com/spf13/viper"
 	"os"
 	"strings"
 )
 
 func main() {
+	viper.AutomaticEnv()
+	viper.SetDefault("legacy", true)
 	// We are called main. Assume we run in a container
 	if strings.HasSuffix(os.Args[:1][0], "main") && len(os.Args) == 1 {
 		initializeAndRunOnOpenShift()
@@ -72,4 +75,5 @@ func initializeAndRunOnOpenShift() {
 		RegistryCredentialsFunc: docker.CusterRegistryCredentials(),
 	}
 	architect.RunArchitect(runConfig)
+
 }

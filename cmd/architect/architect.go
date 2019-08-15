@@ -9,6 +9,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/nodejs/prepare"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/retag"
+	"github.com/spf13/viper"
 	"os"
 	"time"
 )
@@ -60,9 +61,16 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 	}
 
 	provider := docker.NewRegistryClient(c.DockerSpec.ExternalDockerRegistry)
-	builder := process.BuildahCmd{}
 
-	if err := process.Build(r, provider, c, configuration.NexusDownloader, prepper, builder); err != nil {
+	var err error
+	if viper.GetBool("legacy") {
+		err = process.LegacyBuild(r, provider, c, configuration.NexusDownloader, prepper)
+	} else {
+		builder := process.BuildahCmd{}
+		err = process.Build(r, provider, c, configuration.NexusDownloader, prepper, builder)
+	}
+
+	if err != nil {
 		var errorMessage string
 		if logrus.GetLevel() >= logrus.DebugLevel {
 			errorMessage = "Failed to build image: %+v, Terminating"
