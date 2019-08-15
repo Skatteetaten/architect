@@ -34,8 +34,6 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	RootCmd.AddCommand(architect.Build)
-	RootCmd.AddCommand(architect.Prepare)
-	RootCmd.AddCommand(architect.TagAndPush)
 	// Here you will define your flags and configuration settings.
 	// Cobra supports Persistent Flags, which, if defined here,
 	// will be global for your application.
