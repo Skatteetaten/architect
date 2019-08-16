@@ -202,7 +202,7 @@ This requires an existing OpenShift build configuration in the cluster.
 
 ## Local build
 
-Run the Architect binary from the commandline. A file that contains the required build variabled must
+Run the Architect binary from the commandline. A file that contains the required build variables must
 be specified, f.ex: 
 
 ```architect build -f test.json -v ```
