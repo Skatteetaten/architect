@@ -16,7 +16,7 @@ func ExtractBinaryFromStdIn() (string, error) {
 	}
 	stdin := os.Stdin
 	if _, err := io.Copy(tmpfile, stdin); err != nil {
-		return "", errors.Wrapf(err, "Error writing file %v", tmpfile)
+		return "", errors.Wrapf(err, "Error writing file %s", tmpfile)
 	}
 	logrus.Debugf("Using file %s", tmpfile.Name())
 	return tmpfile.Name(), nil

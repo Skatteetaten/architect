@@ -47,7 +47,7 @@ exec $1
 
 //We copy this over the script in wrench if we don't have a nodejs app
 const BLOCKING_RUN_NODEJS string = `#!/bin/sh
-echo "No node. Blocking 4 ever<3!"
+echo "Use of node.js was not configured in openshift.json. Blocking run script."
 while true; do sleep 100d; done;
 `
 
@@ -152,14 +152,14 @@ func prepare(dockerSpec config.DockerSpec, c config.ApplicationSpec, auroraVersi
 	deliverable nexus.Deliverable, baseImage runtime.DockerImage) ([]PreparedImage, error) {*/
 func prepare(cfg config.Config, auroraVersion *runtime.AuroraVersion,
 	deliverable nexus.Deliverable, baseImage runtime.DockerImage) ([]PreparedImage, error) {
-	logrus.Debugf("Building %s", cfg.ApplicationSpec.MavenGav.Name())
+	logrus.Debug("Building %s", cfg.ApplicationSpec.MavenGav.Name())
 
 	openshiftJson, err := findOpenshiftJsonInTarball(deliverable.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	pathToApplication, err := ExtractTarball(deliverable.Path)
+	pathToApplication, err := extractTarball(deliverable.Path)
 	if err != nil {
 		return nil, err
 	}

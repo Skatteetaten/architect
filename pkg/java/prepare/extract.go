@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-func extractDeliverable(archivePath string, extractedDirPath string) error {
+func ExtractDeliverable(archivePath string, extractedDirPath string) error {
 
 	zipReader, err := zip.OpenReader(archivePath)
 

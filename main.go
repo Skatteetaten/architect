@@ -72,5 +72,4 @@ func initializeAndRunOnOpenShift() {
 		RegistryCredentialsFunc: docker.CusterRegistryCredentials(),
 	}
 	architect.RunArchitect(runConfig)
-
 }
