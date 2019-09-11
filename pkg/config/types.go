@@ -31,6 +31,7 @@ type Config struct {
 	DockerSpec      DockerSpec
 	BuilderSpec     BuilderSpec
 	BinaryBuild     bool
+	Legacy          bool
 }
 
 type ApplicationSpec struct {

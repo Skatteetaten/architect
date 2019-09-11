@@ -1,5 +1,5 @@
-hash: 9307ed9397af3a7867907d468e7e380ee67ec20ec296bae1807da973108e70a9
-updated: 2019-08-15T10:28:32.505088555+02:00
+hash: 965dc0a79b5dae252275c0b964852fb5419b41814bbb9e14834326df3414c180
+updated: 2019-09-11T10:51:55.609589238+02:00
 imports:
 - name: github.com/cpuguy83/go-md2man
   version: 691ee98543af2f262f35fbb54bdd42f00b9b9cc5
@@ -67,8 +67,6 @@ imports:
   - tlsconfig
 - name: github.com/docker/go-units
   version: 2fb04c6466a548a03cb009c5569ee1ab1e35398e
-- name: github.com/fsnotify/fsnotify
-  version: 1485a34d5d5723fea214f5710708e19a831720e4
 - name: github.com/google/uuid
   version: 0cd6bf5da1e1c83f8b45653022c74f71af0538a4
 - name: github.com/gorilla/context
@@ -77,30 +75,14 @@ imports:
   version: e444e69cbd2e2e3e0749a2f3c717cec491552bbf
 - name: github.com/hashicorp/go-version
   version: d40cf49b3a77bba84a7afdbd7f1dc295d114efb1
-- name: github.com/hashicorp/hcl
-  version: cf7d376da96d9cecec7c7483cec2735efe54a410
-  subpackages:
-  - hcl/ast
-  - hcl/parser
-  - hcl/printer
-  - hcl/scanner
-  - hcl/strconv
-  - hcl/token
-  - json/parser
-  - json/scanner
-  - json/token
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jteeuwen/go-bindata
   version: bbd0c6e271208dce66d8fda4bc536453cd27fc4a
 - name: github.com/konsorten/go-windows-terminal-sequences
   version: 5c8c8bd35d3832f5d134ae1e1e375b69a4d25242
-- name: github.com/magiconair/properties
-  version: de8848e004dd33dc07a2947b3d76f618a7fc7ef1
 - name: github.com/Microsoft/go-winio
   version: 75bf6ca3d7cb77506c52495e61472c131a254d56
-- name: github.com/mitchellh/mapstructure
-  version: 3536a929edddb9a5b34bd6861dc4a9647cb459fe
 - name: github.com/opencontainers/runc
   version: e4fa8a457544ca646e02e60d124aebb0bb7f52ad
   subpackages:
@@ -112,8 +94,6 @@ imports:
   version: 1722abf79c2f8f2675f47367f827c6491472cf27
   subpackages:
   - specs-go
-- name: github.com/pelletier/go-toml
-  version: 84da2c4a25c585816f2c4211b699228d111d18ab
 - name: github.com/pkg/errors
   version: ba968bfe8b2f7e042a574c888954fccecfa385b4
 - name: github.com/russross/blackfriday
@@ -122,26 +102,14 @@ imports:
   version: 4ea4861398d99a2d05be29675c5b74caf7bea95e
 - name: github.com/Sirupsen/logrus
   version: ba1b36c82c5e05c4f912a88eab0dcd91a171688f
-- name: github.com/spf13/afero
-  version: 588a75ec4f32903aa5e39a2619ba6a4631e28424
-  subpackages:
-  - mem
-- name: github.com/spf13/cast
-  version: c01685bb8421cecb276fa517e91f757215f980b3
 - name: github.com/spf13/cobra
   version: 1c44ec8d3f1552cac48999f9306da23c4d8a288b
-- name: github.com/spf13/jwalterweatherman
-  version: 94f6ae3ed3bceceafa716478c5fbf8d29ca601a1
 - name: github.com/spf13/pflag
   version: 24fa6976df40757dce6aea913e7b81ade90530e1
-- name: github.com/spf13/viper
-  version: b5bf975e5823809fb22c7644d008757f78a4259e
 - name: github.com/stretchr/testify
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
-- name: github.com/subosito/gotenv
-  version: 422ef8095f112cfaf9f40c368e0b9ae8c0714cfb
 - name: github.com/vbatts/tar-split
   version: 620714a4c508c880ac1bdda9c8370a2b19af1a55
   subpackages:
@@ -166,13 +134,6 @@ imports:
   subpackages:
   - unix
   - windows
-- name: golang.org/x/text
-  version: 342b2e1fbaa52c93f31447ad2c6abc048c63e475
-  subpackages:
-  - transform
-  - unicode/norm
-- name: gopkg.in/yaml.v2
-  version: 51d6538a90f86fe93ac480b35f37b2be17fef232
 testImports:
 - name: github.com/pmezard/go-difflib
   version: d8ed2627bdf02c080bf22230dbb337003b7aba2d

@@ -16,14 +16,7 @@ type ConfigReader interface {
 	ReadConfig() (*Config, error)
 }
 
-type GAVConfigReader interface {
-	ReadGAVConfig() (*MavenGav, error)
-}
-
 type InClusterConfigReader struct {
-}
-
-type AuroraBuildConfigReader struct {
 }
 
 type FileConfigReader struct {
@@ -32,10 +25,6 @@ type FileConfigReader struct {
 
 func NewInClusterConfigReader() ConfigReader {
 	return &InClusterConfigReader{}
-}
-
-func NewAuroraBuildConfigReader() ConfigReader {
-	return &AuroraBuildConfigReader{}
 }
 
 func NewFileConfigReader(filepath string) ConfigReader {
@@ -61,136 +50,6 @@ func (m *InClusterConfigReader) ReadConfig() (*Config, error) {
 	return newConfig([]byte(buildConfig), true)
 }
 
-//TODO: Create new ReadConfig method when we have a CRD in place
-
-func (m *AuroraBuildConfigReader) ReadConfig() (*Config, error) {
-
-	//ApplicationType
-	var applicationType ApplicationType = JavaLeveransepakke
-	if appType, exists := os.LookupEnv("APPLICATION_TYPE"); exists {
-		if strings.ToUpper(appType) == "NODEJS" {
-			applicationType = NodeJsLeveransepakke
-		}
-	}
-
-	//Application spec
-	applicationSpec := ApplicationSpec{}
-	mavenGav, err := loadGAVConfig()
-
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to load GAV parameters")
-	}
-	applicationSpec.MavenGav = mavenGav
-
-	if value, exists := os.LookupEnv("DOCKER_BASE_IMAGE"); exists {
-		logrus.Debugf("DOCKER_BASE_IMAGE %s", value)
-		applicationSpec.BaseImageSpec.BaseImage = value
-	} else {
-		logrus.Debug("Fant ikke base image")
-		return nil, errors.New("DOCKER_BASE_IMAGE is missing")
-	}
-
-	if value, exists := os.LookupEnv("DOCKER_BASE_VERSION"); exists {
-		logrus.Debugf("DOCKER_BASE_VERSION %s", value)
-		applicationSpec.BaseImageSpec.BaseVersion = value
-	} else {
-		return nil, errors.New("DOCKER_BASE_VERSION is missing")
-	}
-
-	//Docker spec
-	dockerSpec := DockerSpec{}
-
-	if value, exists := os.LookupEnv("BASE_IMAGE_REGISTRY"); exists {
-		dockerSpec.ExternalDockerRegistry = value
-	} else {
-		return nil, errors.New("BASE_IMAGE_REGISTRY is missing")
-	}
-
-	if value, exists := os.LookupEnv("OUTPUT_REGISTRY"); exists {
-		dockerSpec.OutputRegistry = value
-	} else {
-		return nil, errors.New("OUTPUT_REGISTRY is missing")
-	}
-
-	if value, exists := os.LookupEnv("OUTPUT_REPOSITORY"); exists {
-		dockerSpec.OutputRepository = value
-	} else {
-		return nil, errors.New("OUTPUT_REPOSITORY is missing")
-	}
-
-	if value, exists := os.LookupEnv("PUSH_EXTRA_TAGS"); exists {
-		dockerSpec.PushExtraTags = ParseExtraTags(value)
-	} else {
-		dockerSpec.PushExtraTags = ParseExtraTags("latest,major,minor,patch")
-	}
-
-	if value, exists := os.LookupEnv("TAG_WITH"); exists {
-		dockerSpec.TagWith = value
-	}
-
-	if value, exists := os.LookupEnv("RETAG_WITH"); exists {
-		dockerSpec.RetagWith = value
-	}
-
-	dockerSpec.TagOverwrite = false
-	if value, exists := os.LookupEnv("TAG_OVERWRITE"); exists {
-		if strings.Contains(strings.ToLower(value), "true") {
-			dockerSpec.TagOverwrite = true
-		}
-	}
-
-	//Builder spec
-	builderSpec := BuilderSpec{}
-	if builderVersion, present := os.LookupEnv("APP_VERSION"); present {
-		builderSpec.Version = builderVersion
-	} else {
-		//We set it to local for local builds.
-		//Running on OpenShift will have APP_VERSION as environment variable
-		builderSpec.Version = "local"
-	}
-
-	c := &Config{
-		ApplicationType: applicationType,
-		ApplicationSpec: applicationSpec,
-		DockerSpec:      dockerSpec,
-		BuilderSpec:     builderSpec,
-		BinaryBuild:     false, //TODO: Find a way to support binary builds
-	}
-	return c, nil
-}
-
-func loadGAVConfig() (MavenGav, error) {
-	GAV := MavenGav{}
-
-	if value, exists := os.LookupEnv("APPLICATION_TYPE"); exists && strings.ToUpper(value) == "NODEJS" {
-		GAV.Classifier = Classifier(Webleveransepakke)
-		GAV.Type = TgzPackaging
-	} else {
-		GAV.Classifier = Classifier(Leveransepakke)
-		GAV.Type = ZipPackaging
-	}
-
-	if value, exists := os.LookupEnv("ARTIFACT_ID"); exists {
-		GAV.ArtifactId = value
-	} else {
-		return MavenGav{}, errors.New("ARTIFACT_ID is missing")
-	}
-
-	if value, exists := os.LookupEnv("GROUP_ID"); exists {
-		GAV.GroupId = value
-	} else {
-		return MavenGav{}, errors.New("GROUP_ID is missing")
-	}
-
-	if value, exists := os.LookupEnv("VERSION"); exists {
-		GAV.Version = value
-	} else {
-		return MavenGav{}, errors.New("VERSION is missing")
-	}
-
-	return GAV, nil
-}
-
 func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, error) {
 	build := api.Build{}
 	err := json.Unmarshal(buildConfig, &build)
@@ -212,6 +71,14 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		if strings.ToUpper(appType) == "NODEJS" {
 			applicationType = NodeJsLeveransepakke
 		}
+	}
+
+	var legacy = true
+	if value, err := findEnv(env, "LEGACY"); err == nil {
+		if strings.Contains(strings.ToLower(value), "false") {
+			legacy = false
+		}
+
 	}
 
 	applicationSpec := ApplicationSpec{}
@@ -353,6 +220,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		DockerSpec:      dockerSpec,
 		BuilderSpec:     builderSpec,
 		BinaryBuild:     build.Spec.Source.Type == api.BuildSourceBinary,
+		Legacy: legacy,
 	}
 	return c, nil
 }
