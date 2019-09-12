@@ -40,12 +40,21 @@ func RunArchitect(configuration RunConfiguration) {
 			logrus.Fatalf("Failed to retag temporary image %s", err)
 		}
 	} else {
-		performBuild(&configuration, c, registryCredentials)
+		err := performBuild(&configuration, c, registryCredentials)
 
+		if err != nil {
+			var errorMessage string
+			if logrus.GetLevel() >= logrus.DebugLevel {
+				errorMessage = "Failed to build image: %+v, Terminating"
+			} else {
+				errorMessage = "Failed to build image: %v, Terminating"
+			}
+			logrus.Fatalf(errorMessage, err)
+		}
 	}
 	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
 }
-func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.RegistryCredentials) {
+func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.RegistryCredentials) error {
 	var prepper process.Prepper
 	if c.ApplicationType == config.JavaLeveransepakke {
 		logrus.Info("Perform Java build")
@@ -61,28 +70,20 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 
 	provider := docker.NewRegistryClient(c.DockerSpec.ExternalDockerRegistry)
 
-	var err error
 	if c.BuildahBuild {
 		logrus.Info("ALPHA FEATURE: Running buildah builds")
 		buildah := &process.BuildahCmd{
 			c.TlsVerify,
 		}
-		err = process.Build(r, provider, c, configuration.NexusDownloader, prepper, buildah)
+		return process.Build(r, provider, c, configuration.NexusDownloader, prepper, buildah)
+
 	} else {
 		dockerClient, err := process.NewDockerBuilder()
-		if err == nil {
-			logrus.Info("Running docker build")
-			err = process.Build(r, provider, c, configuration.NexusDownloader, prepper, dockerClient)
+		if err != nil {
+			return err
 		}
-	}
 
-	if err != nil {
-		var errorMessage string
-		if logrus.GetLevel() >= logrus.DebugLevel {
-			errorMessage = "Failed to build image: %+v, Terminating"
-		} else {
-			errorMessage = "Failed to build image: %v, Terminating"
-		}
-		logrus.Fatalf(errorMessage, err)
+		logrus.Info("Running docker build")
+		return process.Build(r, provider, c, configuration.NexusDownloader, prepper, dockerClient)
 	}
 }
