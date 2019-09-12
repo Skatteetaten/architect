@@ -9,8 +9,6 @@ import (
 	"github.com/skatteetaten/architect/pkg/nodejs/prepare"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/retag"
-	"github.com/skatteetaten/architect/pkg/util"
-	"github.com/spf13/cobra"
 	"os"
 	"time"
 )
@@ -22,62 +20,6 @@ type RunConfiguration struct {
 	NexusDownloader         nexus.Downloader
 	Config                  *config.Config
 	RegistryCredentialsFunc func(string) (*docker.RegistryCredentials, error)
-}
-
-var JavaLeveransepakke = &cobra.Command{
-
-	Use:   "build",
-	Short: "Build Docker image from Zip",
-	Long:  `TODO`,
-	Run: func(cmd *cobra.Command, args []string) {
-		var configReader = config.NewInClusterConfigReader()
-		var nexusDownloader nexus.Downloader
-		if verbose {
-			logrus.SetLevel(logrus.DebugLevel)
-		} else {
-			logrus.SetLevel(logrus.InfoLevel)
-		}
-		if len(cmd.Flag("fileconfig").Value.String()) != 0 {
-			conf := cmd.Flag("fileconfig").Value.String()
-			logrus.Debugf("Using config from %s", conf)
-			configReader = config.NewFileConfigReader(conf)
-		}
-
-		// Read build config
-		c, err := configReader.ReadConfig()
-		if err != nil {
-			logrus.Fatalf("Could not read configuration: %s", err)
-		}
-
-		var binaryInput string
-		if c.BinaryBuild {
-			binaryInput, err = util.ExtractBinaryFromStdIn()
-			if err != nil {
-				logrus.Fatalf("Could not read binary input: %s", err)
-			}
-		}
-
-		if c.BinaryBuild {
-			nexusDownloader = nexus.NewBinaryDownloader(binaryInput)
-		} else {
-			mavenRepo := "http://aurora/nexus/service/local/artifact/maven/content"
-			logrus.Debugf("Using Maven repo on %s", mavenRepo)
-			nexusDownloader = nexus.NewNexusDownloader(mavenRepo)
-		}
-
-		RunArchitect(RunConfiguration{
-			NexusDownloader:         nexusDownloader,
-			Config:                  c,
-			RegistryCredentialsFunc: docker.LocalRegistryCredentials(),
-		})
-	},
-}
-
-func init() {
-	JavaLeveransepakke.Flags().StringP("fileconfig", "f", "", "Path to file config. If not set, the environment variable BUILD is read")
-	JavaLeveransepakke.Flags().StringP("skippush", "s", "", "If set, Docker push will not be performed")
-	JavaLeveransepakke.Flags().BoolVarP(&localRepo, "binary", "b", false, "If set, the Leveransepakke will be fetched from stdin")
-	JavaLeveransepakke.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 }
 
 func RunArchitect(configuration RunConfiguration) {
@@ -117,7 +59,24 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 		logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
 	}
 
-	if err := process.Build(r, c, configuration.NexusDownloader, prepper); err != nil {
+	provider := docker.NewRegistryClient(c.DockerSpec.ExternalDockerRegistry)
+
+	var err error
+	if c.BuildahBuild {
+		logrus.Info("ALPHA FEATURE: Running buildah builds")
+		buildah := &process.BuildahCmd{
+			c.TlsVerify,
+		}
+		err = process.Build(r, provider, c, configuration.NexusDownloader, prepper, buildah)
+	} else {
+		dockerClient, err := process.NewDockerBuilder()
+		if err != nil {
+			logrus.Info("Running docker build")
+			err = process.Build(r, provider, c, configuration.NexusDownloader, prepper, dockerClient)
+		}
+	}
+
+	if err != nil {
 		var errorMessage string
 		if logrus.GetLevel() >= logrus.DebugLevel {
 			errorMessage = "Failed to build image: %+v, Terminating"

@@ -10,10 +10,15 @@ import (
 	"github.com/skatteetaten/architect/pkg/process/tagger"
 )
 
-//TODO: Write some test for this..
-// Need to initialize RegistryClient and DockerClient outside of this function
-func Build(credentials *docker.RegistryCredentials, cfg *config.Config, downloader nexus.Downloader, prepper Prepper) error {
-	provider := docker.NewRegistryClient(cfg.DockerSpec.ExternalDockerRegistry)
+type Builder interface {
+	Build(buildFolder string) (string, error)
+	Push(imageid string, tag []string, credentials *docker.RegistryCredentials) error
+	Tag(imageid string, tag string) error
+	Pull(image runtime.DockerImage) error
+}
+
+
+func Build(credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
 
 	logrus.Debugf("Download deliverable for GAV %-v", cfg.ApplicationSpec)
 	deliverable, err := downloader.DownloadArtifact(&cfg.ApplicationSpec.MavenGav)
@@ -47,9 +52,6 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, download
 	appVersion := nexus.GetSnapshotTimestampVersion(application.MavenGav, deliverable)
 	auroraVersion := runtime.NewAuroraVersionFromBuilderAndBase(appVersion, snapshot,
 		application.MavenGav.Version, buildImage, baseImage.DockerImage)
-	if err != nil {
-		return errors.Wrap(err, "Error creating version information")
-	}
 
 	dockerBuildConfig, err := prepper(cfg, auroraVersion, deliverable, baseImage)
 	if err != nil {
@@ -73,17 +75,16 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, download
 		}
 	}
 
-	client, err := docker.NewDockerClient()
-	if err != nil {
-		return errors.Wrap(err, "Error initializing Docker")
-	}
-
 	for _, buildConfig := range dockerBuildConfig {
-		client.PullImage(buildConfig.Baseimage)
-		imageid, err := client.BuildImage(buildConfig.BuildFolder)
+
+		builder.Pull(buildConfig.Baseimage)
+
+		logrus.Info("Docker context ", buildConfig.BuildFolder)
+
+		imageid, err := builder.Build(buildConfig.BuildFolder)
 
 		if err != nil {
-			return errors.Wrap(err, "There was an error with the Docker build operation.")
+			return errors.Wrap(err, "There was an error with the build operation.")
 		} else {
 			logrus.Infof("Done building. Imageid: %s", imageid)
 		}
@@ -106,16 +107,15 @@ func Build(credentials *docker.RegistryCredentials, cfg *config.Config, download
 
 		tags, err := tagResolver.ResolveTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
 		logrus.Debugf("Tag image %s with %s", imageid, tags)
+
 		for _, tag := range tags {
-			err = client.TagImage(imageid, tag)
+			err = builder.Tag(imageid, tag)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "Image tag failed")
 			}
 		}
-		err = client.PushImages(tags, credentials)
-		if err != nil {
-			return errors.Wrap(err, "Error pushing images")
-		}
+
+		return builder.Push(imageid, tags, credentials)
 	}
 	return nil
 }

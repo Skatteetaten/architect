@@ -1,5 +1,5 @@
-hash: d593b6fe315696add430487f08039471ea789ef70563b42682de55829da7eff5
-updated: 2019-02-06T09:21:10.468942704+01:00
+hash: 965dc0a79b5dae252275c0b964852fb5419b41814bbb9e14834326df3414c180
+updated: 2019-09-11T10:51:55.609589238+02:00
 imports:
 - name: github.com/cpuguy83/go-md2man
   version: 691ee98543af2f262f35fbb54bdd42f00b9b9cc5
@@ -67,6 +67,8 @@ imports:
   - tlsconfig
 - name: github.com/docker/go-units
   version: 2fb04c6466a548a03cb009c5569ee1ab1e35398e
+- name: github.com/google/uuid
+  version: 0cd6bf5da1e1c83f8b45653022c74f71af0538a4
 - name: github.com/gorilla/context
   version: 14f550f51af52180c2eefed15e5fd18d63c0a64a
 - name: github.com/gorilla/mux

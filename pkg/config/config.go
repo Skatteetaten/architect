@@ -73,6 +73,20 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
+	var buildahBuild = false
+	if value, err := findEnv(env, "BUILDAH_BUILD"); err == nil {
+		if strings.Contains(strings.ToLower(value), "true") {
+			buildahBuild = true
+		}
+	}
+
+	var tlsVerify = true
+	if value, err := findEnv(env, "TLS_VERIFY"); err == nil {
+		if strings.Contains(strings.ToLower(value), "false") {
+			tlsVerify = false
+		}
+	}
+
 	applicationSpec := ApplicationSpec{}
 	if artifactId, err := findEnv(env, "ARTIFACT_ID"); err == nil {
 		applicationSpec.MavenGav.ArtifactId = artifactId
@@ -212,6 +226,8 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		DockerSpec:      dockerSpec,
 		BuilderSpec:     builderSpec,
 		BinaryBuild:     build.Spec.Source.Type == api.BuildSourceBinary,
+		BuildahBuild:    buildahBuild,
+		TlsVerify:       tlsVerify,
 	}
 	return c, nil
 }
