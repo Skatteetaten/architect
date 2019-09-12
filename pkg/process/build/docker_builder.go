@@ -10,7 +10,7 @@ func NewDockerBuilder() (*DockerCmd, error) {
 
 	client, err := docker.NewDockerClient()
 	if err != nil {
-		return nil, errors.Wrap(err, "Error initializing Docker")
+		return nil, errors.Wrap(err, "Error initializing Docker Client")
 	}
 	return &DockerCmd{
 		client: client,

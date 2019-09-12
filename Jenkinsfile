@@ -1,20 +1,26 @@
 node {
+    def overrides = [
+        scriptVersion  : 'v6',
+        pipelineScript: 'https://git.aurora.skead.no/scm/ao/aurora-pipeline-scripts.git',
+    ]
+
+    def tagVersion
 
     stage ('Load shared libraries') {
-        def scriptVersion='v5'
-        fileLoader.withGit('https://git.aurora.skead.no/scm/ao/aurora-pipeline-scripts.git', scriptVersion) {
-            openshift = fileLoader.load('openshift/openshift')
-            maven = fileLoader.load('maven/maven')
-            git = fileLoader.load('git/git')
-            go = fileLoader.load('go/go')
-        }
-    }
+           def version='v6'
+           fileLoader.withGit(overrides.pipelineScript,, overrides.scriptVersion) {
+               maven = fileLoader.load('maven/maven')
+               git = fileLoader.load('git/git')
+               go = fileLoader.load('go/go')
+               openshift = fileLoader.load('openshift/openshift')
+           }
+       }
 
     stage ('Checkout') {
         checkout scm
     }
 
-    stage ('Test og coverage') {
+    stage('Test and coverage'){
         go.buildGoWithJenkinsSh()
     }
 
@@ -23,21 +29,19 @@ node {
         sh "${sonarPath}/bin/sonar-scanner -Dsonar.branch.name=${env.BRANCH_NAME}"
     }
 
-    stage ('Deploy to Nexus') {
+    stage('Deploy to Nexus') {
         def isMaster = env.BRANCH_NAME == 'master'
-        def tagVersion = git.getTagFromCommit()
+        tagVersion = git.executeAuroraGitVersionCliCommand(" --suggest-releases master --version-hint 1 --increment-for-existing-tag")
 
         if (isMaster){
-            if (!git.tagExists("v${tagVersion}")) {
-                error "Commit is not tagged. Aborting build."
-            }
+            git.tagIfNotExists('ci_aos', tagVersion)
         }
-        maven.deployTarGzToNexus("bin/amd64/", "architect", tagVersion)
+
+        maven.deployTarGzToNexusWithGroupId("bin/amd64/", "architect", "ske.aurora.openshift", tagVersion)
     }
 
     stage ('OpenShift build') {
         def namespace = openshift.jenkinsNamespace()
-        def tagVersion = git.getTagFromCommit()
         def result = openshift.oc("start-build architect -e ARTIFACT_NAME=architect -e GROUP_ID=ske.aurora.openshift -e ARTIFACT_VERSION=${tagVersion} -n=${namespace} -F")
         if(!result) {
             error("Building docker image failed")
