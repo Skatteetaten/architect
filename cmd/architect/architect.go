@@ -70,7 +70,7 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 		err = process.Build(r, provider, c, configuration.NexusDownloader, prepper, buildah)
 	} else {
 		dockerClient, err := process.NewDockerBuilder()
-		if err != nil {
+		if err == nil {
 			logrus.Info("Running docker build")
 			err = process.Build(r, provider, c, configuration.NexusDownloader, prepper, dockerClient)
 		}
