@@ -46,7 +46,7 @@ func NewFileWriter(targetFolder string) FileWriter {
 		os.MkdirAll(path.Dir(fp), os.ModeDir|0755)
 		fileToWriteTo, err := os.Create(fp)
 		if err != nil {
-			return errors.Wrapf(err, "Error creating %+t", fileAsPath)
+			return errors.Wrapf(err, "Error creating %v", fileAsPath)
 		}
 		defer fileToWriteTo.Close()
 		err = writerFunc(fileToWriteTo)
@@ -55,7 +55,7 @@ func NewFileWriter(targetFolder string) FileWriter {
 		}
 		err = fileToWriteTo.Sync()
 		if err != nil {
-			return errors.Wrapf(err, "Error writing %+t", fileAsPath)
+			return errors.Wrapf(err, "Error writing %v", fileAsPath)
 		}
 		return nil
 	}

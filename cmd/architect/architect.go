@@ -73,7 +73,7 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 	if c.BuildahBuild {
 		logrus.Info("ALPHA FEATURE: Running buildah builds")
 		buildah := &process.BuildahCmd{
-			c.TlsVerify,
+			TlsVerify: c.TlsVerify,
 		}
 		return process.Build(r, provider, c, configuration.NexusDownloader, prepper, buildah)
 

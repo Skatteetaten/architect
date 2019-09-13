@@ -76,7 +76,7 @@ func extractTarball(pathToTarball string) (string, error) {
 			}
 
 		default:
-			logrus.Infof("Dont support %s", header.Typeflag)
+			logrus.Infof("Dont support %c", header.Typeflag)
 		}
 	}
 	return tmpdir, nil

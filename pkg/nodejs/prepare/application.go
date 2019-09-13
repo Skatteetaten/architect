@@ -152,7 +152,7 @@ func prepare(dockerSpec config.DockerSpec, c config.ApplicationSpec, auroraVersi
 	deliverable nexus.Deliverable, baseImage runtime.DockerImage) ([]PreparedImage, error) {*/
 func prepare(cfg config.Config, auroraVersion *runtime.AuroraVersion,
 	deliverable nexus.Deliverable, baseImage runtime.DockerImage) ([]PreparedImage, error) {
-	logrus.Debug("Building %s", cfg.ApplicationSpec.MavenGav.Name())
+	logrus.Debugf("Building %s", cfg.ApplicationSpec.MavenGav.Name())
 
 	openshiftJson, err := findOpenshiftJsonInTarball(deliverable.Path)
 	if err != nil {

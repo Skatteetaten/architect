@@ -19,7 +19,7 @@ func TestPrepare(t *testing.T) {
 		"2.0.0-b1.11.0-oracle8-1.0.2")
 
 	dockerBuildPath, err := prepare.Prepare(global.DockerSpec{}, auroraVersions,
-		nexus.Deliverable{"testdata/minarch-1.2.22-Leveransepakke.zip"},
+		nexus.Deliverable{Path: "testdata/minarch-1.2.22-Leveransepakke.zip"},
 		runtime.BaseImage{
 			DockerImage: runtime.DockerImage{
 				Repository: "test",
