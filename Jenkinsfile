@@ -1,8 +1,7 @@
 node {
     def overrides = [
         scriptVersion  : 'v6',
-        pipelineScript: 'https://git.aurora.skead.no/scm/ao/aurora-pipeline-scripts.git',
-        credentialsId: "github"
+        pipelineScript: 'https://git.aurora.skead.no/scm/ao/aurora-pipeline-scripts.git'
     ]
 
     def tagVersion
@@ -35,7 +34,7 @@ node {
         tagVersion = git.executeAuroraGitVersionCliCommand(" --suggest-releases master --version-hint 1 --increment-for-existing-tag")
 
         if (isMaster){
-            git.tagIfNotExists('ci_aos', tagVersion)
+            git.tagIfNotExists('github', tagVersion)
         }
 
         maven.deployTarGzToNexusWithGroupId("bin/amd64/", "architect", "ske.aurora.openshift", tagVersion)
