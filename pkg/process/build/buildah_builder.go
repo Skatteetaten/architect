@@ -43,10 +43,10 @@ func (b *BuildahCmd) Push(ruuid string, tags []string, credentials *docker.Regis
 	for _, tag := range tags {
 		var cmd *exec.Cmd
 		if credentials != nil {
-			cmd = exec.Command("buildah", "--storage-driver", "vfs", "push",
+			cmd = exec.Command("buildah", "--storage-driver", "vfs", "push", "--quiet",
 				"--tls-verify="+strconv.FormatBool(b.TlsVerify), creds, ruuid, tag)
 		} else {
-			cmd = exec.Command("buildah", "--storage-driver", "vfs", "push",
+			cmd = exec.Command("buildah", "--storage-driver", "vfs", "push", "--quiet",
 				"--tls-verify="+strconv.FormatBool(b.TlsVerify), ruuid, tag)
 		}
 		cmd.Stdout = os.Stdout
