@@ -20,7 +20,7 @@ func (b *BuildahCmd) Build(buildFolder string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "UUID generation failed")
 	}
-	build := exec.Command("buildah", "--storage-driver", "vfs", "bud",
+	build := exec.Command("buildah", "--storage-driver", "vfs", "bud", "--quiet",
 		"--tls-verify="+strconv.FormatBool(b.TlsVerify), "--isolation", "chroot", "-t", ruuid.String(),
 		"-f", context, buildFolder)
 
