@@ -21,7 +21,7 @@ node {
     }
 
     stage('Test and coverage'){
-        go.buildGoWithJenkinsSh()
+        go.buildGoWithJenkinsSh("Go 1.12")
     }
 
     stage('Sonar') {

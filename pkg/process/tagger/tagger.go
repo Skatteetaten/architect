@@ -61,12 +61,12 @@ func findCandidateTags(appVersion *runtime.AuroraVersion, tagOverwrite bool, out
 		logrus.Debugf("%s is semantic version. Filter tags", string(appVersion.GetAppVersion()))
 		candidateTags, err := getSemanticVersionTags(appVersion, pushExtraTags)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Error in FilterVersionTags, app_version=%s, repositoryTags=%v",
+			return nil, errors.Wrapf(err, "Error in FilterVersionTags, app_version=%v, repositoryTags=%v",
 				appVersion, repositoryTags)
 		}
 		filteredTags, err := filterTagsFromRepository(appVersion, candidateTags, repositoryTags)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Error in FilterVersionTags, app_version=%s, "+
+			return nil, errors.Wrapf(err, "Error in FilterVersionTags, app_version=%v, "+
 				"candidateTags=%v, repositoryTags=%v", appVersion, candidateTags, repositoryTags)
 		}
 		return filteredTags, nil

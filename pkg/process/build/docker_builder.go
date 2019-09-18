@@ -30,7 +30,7 @@ func (d *DockerCmd) Pull(image runtime.DockerImage) error {
 	return d.client.PullImage(image)
 }
 
-func (d* DockerCmd) Tag(imageid string, tag string) error {
+func (d *DockerCmd) Tag(imageid string, tag string) error {
 	return d.client.TagImage(imageid, tag)
 }
 

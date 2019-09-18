@@ -17,7 +17,6 @@ type Builder interface {
 	Pull(image runtime.DockerImage) error
 }
 
-
 func Build(credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
 
 	logrus.Debugf("Download deliverable for GAV %-v", cfg.ApplicationSpec)

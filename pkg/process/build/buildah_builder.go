@@ -20,7 +20,7 @@ func (b *BuildahCmd) Build(buildFolder string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "UUID generation failed")
 	}
-	build := exec.Command("buildah", "--storage-driver", "vfs", "bud",
+	build := exec.Command("buildah", "--storage-driver", "vfs", "bud", "--quiet",
 		"--tls-verify="+strconv.FormatBool(b.TlsVerify), "--isolation", "chroot", "-t", ruuid.String(),
 		"-f", context, buildFolder)
 
@@ -36,9 +36,19 @@ func (b *BuildahCmd) Pull(image runtime.DockerImage) error {
 
 func (b *BuildahCmd) Push(ruuid string, tags []string, credentials *docker.RegistryCredentials) error {
 	var err error
+	var creds = ""
+	if credentials != nil {
+		creds = "--creds=" + credentials.Username + ":" + credentials.Password
+	}
 	for _, tag := range tags {
-		cmd := exec.Command("buildah", "--storage-driver", "vfs", "push",
-			"--tls-verify="+strconv.FormatBool(b.TlsVerify),ruuid, tag)
+		var cmd *exec.Cmd
+		if credentials != nil {
+			cmd = exec.Command("buildah", "--storage-driver", "vfs", "push", "--quiet",
+				"--tls-verify="+strconv.FormatBool(b.TlsVerify), creds, ruuid, tag)
+		} else {
+			cmd = exec.Command("buildah", "--storage-driver", "vfs", "push", "--quiet",
+				"--tls-verify="+strconv.FormatBool(b.TlsVerify), ruuid, tag)
+		}
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err = cmd.Run()
