@@ -48,10 +48,10 @@ func NewDockerClient() (*DockerClient, error) {
 }
 
 //THIS IS BUGGY!
-func (d *DockerClient) PullImage(baseimage runtime.DockerImage) error {
+func (d *DockerClient) PullImage(ctx context.Context, baseimage runtime.DockerImage) error {
 	startTimer := time.Now()
 	logrus.Infof("Pulling %s", baseimage.GetCompleteDockerTagName())
-	output, err := d.Client.ImagePull(context.TODO(), baseimage.GetCompleteDockerTagName(), types.ImagePullOptions{})
+	output, err := d.Client.ImagePull(ctx, baseimage.GetCompleteDockerTagName(), types.ImagePullOptions{})
 
 	// ImageBuild will not return error message if build fails.
 	var bodyLine string = ""
@@ -64,7 +64,7 @@ func (d *DockerClient) PullImage(baseimage runtime.DockerImage) error {
 	return err
 }
 
-func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
+func (d *DockerClient) BuildImage(ctx context.Context, buildFolder string) (string, error) {
 	startTimer := time.Now()
 	dockerOpt := types.ImageBuildOptions{
 		SuppressOutput: false,
@@ -72,7 +72,7 @@ func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
 		ForceRemove:    true,
 	}
 	tarReader := createContextTarStreamReader(buildFolder)
-	build, err := d.Client.ImageBuild(context.Background(), tarReader, dockerOpt)
+	build, err := d.Client.ImageBuild(ctx, tarReader, dockerOpt)
 	if err != nil {
 		return "", errors.Wrap(err, "Error building image")
 	}
@@ -100,14 +100,14 @@ func (d *DockerClient) BuildImage(buildFolder string) (string, error) {
 	return strings.TrimSpace(strings.TrimPrefix(msg, "Successfully built ")), nil
 }
 
-func (d *DockerClient) TagImage(imageId string, tag string) error {
-	if err := d.Client.ImageTag(context.TODO(), imageId, tag); err != nil {
+func (d *DockerClient) TagImage(ctx context.Context, imageId string, tag string) error {
+	if err := d.Client.ImageTag(ctx, imageId, tag); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *DockerClient) PushImage(tag string, credentials *RegistryCredentials) error {
+func (d *DockerClient) PushImage(ctx context.Context, tag string, credentials *RegistryCredentials) error {
 	logrus.Infof("Pushing image %s", tag)
 
 	var encodedCredentials string
@@ -122,7 +122,7 @@ func (d *DockerClient) PushImage(tag string, credentials *RegistryCredentials) e
 	}
 	pushOptions := createImagePushOptions(encodedCredentials)
 
-	push, err := d.Client.ImagePush(context.TODO(), tag, pushOptions)
+	push, err := d.Client.ImagePush(ctx, tag, pushOptions)
 
 	if err != nil {
 		return err
@@ -146,10 +146,10 @@ func (d *DockerClient) PushImage(tag string, credentials *RegistryCredentials) e
 	return nil
 }
 
-func (d *DockerClient) PushImages(tags []string, credentials *RegistryCredentials) error {
+func (d *DockerClient) PushImages(ctx context.Context, tags []string, credentials *RegistryCredentials) error {
 	startTimer := time.Now()
 	for _, tag := range tags {
-		err := d.PushImage(tag, credentials)
+		err := d.PushImage(ctx, tag, credentials)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to push %s", tag)
 		}

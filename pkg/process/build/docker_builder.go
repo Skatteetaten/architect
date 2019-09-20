@@ -1,6 +1,7 @@
 package process
 
 import (
+	"context"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
@@ -21,19 +22,19 @@ type DockerCmd struct {
 	client *docker.DockerClient
 }
 
-func (d *DockerCmd) Build(buildfolder string) (string, error) {
-	return d.client.BuildImage(buildfolder)
+func (d *DockerCmd) Build(ctx context.Context, buildfolder string) (string, error) {
+	return d.client.BuildImage(ctx, buildfolder)
 }
 
-func (d *DockerCmd) Pull(image runtime.DockerImage) error {
+func (d *DockerCmd) Pull(ctx context.Context, image runtime.DockerImage) error {
 	//Buildah dont require this method. better way ?
-	return d.client.PullImage(image)
+	return d.client.PullImage(ctx, image)
 }
 
-func (d *DockerCmd) Tag(imageid string, tag string) error {
-	return d.client.TagImage(imageid, tag)
+func (d *DockerCmd) Tag(ctx context.Context, imageid string, tag string) error {
+	return d.client.TagImage(ctx, imageid, tag)
 }
 
-func (d *DockerCmd) Push(imageid string, tags []string, credentials *docker.RegistryCredentials) error {
-	return d.client.PushImages(tags, credentials)
+func (d *DockerCmd) Push(ctx context.Context, imageid string, tags []string, credentials *docker.RegistryCredentials) error {
+	return d.client.PushImages(ctx, tags, credentials)
 }

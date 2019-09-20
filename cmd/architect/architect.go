@@ -1,6 +1,7 @@
 package architect
 
 import (
+	"context"
 	"github.com/Sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/docker"
@@ -24,6 +25,7 @@ type RunConfiguration struct {
 
 func RunArchitect(configuration RunConfiguration) {
 	c := configuration.Config
+	ctx := context.Background()
 	startTimer := time.Now()
 	logrus.Debugf("Config %+v", c)
 	logrus.Infof("ARCHITECT_APP_VERSION=%s,ARCHITECT_AURORA_VERSION=%s", os.Getenv("APP_VERSION"), os.Getenv("AURORA_VERSION"))
@@ -36,11 +38,11 @@ func RunArchitect(configuration RunConfiguration) {
 
 	if c.DockerSpec.RetagWith != "" {
 		logrus.Info("Perform retag")
-		if err := retag.Retag(c, registryCredentials); err != nil {
+		if err := retag.Retag(ctx, c, registryCredentials); err != nil {
 			logrus.Fatalf("Failed to retag temporary image %s", err)
 		}
 	} else {
-		err := performBuild(&configuration, c, registryCredentials)
+		err := performBuild(ctx, &configuration, c, registryCredentials)
 
 		if err != nil {
 			var errorMessage string
@@ -54,7 +56,7 @@ func RunArchitect(configuration RunConfiguration) {
 	}
 	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
 }
-func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.RegistryCredentials) error {
+func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, r *docker.RegistryCredentials) error {
 	var prepper process.Prepper
 	if c.ApplicationType == config.JavaLeveransepakke {
 		logrus.Info("Perform Java build")
@@ -75,7 +77,10 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 		buildah := &process.BuildahCmd{
 			TlsVerify: c.TlsVerify,
 		}
-		return process.Build(r, provider, c, configuration.NexusDownloader, prepper, buildah)
+
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		defer cancel()
+		return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, buildah)
 
 	} else {
 		dockerClient, err := process.NewDockerBuilder()
@@ -84,6 +89,9 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 		}
 
 		logrus.Info("Running docker build")
-		return process.Build(r, provider, c, configuration.NexusDownloader, prepper, dockerClient)
+
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		defer cancel()
+		return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, dockerClient)
 	}
 }

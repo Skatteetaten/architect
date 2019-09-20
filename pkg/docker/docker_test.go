@@ -32,7 +32,7 @@ func TestBuildImageSuccess(t *testing.T) {
 		t.Error(err)
 	}
 
-	if imageid, err := target.BuildImage(dir); err != nil {
+	if imageid, err := target.BuildImage(context.TODO(), dir); err != nil {
 		t.Error(err)
 	} else if imageid != "6757955c1ca1" {
 		t.Errorf("Build returned unexpected image id %s", imageid)
@@ -47,7 +47,7 @@ func TestBuildImageIllegalDockerfile(t *testing.T) {
 		t.Error(err)
 	}
 
-	if _, err = target.BuildImage(dir); err == nil {
+	if _, err = target.BuildImage(context.TODO(), dir); err == nil {
 		t.Error("Expected error")
 	} else if !strings.Contains(err.Error(), "Unknown instruction: FOO") {
 		t.Error("Expected error to contain cause of error")
@@ -63,7 +63,7 @@ func TestBuildImageError(t *testing.T) {
 		t.Error(err)
 	}
 
-	if _, err = target.BuildImage(dir); err == nil {
+	if _, err = target.BuildImage(context.TODO(), dir); err == nil {
 		t.Error("Expected error")
 	}
 }
@@ -75,7 +75,7 @@ func TestPushImageSuccess(t *testing.T) {
 	//target, _ := docker.NewDockerClient(&docker.DockerClientConfig{Endpoint: ""})
 
 	credentials := docker.RegistryCredentials{}
-	err := target.PushImage("foo/bar", &credentials)
+	err := target.PushImage(context.TODO(), "foo/bar", &credentials)
 	//err := target.PushImage("docker-registry-default.qa.paas.skead.no/aurora/architecttest:1.0.2")
 
 	if err != nil {
@@ -87,7 +87,7 @@ func TestPushImageUnauthorized(t *testing.T) {
 	target := getPushTargetFromFile(t, "testdata/rsp_push_unauthorized.txt")
 
 	credentials := docker.RegistryCredentials{}
-	err := target.PushImage("foo/baz", &credentials)
+	err := target.PushImage(context.TODO(), "foo/baz", &credentials)
 
 	if err == nil {
 		t.Error("Expected error")
@@ -100,7 +100,7 @@ func TestPushImageError(t *testing.T) {
 	target := getPushTargetError(t)
 
 	credentials := docker.RegistryCredentials{}
-	err := target.PushImage("foo/qux", &credentials)
+	err := target.PushImage(context.TODO(), "foo/qux", &credentials)
 
 	if err == nil {
 		t.Error("Expected error")

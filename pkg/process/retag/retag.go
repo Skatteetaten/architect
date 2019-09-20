@@ -1,6 +1,7 @@
 package retag
 
 import (
+	"context"
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
@@ -21,12 +22,12 @@ func newRetagger(cfg *config.Config, credentials *docker.RegistryCredentials) *r
 	}
 }
 
-func Retag(cfg *config.Config, credentials *docker.RegistryCredentials) error {
+func Retag(ctx context.Context, cfg *config.Config, credentials *docker.RegistryCredentials) error {
 	r := newRetagger(cfg, credentials)
-	return r.Retag()
+	return r.Retag(ctx)
 }
 
-func (m *retagger) Retag() error {
+func (m *retagger) Retag(ctx context.Context) error {
 	tag := m.Config.DockerSpec.RetagWith
 	repository := m.Config.DockerSpec.OutputRepository
 
@@ -100,19 +101,19 @@ func (m *retagger) Retag() error {
 
 	//We need to pull to make sure we push the newest image.. We should probably do this directly
 	//on the registry when we get v2 registry!:)
-	client.PullImage(imageId)
+	client.PullImage(ctx, imageId)
 
 	logrus.Debugf("Retagging temporary image, versionTags=%-v", tagsToPush)
 	for _, tag := range tagsToPush {
 		sourceTag := imageId.GetCompleteDockerTagName()
 		logrus.Infof("Tag image %s with alias %s", sourceTag, tag)
-		err := client.TagImage(sourceTag, tag)
+		err := client.TagImage(ctx, sourceTag, tag)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to tag image %s with tag %s", imageId, tag)
 		}
 	}
 	for _, tag := range tagsToPush {
-		err = client.PushImage(tag, m.Credentials)
+		err = client.PushImage(ctx, tag, m.Credentials)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to push tag %s", tag)
 		}
