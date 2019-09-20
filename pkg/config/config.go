@@ -9,7 +9,9 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type ConfigReader interface {
@@ -84,6 +86,14 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	if value, err := findEnv(env, "TLS_VERIFY"); err == nil {
 		if strings.Contains(strings.ToLower(value), "false") {
 			tlsVerify = false
+		}
+	}
+
+	var buildTimeout time.Duration = 900
+	if value, err := findEnv(env, "BUILD_TIMEOUT_IN_S"); err == nil {
+		i, err := strconv.Atoi(value)
+		if err == nil {
+			buildTimeout = time.Duration(i)
 		}
 	}
 
@@ -228,6 +238,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		BinaryBuild:     build.Spec.Source.Type == api.BuildSourceBinary,
 		BuildahBuild:    buildahBuild,
 		TlsVerify:       tlsVerify,
+		BuildTimeout:    buildTimeout,
 	}
 	return c, nil
 }

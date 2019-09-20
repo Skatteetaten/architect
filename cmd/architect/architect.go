@@ -78,7 +78,7 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 			TlsVerify: c.TlsVerify,
 		}
 
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
 		defer cancel()
 		return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, buildah)
 
@@ -90,7 +90,7 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 
 		logrus.Info("Running docker build")
 
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
 		defer cancel()
 		return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, dockerClient)
 	}

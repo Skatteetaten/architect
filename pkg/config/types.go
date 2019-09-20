@@ -2,6 +2,7 @@ package config
 
 import (
 	"strings"
+	"time"
 )
 
 type ApplicationType string
@@ -33,6 +34,7 @@ type Config struct {
 	BinaryBuild     bool
 	BuildahBuild    bool
 	TlsVerify       bool
+	BuildTimeout    time.Duration
 }
 
 type ApplicationSpec struct {

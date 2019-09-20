@@ -33,7 +33,7 @@ func TestBuildImageSuccess(t *testing.T) {
 	}
 
 	if imageid, err := target.BuildImage(context.TODO(), dir); err != nil {
-		t.Error(err)
+		t.Error("Expected error")
 	} else if imageid != "6757955c1ca1" {
 		t.Errorf("Build returned unexpected image id %s", imageid)
 	}
@@ -147,6 +147,14 @@ func getBuildTargetFromFile(t *testing.T, file string) docker.DockerClient {
 func getBuildTargetError(t *testing.T) docker.DockerClient {
 	return docker.DockerClient{Client: DockerClientMock{ImageBuildFunc: func(ctx context.Context, context io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error) {
 		return types.ImageBuildResponse{}, errors.New("Nasty errror occurred")
+	}},
+	}
+}
+
+func getBuildTargetTimeout(t *testing.T) docker.DockerClient {
+	return docker.DockerClient{Client: DockerClientMock{ImageBuildFunc: func(ctx context.Context, context io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error) {
+		time.Sleep(1 *time.Minute)
+		return types.ImageBuildResponse{}, errors.New("NOOP")
 	}},
 	}
 }
