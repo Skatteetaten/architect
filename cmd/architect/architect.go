@@ -72,14 +72,12 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 
 	provider := docker.NewRegistryClient(c.DockerSpec.ExternalDockerRegistry)
 
+	ctx, _ = context.WithTimeout(ctx, c.BuildTimeout*time.Second)
 	if c.BuildahBuild {
 		logrus.Info("ALPHA FEATURE: Running buildah builds")
 		buildah := &process.BuildahCmd{
 			TlsVerify: c.TlsVerify,
 		}
-
-		ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
-		defer cancel()
 		return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, buildah)
 
 	} else {
@@ -87,11 +85,7 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 		if err != nil {
 			return err
 		}
-
 		logrus.Info("Running docker build")
-
-		ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
-		defer cancel()
 		return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, dockerClient)
 	}
 }
