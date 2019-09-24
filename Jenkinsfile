@@ -31,7 +31,7 @@ node {
 
     stage('Deploy to Nexus') {
         def isMaster = env.BRANCH_NAME == 'master'
-        tagVersion = git.executeAuroraGitVersionCliCommand(" --suggest-releases master --version-hint 1 --increment-for-existing-tag")
+        tagVersion = git.executeAuroraGitVersionCliCommand(" --suggest-releases master --version-hint 1")
 
         if (isMaster){
             git.tagIfNotExists('github', tagVersion)
