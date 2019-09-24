@@ -151,14 +151,6 @@ func getBuildTargetError(t *testing.T) docker.DockerClient {
 	}
 }
 
-func getBuildTargetTimeout(t *testing.T) docker.DockerClient {
-	return docker.DockerClient{Client: DockerClientMock{ImageBuildFunc: func(ctx context.Context, context io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error) {
-		time.Sleep(1 *time.Minute)
-		return types.ImageBuildResponse{}, errors.New("NOOP")
-	}},
-	}
-}
-
 func createDockerBase() (string, error) {
 	dir, err := ioutil.TempDir("", "dockerbase")
 	if err != nil {

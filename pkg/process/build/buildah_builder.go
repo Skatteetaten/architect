@@ -13,7 +13,6 @@ import (
 
 type BuildahCmd struct {
 	TlsVerify bool
-	Ctx       context.Context
 }
 
 func (b *BuildahCmd) Build(ctx context.Context, buildFolder string) (string, error) {
