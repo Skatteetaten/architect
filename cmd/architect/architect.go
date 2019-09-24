@@ -2,6 +2,7 @@ package architect
 
 import (
 	"context"
+	"fmt"
 	"github.com/Sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/docker"
@@ -11,6 +12,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/retag"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -51,7 +53,14 @@ func RunArchitect(configuration RunConfiguration) {
 			} else {
 				errorMessage = "Failed to build image: %v, Terminating"
 			}
-			logrus.Fatalf(errorMessage, err)
+
+			errorMessage = fmt.Sprintf(errorMessage, err)
+
+			if strings.Contains(errorMessage, "Cannot connect to the Docker daemon") {
+				errorMessage = fmt.Sprintf("%s: The most likely cause is timeout", errorMessage)
+			}
+
+			logrus.Fatal(errorMessage)
 		}
 	}
 	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
