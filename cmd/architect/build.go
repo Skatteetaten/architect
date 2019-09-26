@@ -53,7 +53,7 @@ var Build = &cobra.Command{
 		if c.BinaryBuild {
 			nexusDownloader = nexus.NewBinaryDownloader(binaryInput)
 		} else {
-			mavenRepo := "http://aurora/nexus/service/local/artifact/maven/content"
+			mavenRepo := "https://aurora/nexus/service/local/artifact/maven/content"
 			logrus.Debugf("Using Maven repo on %s", mavenRepo)
 			nexusDownloader = nexus.NewNexusDownloader(mavenRepo)
 		}
