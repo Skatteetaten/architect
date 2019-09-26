@@ -30,9 +30,16 @@ type Config struct {
 	ApplicationSpec ApplicationSpec
 	DockerSpec      DockerSpec
 	BuilderSpec     BuilderSpec
+	NexusAccess     NexusAccess
 	BinaryBuild     bool
 	BuildahBuild    bool
 	TlsVerify       bool
+}
+
+type NexusAccess struct {
+	Username string
+	Password string
+	NexusUrl string
 }
 
 type ApplicationSpec struct {

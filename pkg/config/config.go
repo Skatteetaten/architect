@@ -87,6 +87,34 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
+	nexusAccess := NexusAccess{}
+	var data map[string]interface{}
+
+	var secretMountPath = ""
+	for _, secret := range customStrategy.Secrets {
+		logrus.Debugf("Found secret %s", secret.SecretSource.Name)
+		if secret.SecretSource.Name == "jenkins-slave-nexus" {
+			secretMountPath = secret.MountPath
+		}
+	}
+	if secretMountPath != "" {
+		var secretPath = secretMountPath + "/nexus.json"
+		jsonFile, err := ioutil.ReadFile(secretPath)
+		if err == nil {
+			err := json.Unmarshal(jsonFile, &data)
+			if err != nil {
+				logrus.Warnf("Could not parse nexus.json: %s", err)
+			}
+			nexusAccess.NexusUrl = data["nexusUrl"].(string)
+			nexusAccess.Username = data["username"].(string)
+			nexusAccess.Password = data["password"].(string)
+		} else {
+			logrus.Warnf("Could not read nexus config at %s, error: %s", secretPath, err)
+		}
+	} else {
+		logrus.Debugf("Found no nexus secret")
+	}
+
 	applicationSpec := ApplicationSpec{}
 	if artifactId, err := findEnv(env, "ARTIFACT_ID"); err == nil {
 		applicationSpec.MavenGav.ArtifactId = artifactId
@@ -225,6 +253,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		ApplicationSpec: applicationSpec,
 		DockerSpec:      dockerSpec,
 		BuilderSpec:     builderSpec,
+		NexusAccess:     nexusAccess,
 		BinaryBuild:     build.Spec.Source.Type == api.BuildSourceBinary,
 		BuildahBuild:    buildahBuild,
 		TlsVerify:       tlsVerify,
