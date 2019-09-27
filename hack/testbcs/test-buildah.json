@@ -55,8 +55,8 @@
                       "value": "openshift-test"
                     },
                     {
-                      "name": "BUILDAH_BUILD",
-                      "value": "true"
+                      "name": "BUILD_STRATEGY",
+                      "value": "buildah"
                     },
                     {
                       "name": "TLS_VERIFY",

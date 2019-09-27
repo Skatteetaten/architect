@@ -31,7 +31,7 @@ type Config struct {
 	DockerSpec      DockerSpec
 	BuilderSpec     BuilderSpec
 	BinaryBuild     bool
-	BuildahBuild    bool
+	BuildStrategy   string
 	TlsVerify       bool
 }
 
