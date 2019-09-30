@@ -25,6 +25,11 @@ const (
 	Leveransepakke    Classifier = "Leveransepakke"
 )
 
+const (
+	Docker = "docker"
+	Buildah = "buildah"
+)
+
 type Config struct {
 	ApplicationType ApplicationType
 	ApplicationSpec ApplicationSpec

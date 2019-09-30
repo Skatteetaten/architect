@@ -71,7 +71,7 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 
 	provider := docker.NewRegistryClient(c.DockerSpec.ExternalDockerRegistry)
 
-	if strings.Contains(strings.ToLower(c.BuildStrategy), "buildah") {
+	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Buildah) {
 		logrus.Info("ALPHA FEATURE: Running buildah builds")
 		buildah := &process.BuildahCmd{
 			TlsVerify: c.TlsVerify,
@@ -79,7 +79,7 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 		return process.Build(r, provider, c, configuration.NexusDownloader, prepper, buildah)
 
 	} else {
-		if !strings.Contains(c.BuildStrategy, "docker") {
+		if !strings.Contains(c.BuildStrategy, config.Docker) {
 			logrus.Warnf("Unsupported build strategy: %s. Defaulting to docker", c.BuildStrategy)
 		}
 

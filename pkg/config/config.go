@@ -73,9 +73,13 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
-	var buildStrategy = "docker"
+	var buildStrategy = Docker
 	if value, err := findEnv(env, "BUILD_STRATEGY"); err == nil {
-		buildStrategy = value
+		if strings.Contains(strings.ToLower(value), Buildah) {
+			buildStrategy = Buildah
+		} else {
+			buildStrategy = value
+		}
 	}
 
 	var tlsVerify = true
