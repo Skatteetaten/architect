@@ -39,7 +39,7 @@ func Build(credentials *docker.RegistryCredentials, provider docker.ImageInfoPro
 		DockerImage: runtime.DockerImage{
 			Tag:        completeBaseImageVersion,
 			Repository: application.BaseImageSpec.BaseImage,
-			Registry:   cfg.DockerSpec.GetExternalRegistryWithoutProtocol(),
+			Registry:   cfg.DockerSpec.GetInternalPullRegistryWithoutProtocol(),
 		},
 		ImageInfo: imageInfo,
 	}

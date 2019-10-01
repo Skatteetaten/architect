@@ -64,6 +64,7 @@ type DockerBaseImageSpec struct {
 type DockerSpec struct {
 	OutputRegistry   string
 	OutputRepository string
+	InternalPullRegistry string
 	PushExtraTags    PushExtraTags
 	//This is the external docker registry where we check versions.
 	ExternalDockerRegistry string
@@ -104,6 +105,10 @@ func (m *PushExtraTags) ToStringValue() string {
 
 func (m DockerSpec) GetExternalRegistryWithoutProtocol() string {
 	return strings.TrimPrefix(m.ExternalDockerRegistry, "https://")
+}
+
+func (m DockerSpec) GetInternalPullRegistryWithoutProtocol() string {
+	return strings.TrimPrefix(m.InternalPullRegistry, "https://")
 }
 
 func ParseExtraTags(i string) PushExtraTags {

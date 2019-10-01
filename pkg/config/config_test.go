@@ -44,3 +44,11 @@ func TestTagWithConfig(t *testing.T) {
 	assert.Equal(t, "docker-registry.themoon.com:5000/groupid/app", completeDockerName)
 	assert.Equal(t, "supertaggen", c.DockerSpec.TagWith)
 }
+
+func TestGetUrlFromOutput(t *testing.T) {
+	r := config.NewFileConfigReader("../../testdata/bug-sitj-650.json")
+	c, err := r.ReadConfig()
+	assert.NilError(t, err)
+	completeDockerName := c.DockerSpec.OutputRegistry + "/" + c.DockerSpec.OutputRepository
+	assert.Equal(t, "container-registry-internal-snapshot.aurora.skead.no:443/no_skatteetaten_aurora_openshift/openshift-reference-springboot-server-kotlin", completeDockerName)
+}

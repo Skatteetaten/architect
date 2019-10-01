@@ -31,7 +31,7 @@ func (m *retagger) Retag() error {
 	repository := m.Config.DockerSpec.OutputRepository
 
 	logrus.Debug("Get ENV from image manifest")
-	manifestProvider := docker.NewRegistryClient(m.Config.DockerSpec.ExternalDockerRegistry)
+	manifestProvider := docker.NewRegistryClient(m.Config.DockerSpec.InternalPullRegistry)
 
 	imageInfo, err := manifestProvider.GetImageInfo(repository, tag)
 
