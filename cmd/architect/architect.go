@@ -68,8 +68,6 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 		logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
 	}
 
-	logrus.Infof("Using registry %s", c.DockerSpec.ExternalDockerRegistry)
-
 	provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry)
 
 	if c.BuildahBuild {
