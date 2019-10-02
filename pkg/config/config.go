@@ -103,7 +103,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		if err == nil {
 			err := json.Unmarshal(jsonFile, &data)
 			if err != nil {
-				logrus.Warnf("Could not parse nexus.json: %s", err)
+				return nil, errors.Wrapf(err, "Could not parse %s. Must be correct json when specified.", secretPath)
 			}
 			nexusAccess.NexusUrl = data["nexusUrl"].(string)
 			nexusAccess.Username = data["username"].(string)

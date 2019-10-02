@@ -64,45 +64,50 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 	if err != nil {
 		logrus.Fatalf("Failed response from %s, error: %s", n.baseUrl, err)
 	} else {
-		rx := regexp.MustCompile(`Nexus/\d`)
-		nexusVer := rx.FindString(resp.Header.Get("Server"))
-		logrus.Infof("Nexus is %s", nexusVer)
-		useNexus3 = string(nexusVer) == "Nexus/3"
+		useNexus3, _ = regexp.MatchString(`^Nexus/3\..*$`, resp.Header.Get("Server"))
+		logrus.Infof("Use nexus 3: %t", useNexus3)
 	}
+	defer resp.Body.Close()
 
+	var resourceUrl string
 	if useNexus3 {
-		// Nexus 3
-		resourceUrl, err := n.createNexus3URL(c)
+		resourceUrl, err = n.createNexus3URL(c)
 		if err != nil {
 			return deliverable, errors.Wrapf(err, "Failed to create Nexus 3 url for GAV %+v", c)
 		}
-		logrus.Debugf("Downloading artifact from %s", resourceUrl)
-
-		if na == nil || na.Username == "" || na.Password == "" {
-			return deliverable, errors.Wrap(err, "Missing Nexus credentials for Nexus 3")
-		}
-
-		req, err := http.NewRequest("GET", resourceUrl, nil)
+	} else {
+		resourceUrl, err = n.createURL(c)
 		if err != nil {
-			return deliverable, errors.Wrapf(err, "Failed to create request for Nexus url %s", resourceUrl)
+			return deliverable, errors.Wrapf(err, "Failed to create Nexus url for GAV %+v", c)
 		}
+	}
+	logrus.Debugf("Downloading artifact from %s", resourceUrl)
+
+	req, err := http.NewRequest("GET", resourceUrl, nil)
+	if err != nil {
+		return deliverable, errors.Wrapf(err, "Failed to create request for Nexus url %s", resourceUrl)
+	}
+
+	if useNexus3 && (na == nil || na.Username == "" || na.Password == "") {
+		return deliverable, errors.Wrap(err, "Missing Nexus credentials for Nexus 3")
+	}
+	if na != nil {
 		req.SetBasicAuth(na.Username, na.Password)
+	}
 
-		httpResponse, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return deliverable, errors.Wrapf(err, "Failed to get artifact from Nexus %s", resourceUrl)
-		}
-		defer httpResponse.Body.Close()
+	httpResponse, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return deliverable, errors.Wrapf(err, "Failed to get artifact from Nexus %s", resourceUrl)
+	}
+	defer httpResponse.Body.Close()
 
-		if httpResponse.StatusCode != http.StatusOK {
-			return deliverable, errors.Errorf("Could not download artifact (Make sure you have deployed it!)"+
-				". Status code %s ", httpResponse.Status)
-		}
+	if httpResponse.StatusCode != http.StatusOK {
+		return deliverable, errors.Errorf("Could not download artifact (Make sure you have deployed it!)"+
+			". Status code %s ", httpResponse.Status)
+	}
 
-		dir, err := ioutil.TempDir("", "package")
-		if err != nil {
-			return deliverable, errors.Wrap(err, "Failed to create directory for artifact")
-		}
+	var fileName string
+	if useNexus3 {
 		// No content-disposition from nexus3 - using alternate filename composition
 		if string(c.Classifier) == "" {
 			return deliverable, errors.Errorf("Missing maven Classifier")
@@ -110,40 +115,9 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 		if string(c.Type) == "" {
 			return deliverable, errors.Errorf("Missing maven Type")
 		}
-		fileName := filepath.Join(dir, string(c.Classifier)+"."+string(c.Type))
+		fileName = string(c.Classifier) + "." + string(c.Type)
 
-		fileCreated, err := os.Create(fileName)
-		if err != nil {
-			return deliverable, errors.Wrap(err, "Failed to create artifact file")
-		}
-		defer fileCreated.Close()
-
-		_, err = io.Copy(fileCreated, httpResponse.Body)
-		if err != nil {
-			return deliverable, errors.Wrap(err, "Failed to write to artifact file")
-		}
-		deliverable.Path = fileName
-		logrus.Debugf("Downloaded artifact to %s", deliverable.Path)
 	} else {
-		// Nexus 2
-		resourceUrl, err := n.createURL(c)
-		if err != nil {
-			return deliverable, errors.Wrapf(err, "Failed to create Nexus url for GAV %+v", c)
-		}
-
-		logrus.Debugf("Downloading artifact from %s", resourceUrl)
-
-		httpResponse, err := http.Get(resourceUrl)
-		if err != nil {
-			return deliverable, errors.Wrapf(err, "Failed to get artifact from Nexus %s", resourceUrl)
-		}
-		defer httpResponse.Body.Close()
-
-		if httpResponse.StatusCode != http.StatusOK {
-			return deliverable, errors.Errorf("Could not download artifact (Make sure you have deployed it!)"+
-				". Status code %s ", httpResponse.Status)
-		}
-
 		contentDisposition := httpResponse.Header.Get("content-disposition")
 
 		if len(contentDisposition) <= 0 {
@@ -154,25 +128,28 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 		if err != nil {
 			return deliverable, errors.Wrap(err, "Failed to parse content-disposition")
 		}
-		dir, err := ioutil.TempDir("", "package")
-		if err != nil {
-			return deliverable, errors.Wrap(err, "Failed to create directory for artifact")
-		}
-		fileName := filepath.Join(dir, params["filename"])
-
-		fileCreated, err := os.Create(fileName)
-		if err != nil {
-			return deliverable, errors.Wrap(err, "Failed to create artifact file")
-		}
-		defer fileCreated.Close()
-
-		_, err = io.Copy(fileCreated, httpResponse.Body)
-		if err != nil {
-			return deliverable, errors.Wrap(err, "Failed to write to artifact file")
-		}
-		deliverable.Path = fileName
-		logrus.Debugf("Downloaded artifact to %s", deliverable.Path)
+		fileName = params["filename"]
 	}
+
+	dir, err := ioutil.TempDir("", "package")
+	if err != nil {
+		return deliverable, errors.Wrap(err, "Failed to create directory for artifact")
+	}
+	filePath := filepath.Join(dir, fileName)
+
+	fileCreated, err := os.Create(filePath)
+	if err != nil {
+		return deliverable, errors.Wrap(err, "Failed to create artifact file")
+	}
+	defer fileCreated.Close()
+
+	_, err = io.Copy(fileCreated, httpResponse.Body)
+	if err != nil {
+		return deliverable, errors.Wrap(err, "Failed to write to artifact file")
+	}
+	deliverable.Path = filePath
+	logrus.Debugf("Downloaded artifact to %s", deliverable.Path)
+
 	return deliverable, nil
 }
 
