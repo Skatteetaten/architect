@@ -62,10 +62,10 @@ type DockerBaseImageSpec struct {
 }
 
 type DockerSpec struct {
-	OutputRegistry   string
-	OutputRepository string
+	OutputRegistry       string
+	OutputRepository     string
 	InternalPullRegistry string
-	PushExtraTags    PushExtraTags
+	PushExtraTags        PushExtraTags
 	//This is the external docker registry where we check versions.
 	ExternalDockerRegistry string
 	//The tag to push to. This is only used for ImageStreamTags (as for now) and RETAG functionality
