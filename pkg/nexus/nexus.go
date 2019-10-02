@@ -69,17 +69,9 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 	}
 	defer resp.Body.Close()
 
-	var resourceUrl string
-	if useNexus3 {
-		resourceUrl, err = n.createNexus3URL(c)
-		if err != nil {
-			return deliverable, errors.Wrapf(err, "Failed to create Nexus 3 url for GAV %+v", c)
-		}
-	} else {
-		resourceUrl, err = n.createURL(c)
-		if err != nil {
-			return deliverable, errors.Wrapf(err, "Failed to create Nexus url for GAV %+v", c)
-		}
+	resourceUrl, err := n.resourceURL(c, useNexus3)
+	if err != nil {
+		return deliverable, errors.Wrap(err, "Failed to create resource url")
 	}
 	logrus.Debugf("Downloading artifact from %s", resourceUrl)
 
@@ -88,10 +80,7 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 		return deliverable, errors.Wrapf(err, "Failed to create request for Nexus url %s", resourceUrl)
 	}
 
-	if useNexus3 && (na == nil || na.Username == "" || na.Password == "") {
-		return deliverable, errors.Wrap(err, "Missing Nexus credentials for Nexus 3")
-	}
-	if useNexus3 {
+	if na != nil && na.Username != "" && na.Password != "" {
 		req.SetBasicAuth(na.Username, na.Password)
 	}
 
@@ -106,29 +95,9 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 			". Status code %s ", httpResponse.Status)
 	}
 
-	var fileName string
-	if useNexus3 {
-		// No content-disposition from nexus3 - using alternate filename composition
-		if string(c.Classifier) == "" {
-			return deliverable, errors.Errorf("Missing maven Classifier")
-		}
-		if string(c.Type) == "" {
-			return deliverable, errors.Errorf("Missing maven Type")
-		}
-		fileName = string(c.Classifier) + "." + string(c.Type)
-
-	} else {
-		contentDisposition := httpResponse.Header.Get("content-disposition")
-
-		if len(contentDisposition) <= 0 {
-			return deliverable, errors.Errorf("No content-disposition in response header")
-		}
-
-		_, params, err := mime.ParseMediaType(contentDisposition)
-		if err != nil {
-			return deliverable, errors.Wrap(err, "Failed to parse content-disposition")
-		}
-		fileName = params["filename"]
+	fileName, err := n.fileName(c, httpResponse.Header.Get("content-disposition"), useNexus3)
+	if err != nil {
+		return deliverable, errors.Wrapf(err, "Could not create filename for temporary file")
 	}
 
 	dir, err := ioutil.TempDir("", "package")
@@ -166,6 +135,22 @@ func GetSnapshotTimestampVersion(gav config.MavenGav, deliverable Deliverable) s
 	return gav.Version
 }
 
+func (m *NexusDownloader) resourceURL(cfg *config.MavenGav, useNexus3 bool) (string, error) {
+	if useNexus3 {
+		resourceUrl, err := m.createNexus3URL(cfg)
+		if err != nil {
+			return resourceUrl, errors.Wrapf(err, "Failed to create Nexus 3 url for GAV %+v", cfg)
+		}
+		return resourceUrl, nil
+	} else {
+		resourceUrl, err := m.createURL(cfg)
+		if err != nil {
+			return resourceUrl, errors.Wrapf(err, "Failed to create Nexus url for GAV %+v", cfg)
+		}
+		return resourceUrl, nil
+	}
+}
+
 func (m *NexusDownloader) createURL(n *config.MavenGav) (string, error) {
 	tmpUrl, err := url.Parse(m.baseUrl)
 	if err != nil {
@@ -201,4 +186,26 @@ func (m *NexusDownloader) createNexus3URL(n *config.MavenGav) (string, error) {
 	}
 	tmpUrl.RawQuery = query.Encode()
 	return tmpUrl.String(), nil
+}
+
+func (m *NexusDownloader) fileName(cfg *config.MavenGav, contentDisposition string, useNexus3 bool) (string, error) {
+	if useNexus3 {
+		// No content-disposition from nexus3 - using alternate filename composition
+		if string(cfg.Classifier) == "" {
+			return "", errors.Errorf("Missing maven Classifier")
+		}
+		if string(cfg.Type) == "" {
+			return "", errors.Errorf("Missing maven Type")
+		}
+		return string(cfg.Classifier) + "." + string(cfg.Type), nil
+	} else {
+		if len(contentDisposition) <= 0 {
+			return "", errors.Errorf("No content-disposition in response header")
+		}
+		_, params, err := mime.ParseMediaType(contentDisposition)
+		if err != nil {
+			return "", errors.Wrap(err, "Failed to parse content-disposition")
+		}
+		return params["filename"], nil
+	}
 }
