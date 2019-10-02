@@ -91,7 +91,7 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 	if useNexus3 && (na == nil || na.Username == "" || na.Password == "") {
 		return deliverable, errors.Wrap(err, "Missing Nexus credentials for Nexus 3")
 	}
-	if na != nil {
+	if useNexus3 {
 		req.SetBasicAuth(na.Username, na.Password)
 	}
 
