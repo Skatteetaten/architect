@@ -106,7 +106,10 @@ func (m *retagger) Retag() error {
 
 	//We need to pull to make sure we push the newest image.. We should probably do this directly
 	//on the registry when we get v2 registry!:)
-	client.PullImage(pull)
+	err = client.PullImage(pull)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to pull image: %v", pull)
+	}
 
 	logrus.Debugf("Retagging temporary image, versionTags=%-v", tagsToPush)
 	for _, tag := range tagsToPush {
