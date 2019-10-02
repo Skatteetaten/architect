@@ -44,3 +44,14 @@ func TestTagWithConfig(t *testing.T) {
 	assert.Equal(t, "docker-registry.themoon.com:5000/groupid/app", completeDockerName)
 	assert.Equal(t, "supertaggen", c.DockerSpec.TagWith)
 }
+
+func TestHidingPasswordWhenGettingNExusAccessString(t *testing.T) {
+	nexusAccess := config.NexusAccess{}
+	nexusAccess.Username = "username"
+	nexusAccess.Password = "password1"
+	nexusAccess.NexusUrl = "http://testurl"
+
+	assert.Contains(t, nexusAccess.String(), "username")
+	assert.Contains(t, nexusAccess.String(), "http://testurl")
+	assert.Contains(t, nexusAccess.String(), "******")
+}

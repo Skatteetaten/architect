@@ -42,6 +42,10 @@ type NexusAccess struct {
 	NexusUrl string
 }
 
+func (n NexusAccess) String() string {
+	return "NexusAccess:{Username:" + n.Username + " Password:****** NexusUrl:" + n.NexusUrl + "}"
+}
+
 type ApplicationSpec struct {
 	MavenGav      MavenGav
 	BaseImageSpec DockerBaseImageSpec
