@@ -43,7 +43,7 @@ type NexusAccess struct {
 }
 
 func (n NexusAccess) String() string {
-	return "NexusAccess:{Username:" + n.Username + " Password:****** NexusUrl:" + n.NexusUrl + "}"
+	return "{Username:" + n.Username + " Password:****** NexusUrl:" + n.NexusUrl + "}"
 }
 
 type ApplicationSpec struct {
