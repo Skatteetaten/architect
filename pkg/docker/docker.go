@@ -55,6 +55,7 @@ func (d *DockerClient) PullImage(baseimage runtime.DockerImage) error {
 
 	if err != nil {
 		logrus.Warn("Failed pulling image: ", err)
+		return err
 	}
 
 	// ImageBuild will not return error message if build fails.

@@ -88,7 +88,7 @@ func (m *retagger) Retag() error {
 	}
 
 	pull := runtime.DockerImage{
-		Registry:   m.Config.DockerSpec.InternalPullRegistry,
+		Registry:   m.Config.DockerSpec.GetInternalPullRegistryWithoutProtocol(),
 		Repository: m.Config.DockerSpec.OutputRepository,
 		Tag:        m.Config.DockerSpec.RetagWith,
 	}
