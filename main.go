@@ -56,10 +56,7 @@ func initializeAndRunOnOpenShift() {
 		logrus.Fatalf("Error reading config: %s", err)
 	}
 
-	mavenRepo := "https://aurora/nexus/service/local/artifact/maven/content"
-	if c.NexusAccess.NexusUrl != "" {
-		mavenRepo = c.NexusAccess.NexusUrl
-	}
+	mavenRepo := c.NexusAccess.NexusUrl
 	logrus.Debugf("Using Maven repo on %s", mavenRepo)
 
 	var nexusDownloader nexus.Downloader
