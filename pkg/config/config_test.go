@@ -45,7 +45,6 @@ func TestTagWithConfig(t *testing.T) {
 	assert.Equal(t, "supertaggen", c.DockerSpec.TagWith)
 }
 
-
 func TestHidingPasswordWhenGettingNExusAccessString(t *testing.T) {
 	nexusAccess := config.NexusAccess{}
 	nexusAccess.Username = "username"

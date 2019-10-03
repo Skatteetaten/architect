@@ -26,7 +26,7 @@ const (
 )
 
 const (
-	Docker = "docker"
+	Docker  = "docker"
 	Buildah = "buildah"
 )
 
