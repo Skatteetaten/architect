@@ -45,6 +45,7 @@ func TestTagWithConfig(t *testing.T) {
 	assert.Equal(t, "supertaggen", c.DockerSpec.TagWith)
 }
 
+
 func TestHidingPasswordWhenGettingNExusAccessString(t *testing.T) {
 	nexusAccess := config.NexusAccess{}
 	nexusAccess.Username = "username"
@@ -54,4 +55,11 @@ func TestHidingPasswordWhenGettingNExusAccessString(t *testing.T) {
 	assert.Contains(t, nexusAccess.String(), "username")
 	assert.Contains(t, nexusAccess.String(), "http://testurl")
 	assert.Contains(t, nexusAccess.String(), "******")
+}
+func TestGetUrlFromOutput(t *testing.T) {
+	r := config.NewFileConfigReader("../../testdata/bug-sitj-650.json")
+	c, err := r.ReadConfig()
+	assert.NilError(t, err)
+	completeDockerName := c.DockerSpec.OutputRegistry + "/" + c.DockerSpec.OutputRepository
+	assert.Equal(t, "container-registry-internal-snapshot.aurora.skead.no:443/no_skatteetaten_aurora_openshift/openshift-reference-springboot-server-kotlin", completeDockerName)
 }

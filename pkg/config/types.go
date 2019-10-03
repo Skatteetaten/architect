@@ -78,9 +78,10 @@ type DockerBaseImageSpec struct {
 }
 
 type DockerSpec struct {
-	OutputRegistry   string
-	OutputRepository string
-	PushExtraTags    PushExtraTags
+	OutputRegistry       string
+	OutputRepository     string
+	InternalPullRegistry string
+	PushExtraTags        PushExtraTags
 	//This is the external docker registry where we check versions.
 	ExternalDockerRegistry string
 	//The tag to push to. This is only used for ImageStreamTags (as for now) and RETAG functionality
@@ -120,6 +121,10 @@ func (m *PushExtraTags) ToStringValue() string {
 
 func (m DockerSpec) GetExternalRegistryWithoutProtocol() string {
 	return strings.TrimPrefix(m.ExternalDockerRegistry, "https://")
+}
+
+func (m DockerSpec) GetInternalPullRegistryWithoutProtocol() string {
+	return strings.TrimPrefix(m.InternalPullRegistry, "https://")
 }
 
 func ParseExtraTags(i string) PushExtraTags {

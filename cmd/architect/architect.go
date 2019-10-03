@@ -69,7 +69,7 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 		logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
 	}
 
-	provider := docker.NewRegistryClient(c.DockerSpec.ExternalDockerRegistry)
+	provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry)
 
 	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Buildah) {
 		logrus.Info("ALPHA FEATURE: Running buildah builds")
