@@ -25,6 +25,11 @@ const (
 	Leveransepakke    Classifier = "Leveransepakke"
 )
 
+const (
+	Docker = "docker"
+	Buildah = "buildah"
+)
+
 type Config struct {
 	ApplicationType ApplicationType
 	ApplicationSpec ApplicationSpec
@@ -32,7 +37,7 @@ type Config struct {
 	BuilderSpec     BuilderSpec
 	NexusAccess     NexusAccess
 	BinaryBuild     bool
-	BuildahBuild    bool
+	BuildStrategy   string
 	TlsVerify       bool
 }
 

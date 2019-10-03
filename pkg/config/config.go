@@ -73,10 +73,12 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
-	var buildahBuild = false
-	if value, err := findEnv(env, "BUILDAH_BUILD"); err == nil {
-		if strings.Contains(strings.ToLower(value), "true") {
-			buildahBuild = true
+	var buildStrategy = Docker
+	if value, err := findEnv(env, "BUILD_STRATEGY"); err == nil {
+		if strings.Contains(strings.ToLower(value), Buildah) {
+			buildStrategy = Buildah
+		} else {
+			buildStrategy = value
 		}
 	}
 
@@ -255,7 +257,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		BuilderSpec:     builderSpec,
 		NexusAccess:     nexusAccess,
 		BinaryBuild:     build.Spec.Source.Type == api.BuildSourceBinary,
-		BuildahBuild:    buildahBuild,
+		BuildStrategy:   buildStrategy,
 		TlsVerify:       tlsVerify,
 	}
 	return c, nil
