@@ -75,18 +75,33 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 	}
 	logrus.Debugf("Downloading artifact from %s", resourceUrl)
 
-	req, err := http.NewRequest("GET", resourceUrl, nil)
-	if err != nil {
-		return deliverable, errors.Wrapf(err, "Failed to create request for Nexus url %s", resourceUrl)
+	httpClient := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
-
-	if na != nil && na.Username != "" && na.Password != "" {
-		req.SetBasicAuth(na.Username, na.Password)
-	}
-
-	httpResponse, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return deliverable, errors.Wrapf(err, "Failed to get artifact from Nexus %s", resourceUrl)
+	var location = ""
+	var httpResponse *http.Response
+	var nextURL = resourceUrl
+	for { // repeat until no 302 redirect
+		req, err := http.NewRequest("GET", nextURL, nil)
+		if err != nil {
+			return deliverable, errors.Wrapf(err, "Failed to create request for Nexus url %s", resourceUrl)
+		}
+		if na != nil && na.Username != "" && na.Password != "" {
+			req.SetBasicAuth(na.Username, na.Password)
+		}
+		httpResponse, err = httpClient.Do(req)
+		if httpResponse.StatusCode == http.StatusFound {
+			location = httpResponse.Header.Get("Location")
+			logrus.Debugf("Got redirect to location: %s", location)
+			nextURL = location
+			httpResponse.Body.Close()
+		} else if err != nil {
+			return deliverable, errors.Wrapf(err, "Failed to get artifact from Nexus %s", resourceUrl)
+		} else {
+			break
+		}
 	}
 	defer httpResponse.Body.Close()
 
@@ -95,7 +110,7 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 			". Status code %s ", httpResponse.Status)
 	}
 
-	fileName, err := n.fileName(c, httpResponse.Header.Get("content-disposition"), useNexus3)
+	fileName, err := n.fileName(c, httpResponse.Header.Get("content-disposition"), location)
 	if err != nil {
 		return deliverable, errors.Wrapf(err, "Could not create filename for temporary file")
 	}
@@ -188,24 +203,25 @@ func (m *NexusDownloader) createNexus3URL(n *config.MavenGav) (string, error) {
 	return tmpUrl.String(), nil
 }
 
-func (m *NexusDownloader) fileName(cfg *config.MavenGav, contentDisposition string, useNexus3 bool) (string, error) {
-	if useNexus3 {
-		// No content-disposition from nexus3 - using alternate filename composition
+func (m *NexusDownloader) fileName(cfg *config.MavenGav, contentDisposition string, location string) (string, error) {
+	if len(contentDisposition) > 0 {
+		_, params, err := mime.ParseMediaType(contentDisposition)
+		if err != nil {
+			return "", errors.Wrap(err, "Failed to parse content-disposition")
+		}
+		return params["filename"], nil
+	} else if location != "" {
+		_, fileName := filepath.Split(location)
+		return fileName, nil
+	} else {
+		// No content-disposition or location - using alternate filename composition
 		if string(cfg.Classifier) == "" {
 			return "", errors.Errorf("Missing maven Classifier")
 		}
 		if string(cfg.Type) == "" {
 			return "", errors.Errorf("Missing maven Type")
 		}
+		logrus.Warn("Using generic filename for temp file")
 		return string(cfg.Classifier) + "." + string(cfg.Type), nil
-	} else {
-		if len(contentDisposition) <= 0 {
-			return "", errors.Errorf("No content-disposition in response header")
-		}
-		_, params, err := mime.ParseMediaType(contentDisposition)
-		if err != nil {
-			return "", errors.Wrap(err, "Failed to parse content-disposition")
-		}
-		return params["filename"], nil
 	}
 }

@@ -91,10 +91,10 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
-	nexusAccess := NexusAccess{}
-	var data map[string]interface{}
-
-	var secretMountPath = ""
+	nexusAccess := NexusAccess{
+		NexusUrl: "https://aurora/nexus/service/local/artifact/maven/content",
+	}
+	secretMountPath := ""
 	for _, secret := range customStrategy.Secrets {
 		logrus.Debugf("Found secret %s", secret.SecretSource.Name)
 		if secret.SecretSource.Name == "jenkins-slave-nexus" {
@@ -105,6 +105,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		var secretPath = secretMountPath + "/nexus.json"
 		jsonFile, err := ioutil.ReadFile(secretPath)
 		if err == nil {
+			var data map[string]interface{}
 			err := json.Unmarshal(jsonFile, &data)
 			if err != nil {
 				return nil, errors.Wrapf(err, "Could not parse %s. Must be correct json when specified.", secretPath)
