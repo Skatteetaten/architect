@@ -75,18 +75,33 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 	}
 	logrus.Debugf("Downloading artifact from %s", resourceUrl)
 
-	req, err := http.NewRequest("GET", resourceUrl, nil)
-	if err != nil {
-		return deliverable, errors.Wrapf(err, "Failed to create request for Nexus url %s", resourceUrl)
+	httpClient := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
-
-	if na != nil && na.Username != "" && na.Password != "" {
-		req.SetBasicAuth(na.Username, na.Password)
-	}
-
-	httpResponse, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return deliverable, errors.Wrapf(err, "Failed to get artifact from Nexus %s", resourceUrl)
+	var location = ""
+	var httpResponse *http.Response
+	var nextURL = resourceUrl
+	for { // repeat until no 302 redirect
+		req, err := http.NewRequest("GET", nextURL, nil)
+		if err != nil {
+			return deliverable, errors.Wrapf(err, "Failed to create request for Nexus url %s", resourceUrl)
+		}
+		if na != nil && na.Username != "" && na.Password != "" {
+			req.SetBasicAuth(na.Username, na.Password)
+		}
+		httpResponse, err = httpClient.Do(req)
+		if httpResponse.StatusCode == http.StatusFound {
+			location = httpResponse.Header.Get("Location")
+			logrus.Debugf("Got redirect to location: %s", location)
+			nextURL = location
+		} else if err != nil {
+			return deliverable, errors.Wrapf(err, "Failed to get artifact from Nexus %s", resourceUrl)
+		}
+		if httpResponse.StatusCode != http.StatusFound {
+			break
+		}
 	}
 	defer httpResponse.Body.Close()
 
