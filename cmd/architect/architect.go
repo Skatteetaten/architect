@@ -81,7 +81,8 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 
 	provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry)
 
-	ctx, _ = context.WithTimeout(ctx, c.BuildTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
+	defer cancel()
 	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Buildah) {
 		logrus.Info("ALPHA FEATURE: Running buildah builds")
 		buildah := &process.BuildahCmd{
