@@ -1,0 +1,97 @@
+{
+  "apiVersion": "build.openshift.io/v1",
+  "kind": "BuildConfig",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"build.openshift.io/v1\",\"kind\":\"BuildConfig\",\"metadata\":{\"annotations\":{\"openshift.io/generated-by\":\"OpenShiftNewApp\"},\"creationTimestamp\":null,\"labels\":{\"affiliation\":\"aurora\",\"app\":\"aurora-snapshot-4.0\",\"name\":\"openshift-reference-springboot-server-kotlin-t-bugfix-aos-36\",\"removeAfter\":\"1570450171\",\"template\":\"aurora-snapshot-4.0\"},\"name\":\"openshift-reference-springboot-server-kotlin-t-bugfix-aos-36\",\"namespace\":\"aurora-build\"},\"spec\":{\"nodeSelector\":null,\"output\":{\"to\":{\"kind\":\"DockerImage\",\"name\":\"container-registry-internal-snapshot.aurora.skead.no:443/no_skatteetaten_aurora_openshift/openshift-reference-springboot-server-kotlin\"}},\"postCommit\":{},\"resources\":{},\"runPolicy\":\"Serial\",\"source\":{\"type\":\"None\"},\"strategy\":{\"customStrategy\":{\"env\":[{\"name\":\"ARTIFACT_ID\",\"value\":\"openshift-reference-springboot-server-kotlin\"},{\"name\":\"GROUP_ID\",\"value\":\"no.skatteetaten.aurora.openshift\"},{\"name\":\"VERSION\",\"value\":\"bugfix_AOS_3687-SNAPSHOT\"},{\"name\":\"DOCKER_BASE_VERSION\",\"value\":\"1\"},{\"name\":\"DOCKER_BASE_IMAGE\",\"value\":\"aurora/wingnut11\"},{\"name\":\"PUSH_EXTRA_TAGS\",\"value\":\"none\"},{\"name\":\"APPLICATION_TYPE\",\"value\":\"maven\"},{\"name\":\"BUILD_STRATEGY\",\"value\":\"docker\"}],\"exposeDockerSocket\":true,\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"architect:1\",\"namespace\":\"openshift\"},\"secrets\":[{\"mountPath\":\"/u01/nexus\",\"secretSource\":{\"name\":\"jenkins-slave-nexus\"}}]},\"type\":\"Custom\"},\"triggers\":[]},\"status\":{\"lastVersion\":0}}\n",
+      "openshift.io/generated-by": "OpenShiftNewApp"
+    },
+    "creationTimestamp": "2019-09-30T12:12:33Z",
+    "labels": {
+      "affiliation": "aurora",
+      "app": "aurora-snapshot-4.0",
+      "name": "openshift-reference-springboot-server-kotlin-t-bugfix-aos-36",
+      "removeAfter": "1570450171",
+      "template": "aurora-snapshot-4.0"
+    },
+    "name": "openshift-reference-springboot-server-kotlin-t-bugfix-aos-36",
+    "namespace": "aurora-build",
+    "resourceVersion": "718774041",
+    "selfLink": "/apis/build.openshift.io/v1/namespaces/aurora-build/buildconfigs/openshift-reference-springboot-server-kotlin-t-bugfix-aos-36",
+    "uid": "9512a5f7-e37b-11e9-a0bd-005056849398"
+  },
+  "spec": {
+    "failedBuildsHistoryLimit": 5,
+    "nodeSelector": null,
+    "output": {
+      "to": {
+        "kind": "DockerImage",
+        "name": "container-registry-internal-snapshot.aurora.skead.no:443/no_skatteetaten_aurora_openshift/openshift-reference-springboot-server-kotlin"
+      }
+    },
+    "postCommit": {},
+    "resources": {},
+    "runPolicy": "Serial",
+    "source": {
+      "type": "None"
+    },
+    "strategy": {
+      "customStrategy": {
+        "env": [
+          {
+            "name": "ARTIFACT_ID",
+            "value": "openshift-reference-springboot-server-kotlin"
+          },
+          {
+            "name": "GROUP_ID",
+            "value": "no.skatteetaten.aurora.openshift"
+          },
+          {
+            "name": "VERSION",
+            "value": "bugfix_AOS_3687-SNAPSHOT"
+          },
+          {
+            "name": "DOCKER_BASE_VERSION",
+            "value": "1"
+          },
+          {
+            "name": "DOCKER_BASE_IMAGE",
+            "value": "aurora/wingnut11"
+          },
+          {
+            "name": "PUSH_EXTRA_TAGS",
+            "value": "none"
+          },
+          {
+            "name": "APPLICATION_TYPE",
+            "value": "maven"
+          },
+          {
+            "name": "BUILD_STRATEGY",
+            "value": "docker"
+          }
+        ],
+        "exposeDockerSocket": true,
+        "from": {
+          "kind": "ImageStreamTag",
+          "name": "architect:1",
+          "namespace": "openshift"
+        },
+        "secrets": [
+          {
+            "mountPath": "/u01/nexus",
+            "secretSource": {
+              "name": "jenkins-slave-nexus"
+            }
+          }
+        ]
+      },
+      "type": "Custom"
+    },
+    "successfulBuildsHistoryLimit": 5,
+    "triggers": []
+  },
+  "status": {
+    "lastVersion": 2
+  }
+}
