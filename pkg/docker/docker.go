@@ -53,6 +53,11 @@ func (d *DockerClient) PullImage(ctx context.Context, baseimage runtime.DockerIm
 	logrus.Infof("Pulling %s", baseimage.GetCompleteDockerTagName())
 	output, err := d.Client.ImagePull(ctx, baseimage.GetCompleteDockerTagName(), types.ImagePullOptions{})
 
+	if err != nil {
+		logrus.Warn("Failed pulling image: ", err)
+		return err
+	}
+
 	// ImageBuild will not return error message if build fails.
 	var bodyLine string = ""
 	scanner := bufio.NewScanner(output)

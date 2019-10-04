@@ -26,15 +26,31 @@ const (
 	Leveransepakke    Classifier = "Leveransepakke"
 )
 
+const (
+	Docker  = "docker"
+	Buildah = "buildah"
+)
+
 type Config struct {
 	ApplicationType ApplicationType
 	ApplicationSpec ApplicationSpec
 	DockerSpec      DockerSpec
 	BuilderSpec     BuilderSpec
+	NexusAccess     NexusAccess
 	BinaryBuild     bool
-	BuildahBuild    bool
+	BuildStrategy   string
 	TlsVerify       bool
 	BuildTimeout    time.Duration
+}
+
+type NexusAccess struct {
+	Username string
+	Password string
+	NexusUrl string
+}
+
+func (n NexusAccess) String() string {
+	return "{Username:" + n.Username + " Password:****** NexusUrl:" + n.NexusUrl + "}"
 }
 
 type ApplicationSpec struct {
@@ -64,9 +80,10 @@ type DockerBaseImageSpec struct {
 }
 
 type DockerSpec struct {
-	OutputRegistry   string
-	OutputRepository string
-	PushExtraTags    PushExtraTags
+	OutputRegistry       string
+	OutputRepository     string
+	InternalPullRegistry string
+	PushExtraTags        PushExtraTags
 	//This is the external docker registry where we check versions.
 	ExternalDockerRegistry string
 	//The tag to push to. This is only used for ImageStreamTags (as for now) and RETAG functionality
@@ -106,6 +123,10 @@ func (m *PushExtraTags) ToStringValue() string {
 
 func (m DockerSpec) GetExternalRegistryWithoutProtocol() string {
 	return strings.TrimPrefix(m.ExternalDockerRegistry, "https://")
+}
+
+func (m DockerSpec) GetInternalPullRegistryWithoutProtocol() string {
+	return strings.TrimPrefix(m.InternalPullRegistry, "https://")
 }
 
 func ParseExtraTags(i string) PushExtraTags {

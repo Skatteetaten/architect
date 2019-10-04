@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-func TestDownloadFromNexusServer(t *testing.T) {
+func TestDownloadFromNexus2Server(t *testing.T) {
 	b, err := createZipFile()
 	if err != nil {
 		t.Error(err.Error())
@@ -34,7 +34,7 @@ func TestDownloadFromNexusServer(t *testing.T) {
 		Version:    "1.1.4",
 	}
 
-	r, err := n.DownloadArtifact(&m)
+	r, err := n.DownloadArtifact(&m, nil)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -46,6 +46,48 @@ func TestDownloadFromNexusServer(t *testing.T) {
 	}
 }
 
+func TestDownloadFromNexus3Server(t *testing.T) {
+	b, err := createZipFile()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	zipFileName := "leveransepakke.zip"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(b.Bytes())))
+		w.Header().Set("Content-Type", "application/zip")
+		w.Header().Set("Server", "Nexus/3.18.1-01 (PRO)")
+		w.Write(b.Bytes())
+	}))
+	defer ts.Close()
+
+	n := NewNexusDownloader(ts.URL)
+	m := config.MavenGav{
+		ArtifactId: "openshift-resource-monitor",
+		GroupId:    "ske.fellesplattform.monitor",
+		Version:    "1.1.4",
+		Type:       "zip",
+		Classifier: "leveransepakke",
+	}
+
+	na := config.NexusAccess{
+		Username: "username",
+		Password: "password1",
+		NexusUrl: ts.URL,
+	}
+
+	r, err := n.DownloadArtifact(&m, &na)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if strings.Contains(r.Path, zipFileName) == false {
+		t.Error(
+			"expected", zipFileName,
+			"got", r)
+	}
+}
+
 func TestNewLocalDownloader(t *testing.T) {
 	d := NewBinaryDownloader("test")
 	m := config.MavenGav{
@@ -53,7 +95,7 @@ func TestNewLocalDownloader(t *testing.T) {
 		GroupId:    "ske",
 		Version:    "develop-SNAPSHOT",
 	}
-	l, err := d.DownloadArtifact(&m)
+	l, err := d.DownloadArtifact(&m, nil)
 
 	expected := "test"
 	if l.Path != expected {
