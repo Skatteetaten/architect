@@ -44,8 +44,7 @@ func initializeAndRunOnOpenShift() {
 	for _, env := range os.Environ() {
 		logrus.Debugf("Environment %s", env)
 	}
-	mavenRepo := "https://aurora/nexus/service/local/artifact/maven/content"
-	logrus.Debugf("Using Maven repo on %s", mavenRepo)
+
 	// Read build config
 	configReader := config.NewInClusterConfigReader()
 	c, err := configReader.ReadConfig()
@@ -56,6 +55,10 @@ func initializeAndRunOnOpenShift() {
 	if err != nil {
 		logrus.Fatalf("Error reading config: %s", err)
 	}
+
+	mavenRepo := c.NexusAccess.NexusUrl
+	logrus.Debugf("Using Maven repo on %s", mavenRepo)
+
 	var nexusDownloader nexus.Downloader
 	if c.BinaryBuild {
 		binaryInput, err := util.ExtractBinaryFromStdIn()

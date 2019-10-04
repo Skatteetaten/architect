@@ -10,6 +10,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/retag"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -68,9 +69,9 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 		logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
 	}
 
-	provider := docker.NewRegistryClient(c.DockerSpec.ExternalDockerRegistry)
+	provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry)
 
-	if c.BuildahBuild {
+	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Buildah) {
 		logrus.Info("ALPHA FEATURE: Running buildah builds")
 		buildah := &process.BuildahCmd{
 			TlsVerify: c.TlsVerify,
@@ -78,6 +79,10 @@ func performBuild(configuration *RunConfiguration, c *config.Config, r *docker.R
 		return process.Build(r, provider, c, configuration.NexusDownloader, prepper, buildah)
 
 	} else {
+		if !strings.Contains(c.BuildStrategy, config.Docker) {
+			logrus.Warnf("Unsupported build strategy: %s. Defaulting to docker", c.BuildStrategy)
+		}
+
 		dockerClient, err := process.NewDockerBuilder()
 		if err != nil {
 			return err

@@ -8,6 +8,8 @@ import (
 	"github.com/skatteetaten/architect/pkg/config/api"
 	"io/ioutil"
 	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -73,10 +75,12 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
-	var buildahBuild = false
-	if value, err := findEnv(env, "BUILDAH_BUILD"); err == nil {
-		if strings.Contains(strings.ToLower(value), "true") {
-			buildahBuild = true
+	var buildStrategy = Docker
+	if value, err := findEnv(env, "BUILD_STRATEGY"); err == nil {
+		if strings.Contains(strings.ToLower(value), Buildah) {
+			buildStrategy = Buildah
+		} else {
+			buildStrategy = value
 		}
 	}
 
@@ -85,6 +89,35 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		if strings.Contains(strings.ToLower(value), "false") {
 			tlsVerify = false
 		}
+	}
+
+	nexusAccess := NexusAccess{
+		NexusUrl: "https://aurora/nexus/service/local/artifact/maven/content",
+	}
+	secretMountPath := ""
+	for _, secret := range customStrategy.Secrets {
+		logrus.Debugf("Found secret %s", secret.SecretSource.Name)
+		if secret.SecretSource.Name == "jenkins-slave-nexus" {
+			secretMountPath = secret.MountPath
+		}
+	}
+	if secretMountPath != "" {
+		var secretPath = secretMountPath + "/nexus.json"
+		jsonFile, err := ioutil.ReadFile(secretPath)
+		if err == nil {
+			var data map[string]interface{}
+			err := json.Unmarshal(jsonFile, &data)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Could not parse %s. Must be correct json when specified.", secretPath)
+			}
+			nexusAccess.NexusUrl = data["nexusUrl"].(string)
+			nexusAccess.Username = data["username"].(string)
+			nexusAccess.Password = data["password"].(string)
+		} else {
+			logrus.Warnf("Could not read nexus config at %s, error: %s", secretPath, err)
+		}
+	} else {
+		logrus.Debugf("Found no nexus secret")
 	}
 
 	applicationSpec := ApplicationSpec{}
@@ -132,8 +165,41 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		} else {
 			dockerSpec.ExternalDockerRegistry = "https://" + externalRegistry
 		}
+	} else if strings.ToLower(build.Spec.CommonSpec.Output.To.Kind) == "dockerimage" {
+		registryUrl, err := url.Parse("https://" + build.Spec.CommonSpec.Output.To.Name)
+		if err != nil {
+			dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
+		} else {
+			base := registryUrl.Host
+			if _, err := http.Get("https://" + base); err == nil {
+				dockerSpec.ExternalDockerRegistry = "https://" + base
+				logrus.Debugf("Using https: %s", dockerSpec.ExternalDockerRegistry)
+			} else if _, err := http.Get("http://" + base); err == nil {
+				dockerSpec.ExternalDockerRegistry = "http://" + base
+				logrus.Debugf("Using insecure registry: %s", dockerSpec.ExternalDockerRegistry)
+			} else {
+				dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
+			}
+		}
+
 	} else {
+		//If all fails
 		dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
+	}
+
+	if internalPullRegistry, err := findEnv(env, "INTERNAL_PULL_REGISTRY"); err == nil {
+		base := internalPullRegistry
+		if _, err := http.Get("https://" + base); err == nil {
+			dockerSpec.InternalPullRegistry = "https://" + base
+			logrus.Debugf("Using https: %s", dockerSpec.ExternalDockerRegistry)
+		} else if _, err := http.Get("http://" + base); err == nil {
+			dockerSpec.InternalPullRegistry = "http://" + base
+			logrus.Debugf("Using insecure registry: %s", dockerSpec.ExternalDockerRegistry)
+		} else {
+			dockerSpec.InternalPullRegistry = "https://docker-registry.aurora.sits.no:5000"
+		}
+	} else {
+		dockerSpec.InternalPullRegistry = "https://docker-registry.aurora.sits.no:5000"
 	}
 
 	if pushExtraTags, err := findEnv(env, "PUSH_EXTRA_TAGS"); err == nil {
@@ -225,8 +291,9 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		ApplicationSpec: applicationSpec,
 		DockerSpec:      dockerSpec,
 		BuilderSpec:     builderSpec,
+		NexusAccess:     nexusAccess,
 		BinaryBuild:     build.Spec.Source.Type == api.BuildSourceBinary,
-		BuildahBuild:    buildahBuild,
+		BuildStrategy:   buildStrategy,
 		TlsVerify:       tlsVerify,
 	}
 	return c, nil

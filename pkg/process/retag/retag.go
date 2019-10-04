@@ -31,7 +31,7 @@ func (m *retagger) Retag() error {
 	repository := m.Config.DockerSpec.OutputRepository
 
 	logrus.Debug("Get ENV from image manifest")
-	manifestProvider := docker.NewRegistryClient(m.Config.DockerSpec.ExternalDockerRegistry)
+	manifestProvider := docker.NewRegistryClient(m.Config.DockerSpec.InternalPullRegistry)
 
 	imageInfo, err := manifestProvider.GetImageInfo(repository, tag)
 
@@ -81,8 +81,14 @@ func (m *retagger) Retag() error {
 		return errors.Wrap(err, "Unable to get version tags")
 	}
 
-	imageId := runtime.DockerImage{
+	push := runtime.DockerImage{
 		Registry:   m.Config.DockerSpec.OutputRegistry,
+		Repository: m.Config.DockerSpec.OutputRepository,
+		Tag:        m.Config.DockerSpec.RetagWith,
+	}
+
+	pull := runtime.DockerImage{
+		Registry:   m.Config.DockerSpec.GetInternalPullRegistryWithoutProtocol(),
 		Repository: m.Config.DockerSpec.OutputRepository,
 		Tag:        m.Config.DockerSpec.RetagWith,
 	}
@@ -100,15 +106,18 @@ func (m *retagger) Retag() error {
 
 	//We need to pull to make sure we push the newest image.. We should probably do this directly
 	//on the registry when we get v2 registry!:)
-	client.PullImage(imageId)
+	err = client.PullImage(pull)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to pull image: %v", pull)
+	}
 
 	logrus.Debugf("Retagging temporary image, versionTags=%-v", tagsToPush)
 	for _, tag := range tagsToPush {
-		sourceTag := imageId.GetCompleteDockerTagName()
+		sourceTag := pull.GetCompleteDockerTagName()
 		logrus.Infof("Tag image %s with alias %s", sourceTag, tag)
 		err := client.TagImage(sourceTag, tag)
 		if err != nil {
-			return errors.Wrapf(err, "Failed to tag image %s with tag %s", imageId, tag)
+			return errors.Wrapf(err, "Failed to tag image %s with tag %s", push, tag)
 		}
 	}
 	for _, tag := range tagsToPush {

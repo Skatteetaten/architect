@@ -20,7 +20,7 @@ type Builder interface {
 func Build(credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
 
 	logrus.Debugf("Download deliverable for GAV %-v", cfg.ApplicationSpec)
-	deliverable, err := downloader.DownloadArtifact(&cfg.ApplicationSpec.MavenGav)
+	deliverable, err := downloader.DownloadArtifact(&cfg.ApplicationSpec.MavenGav, &cfg.NexusAccess)
 	if err != nil {
 		return errors.Wrapf(err, "Could not download deliverable %-v", cfg.ApplicationSpec)
 	}
@@ -39,7 +39,7 @@ func Build(credentials *docker.RegistryCredentials, provider docker.ImageInfoPro
 		DockerImage: runtime.DockerImage{
 			Tag:        completeBaseImageVersion,
 			Repository: application.BaseImageSpec.BaseImage,
-			Registry:   cfg.DockerSpec.GetExternalRegistryWithoutProtocol(),
+			Registry:   cfg.DockerSpec.GetInternalPullRegistryWithoutProtocol(),
 		},
 		ImageInfo: imageInfo,
 	}
