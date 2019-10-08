@@ -188,7 +188,16 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 
 	if internalPullRegistry, err := findEnv(env, "INTERNAL_PULL_REGISTRY"); err == nil {
+
 		base := internalPullRegistry
+		logrus.Infof("base %s", base)
+
+		_, a := http.Get("https://" + base)
+		_, b := http.Get("http://" + base)
+
+		logrus.Infof("https: %v ", a)
+		logrus.Infof("http: %v", b)
+
 		if _, err := http.Get("https://" + base); err == nil {
 			dockerSpec.InternalPullRegistry = "https://" + base
 			logrus.Debugf("Using https: %s", dockerSpec.ExternalDockerRegistry)
@@ -196,11 +205,14 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			dockerSpec.InternalPullRegistry = "http://" + base
 			logrus.Debugf("Using insecure registry: %s", dockerSpec.ExternalDockerRegistry)
 		} else {
+			logrus.Info("NOOOOOOOO")
 			dockerSpec.InternalPullRegistry = "https://docker-registry.aurora.sits.no:5000"
 		}
 	} else {
 		dockerSpec.InternalPullRegistry = "https://docker-registry.aurora.sits.no:5000"
 	}
+
+	logrus.Infof("Hellu %s", dockerSpec.InternalPullRegistry)
 
 	if pushExtraTags, err := findEnv(env, "PUSH_EXTRA_TAGS"); err == nil {
 		dockerSpec.PushExtraTags = ParseExtraTags(pushExtraTags)

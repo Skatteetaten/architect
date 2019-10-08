@@ -1,74 +1,78 @@
 {
-    "kind": "BuildConfig",
-    "apiVersion": "v1",
-    "metadata": {
-        "name": "architectconsole",
-        "creationTimestamp": null,
-        "labels": {
-            "affiliation": "mfp"
-        }
-    },
-    "spec": {
-        "triggers": [],
-        "runPolicy": "Serial",
-        "source": {
-            "type": "None"
-        },
-        "strategy": {
-            "type": "Custom",
-            "customStrategy": {
-                "from": {
-                    "kind": "DockerImage",
-                    "name": "docker-registry.aurora.sits.no:5000/aurora/architect:playtime-develop-SNAPSHOT-go"
-                },
-                "env": [
-                    {
-                      "name": "BASE_IMAGE_REGISTRY",
-                      "value": "uil0paas-utv-registry01.skead.no:5000"
-                    },
-                    {
-                      "name": "ARTIFACT_ID",
-                      "value": "openshift-reference-springboot-server"
-                    },
-                    {
-                      "name": "GROUP_ID",
-                      "value": "no.skatteetaten.aurora.openshift"
-                    },
-                    {
-                      "name": "VERSION",
-                      "value": "test_retag-SNAPSHOT"
-                    },
-                    {
-                      "name": "DOCKER_BASE_VERSION",
-                      "value": "latest"
-                    },
-                    {
-                      "name": "DOCKER_BASE_NAME",
-                      "value": "aurora/wingnut"
-                    },
-                    {
-                      "name": "TAG_OVERWRITE",
-                      "value": "true"
-                    },
-                    {
-                      "name": "SPLUNK_INDEX",
-                      "value": "openshift-test"
-                    }
-                ],
-                "exposeDockerSocket": true
-            }
-        },
-        "output": {
-            "to": {
-                "kind": "DockerImage",
-                "name": "uil0paas-utv-registry01.skead.no:5000/aurora/architecttest"
-            }
-        },
-        "resources": {},
-        "postCommit": {},
-        "nodeSelector": null
-    },
-    "status": {
-        "lastVersion": 0
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "architectconsole",
+    "creationTimestamp": null,
+    "labels": {
+      "affiliation": "mfp"
     }
+  },
+  "spec": {
+    "triggers": [],
+    "runPolicy": "Serial",
+    "source": {
+      "type": "None"
+    },
+    "strategy": {
+      "type": "Custom",
+      "customStrategy": {
+        "from": {
+          "kind": "DockerImage",
+          "name": "uil0paas-utv-registry01.skead.no:5000/aurora/architect:playtime-develop-SNAPSHOT-go"
+        },
+        "env": [
+          {
+            "name": "BASE_IMAGE_REGISTRY",
+            "value": "uil0paas-utv-registry01.skead.no:5000"
+          },
+          {
+            "name": "ARTIFACT_ID",
+            "value": "openshift-reference-springboot-server"
+          },
+          {
+            "name": "GROUP_ID",
+            "value": "no.skatteetaten.aurora.openshift"
+          },
+          {
+            "name": "VERSION",
+            "value": "test_retag-SNAPSHOT"
+          },
+          {
+            "name": "DOCKER_BASE_VERSION",
+            "value": "latest"
+          },
+          {
+            "name": "DOCKER_BASE_NAME",
+            "value": "aurora/wingnut"
+          },
+          {
+            "name": "TAG_OVERWRITE",
+            "value": "true"
+          },
+          {
+            "name": "SPLUNK_INDEX",
+            "value": "openshift-test"
+          },
+          {
+            "name": "INTERNAL_PULL_REGISTRY",
+            "value": "uil0paas-utv-registry01.skead.no:5000"
+          }
+        ],
+        "exposeDockerSocket": true
+      }
+    },
+    "output": {
+      "to": {
+        "kind": "DockerImage",
+        "name": "uil0paas-utv-registry01.skead.no:5000/aurora/architecttest"
+      }
+    },
+    "resources": {},
+    "postCommit": {},
+    "nodeSelector": null
+  },
+  "status": {
+    "lastVersion": 0
+  }
 }

@@ -54,7 +54,7 @@ func (registry *RegistryClient) getRegistryManifest(repository string, tag strin
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderManifestSchemaV2
 	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.address, repository, tag)
-	logrus.Debugf("Retrieving registry manifest from URL %s", url)
+	logrus.Infof("Retrieving registry manifest from URL %s", url)
 	body, err := GetHTTPRequest(mHeader, url)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed in getRegistryManifest for request url %s and header %s", url, mHeader)
