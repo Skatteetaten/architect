@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/reference"
@@ -194,9 +195,20 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 
 		_, a := http.Get("https://" + base)
 		_, b := http.Get("http://" + base)
-
 		logrus.Infof("https: %v ", a)
 		logrus.Infof("http: %v", b)
+
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client := &http.Client{Transport: tr}
+		_, err := client.Get("https://" + base)
+		if err != nil {
+			logrus.Infof("https (insecure): %v", b)
+		} else {
+			logrus.Info("WORX!")
+			http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		}
 
 		if _, err := http.Get("https://" + base); err == nil {
 			dockerSpec.InternalPullRegistry = "https://" + base

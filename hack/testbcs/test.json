@@ -19,7 +19,7 @@
       "customStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "uil0paas-utv-registry01.skead.no:5000/aurora/architect:playtime-develop-SNAPSHOT-go"
+          "name": "https://uil0paas-utv-registry01.skead.no:5000/aurora/architect:playtime-develop-SNAPSHOT-go"
         },
         "env": [
           {
