@@ -113,17 +113,16 @@ func (m *retagger) Retag() error {
 	if err != nil {
 		return errors.Wrapf(err, "Failed to pull image: %v", pull)
 	}
-
+	sourceTag := pull.GetCompleteDockerTagName()
 	logrus.Debugf("Retagging temporary image, versionTags=%-v", tagsToPush)
 	for _, tag := range tagsToPush {
-		sourceTag := pull.GetCompleteDockerTagName()
 		logrus.Infof("Tag image %s with alias %s", sourceTag, tag)
 		err := m.Builder.Tag(sourceTag, tag)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to tag image %s with tag %s", push, tag)
 		}
 	}
-	err = m.Builder.Push("", tagsToPush, m.Credentials)
+	err = m.Builder.Push(sourceTag, tagsToPush, m.Credentials)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to push tag %s", tag)
 	}
