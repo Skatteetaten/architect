@@ -87,6 +87,10 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	//Default to docker format
 	if _, err := findEnv(env, "BUILDAH_FORMAT"); err != nil {
 		err = os.Setenv("BUILDAH_FORMAT", "docker")
+		if err != nil && buildStrategy == Buildah {
+			logrus.Fatal("Failed to set BUILDAH_FORMAT", err)
+		}
+		logrus.Info("BUILDAH_FORMAT defaulting to docker")
 	}
 
 	var tlsVerify = true
