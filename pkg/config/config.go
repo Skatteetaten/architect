@@ -84,6 +84,11 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
+	//Default to docker format
+	if _, err := findEnv(env, "BUILDAH_FORMAT"); err != nil {
+		err = os.Setenv("BUILDAH_FORMAT", "docker")
+	}
+
 	var tlsVerify = true
 	if value, err := findEnv(env, "TLS_VERIFY"); err == nil {
 		if strings.Contains(strings.ToLower(value), "false") {
