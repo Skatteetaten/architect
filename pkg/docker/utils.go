@@ -2,7 +2,6 @@ package docker
 
 import (
 	"crypto/tls"
-	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"io/ioutil"
@@ -55,7 +54,6 @@ func GetUtcTimestamp() string {
 }
 
 func GetHTTPRequest(headers map[string]string, url string) ([]byte, error) {
-	logrus.Infof("GetHTTPRequest - url: %s", url)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}

@@ -193,10 +193,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 
 	if internalPullRegistry, err := findEnv(env, "INTERNAL_PULL_REGISTRY"); err == nil {
-
 		base := internalPullRegistry
-		logrus.Infof("base %s", base)
-
 		if err := checkURL(client, "https://", base); err == nil {
 			dockerSpec.InternalPullRegistry = "https://" + base
 			logrus.Debugf("Using https: %s", dockerSpec.ExternalDockerRegistry)
@@ -309,7 +306,10 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 
 func checkURL(client *http.Client, protocol string, base string) error {
 	res, err := client.Get(protocol + base)
-	defer res.Body.Close()
+	if err == nil {
+		defer res.Body.Close()
+		return nil
+	}
 	return err
 }
 

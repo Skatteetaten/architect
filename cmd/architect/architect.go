@@ -35,8 +35,6 @@ func RunArchitect(configuration RunConfiguration) {
 		logrus.Fatalf("Could not parse registry credentials %s", err)
 	}
 
-
-
 	var builder process.Builder
 
 	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Buildah) {
