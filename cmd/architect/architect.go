@@ -44,7 +44,7 @@ func RunArchitect(configuration RunConfiguration) {
 		}
 
 	} else {
-		if !strings.Contains(c.BuildStrategy, config.Docker) {
+		if !strings.Contains(strings.ToLower(c.BuildStrategy), config.Docker) {
 			logrus.Warnf("Unsupported build strategy: %s. Defaulting to docker", c.BuildStrategy)
 		}
 
