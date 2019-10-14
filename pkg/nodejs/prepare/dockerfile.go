@@ -15,10 +15,6 @@ const WRENCH_DOCKER_FILE string = `FROM {{.Baseimage}}
 
 LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
 
-COPY ./architectscripts /u01/architect
-
-RUN chmod 755 /u01/architect/*
-
 COPY ./{{.PackageDirectory}} /u01/application
 
 COPY ./overrides /u01/bin/
@@ -35,7 +31,7 @@ ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
 
 WORKDIR "/u01/"
 
-CMD ["/u01/architect/run", "/u01/bin/run_nginx"]`
+CMD ["/u01/bin/run_node", "/u01/bin/run_nginx"]`
 
 const WRENCH_RADISH_DOCKER_FILE string = `FROM {{.Baseimage}}
 
