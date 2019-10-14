@@ -19,7 +19,7 @@
             "customStrategy": {
                 "from": {
                     "kind": "DockerImage",
-                    "name": "docker-registry.aurora.sits.no:5000/aurora/architect:playtime-develop-SNAPSHOT-go"
+                    "name": "tulleball"
                 },
                 "env": [
                     {
@@ -28,15 +28,15 @@
                     },
                     {
                       "name": "ARTIFACT_ID",
-                      "value": "openshift-reference-springboot-server"
+                      "value": "aos-simple"
                     },
                     {
                       "name": "GROUP_ID",
-                      "value": "no.skatteetaten.aurora.openshift"
+                      "value": "ske.aurora.openshift.demo"
                     },
                     {
                       "name": "VERSION",
-                      "value": "test_retag-SNAPSHOT"
+                      "value": "2.1.0"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",
@@ -51,8 +51,12 @@
                       "value": "true"
                     },
                     {
-                      "name": "SPLUNK_INDEX",
-                      "value": "openshift-test"
+                      "name": "TAG_WITH",
+                      "value": "tagwithtest"
+                    },
+                    {
+                      "name": "INTERNAL_PULL_REGISTRY",
+                      "value": "uil0paas-utv-registry01.skead.no:5000"
                     },
                     {
                       "name": "BUILD_STRATEGY",
@@ -61,10 +65,6 @@
                     {
                       "name": "TLS_VERIFY",
                       "value": "false"
-                    },
-                    {
-                      "name": "INTERNAL_PULL_REGISTRY",
-                      "value": "uil0paas-utv-registry01.skead.no:5000"
                     }
                 ],
                 "exposeDockerSocket": true
