@@ -29,6 +29,9 @@ func TestApplicationPrepare(t *testing.T) {
 			Repository: "tull",
 			Registry:   "tullogtoys",
 		},
+		ImageInfo: &runtime.ImageInfo{
+			Labels: map[string]string{},
+		},
 	}
 	deliverable := nexus.Deliverable{Path: "testfiles/openshift-referanse-react-snapshot_test-SNAPSHOT-Webleveransepakke.tgz"}
 	bc, err := prepper(&c, auroraVersion, deliverable, baseImage)

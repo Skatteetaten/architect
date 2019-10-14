@@ -6,103 +6,12 @@ import (
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/java/prepare/resources"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
 	"regexp"
 	"strings"
 )
-
-const WRENCH_DOCKER_FILE string = `FROM {{.Baseimage}}
-
-LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
-
-COPY ./architectscripts /u01/architect
-
-RUN chmod 755 /u01/architect/*
-
-COPY ./{{.PackageDirectory}} /u01/application
-
-COPY ./overrides /u01/bin/
-
-COPY ./{{.PackageDirectory}}/{{.Static}} /u01/static{{.Path}}
-
-COPY nginx.conf /etc/nginx/nginx.conf
-
-RUN chmod 666 /etc/nginx/nginx.conf && \
-    chmod 777 /etc/nginx && \
-    chmod 755 /u01/bin/*
-
-ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
-
-WORKDIR "/u01/"
-
-CMD ["/u01/architect/run", "/u01/bin/run_nginx"]`
-
-const START_SCRIPT string = `#!/bin/bash
-source $HOME/architect/run_tools.sh
-exec $1
-`
-
-//We copy this over the script in wrench if we don't have a nodejs app
-const BLOCKING_RUN_NODEJS string = `#!/bin/sh
-echo "Use of node.js was not configured in openshift.json. Blocking run script."
-while true; do sleep 100d; done;
-`
-
-const READINESS_LIVENESS_SH = `#!/bin/sh
-{{if .Include}}
-wget --spider localhost:{{.Port}} > /dev/null 2>&1
-{{end}}
-`
-
-const NGINX_CONFIG_TEMPLATE string = `
-worker_processes  1;
-error_log stderr;
-
-events {
-    worker_connections  1024;
-}
-
-
-http {
-    include       /etc/nginx/mime.types;
-    default_type  application/octet-stream;
-
-    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-                      '$status $body_bytes_sent "$http_referer" '
-                      '"$http_user_agent" "$http_x_forwarded_for"';
-
-    access_log  /dev/stdout;
-
-    sendfile        on;
-    #tcp_nopush     on;
-
-    keepalive_timeout  65;
-
-    #gzip  on;
-
-    index index.html;
-
-    server {
-       listen 8080;
-
-       location /api {
-          {{if or .HasNodeJSApplication .ConfigurableProxy}}proxy_pass http://${PROXY_PASS_HOST}:${PROXY_PASS_PORT};{{else}}return 404;{{end}}{{range $key, $value := .NginxOverrides}}
-          {{$key}} {{$value}};{{end}}
-       }
-{{if .SPA}}
-       location {{.Path}} {
-          root /u01/static;
-          try_files $uri {{.Path}}index.html;{{else}}
-       location {{.Path}} {
-          root /u01/static;{{end}}{{range $key, $value := .ExtraStaticHeaders}}
-          add_header {{$key}} "{{$value}}";{{end}}
-       }
-    }
-}
-`
 
 /*
 
@@ -129,7 +38,7 @@ func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
 		baseImage runtime.BaseImage) ([]docker.DockerBuildConfig, error) {
 
-		preparedImages, err := prepare(*cfg, auroraVersion, deliverable, baseImage.DockerImage)
+		preparedImages, err := prepare(*cfg, auroraVersion, deliverable, baseImage)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +60,7 @@ func Prepper() process.Prepper {
 func prepare(dockerSpec config.DockerSpec, c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
 	deliverable nexus.Deliverable, baseImage runtime.DockerImage) ([]PreparedImage, error) {*/
 func prepare(cfg config.Config, auroraVersion *runtime.AuroraVersion,
-	deliverable nexus.Deliverable, baseImage runtime.DockerImage) ([]PreparedImage, error) {
+	deliverable nexus.Deliverable, baseImage runtime.BaseImage) ([]PreparedImage, error) {
 	logrus.Debugf("Building %s", cfg.ApplicationSpec.MavenGav.Name())
 
 	openshiftJson, err := findOpenshiftJsonInTarball(deliverable.Path)
@@ -171,46 +80,50 @@ func prepare(cfg config.Config, auroraVersion *runtime.AuroraVersion,
 	}
 	logrus.Infof("Image build prepared in %s", pathToApplication)
 	return []PreparedImage{{
-		baseImage: baseImage,
+		baseImage: baseImage.DockerImage,
 		Path:      pathToApplication,
 	}}, nil
 }
 
-func prepareImage(dockerSpec config.DockerSpec, v *openshiftJson, baseImage runtime.DockerImage, auroraVersion *runtime.AuroraVersion, writer util.FileWriter,
+func prepareImage(dockerSpec config.DockerSpec, v *openshiftJson, baseImage runtime.BaseImage, auroraVersion *runtime.AuroraVersion, writer util.FileWriter,
 	imageBuildTime string) error {
 	completeDockerName := baseImage.GetCompleteDockerTagName()
-	input, err := mapOpenShiftJsonToTemplateInput(dockerSpec, v, completeDockerName, imageBuildTime, auroraVersion)
+	nginxData, dockerData, err := mapOpenShiftJsonToTemplateInput(dockerSpec, v, completeDockerName, imageBuildTime, auroraVersion)
 
 	if err != nil {
 		return errors.Wrap(err, "Error processing AuroraConfig")
 	}
 
-	err = writer(util.NewTemplateWriter(input, "NgnixConfiguration", NGINX_CONFIG_TEMPLATE), "nginx.conf")
-	if err != nil {
-		return errors.Wrap(err, "Error creating nginx configuration")
+	if architecture, exists := baseImage.ImageInfo.Labels["www.skatteetaten.no-imageArchitecture"]; exists && architecture == "nodejs" {
+
+		logrus.Info("Running radish nodejs build")
+
+		if err := writer(newRadishNginxConfig(dockerData, nginxData), "nginx-radish.json"); err != nil {
+			return errors.Wrap(err, "Unable to create radish-nginx configuration")
+		}
+
+		err = writer(util.NewTemplateWriter(dockerData, "NodejsDockerfile", WRENCH_RADISH_DOCKER_FILE), "Dockerfile")
+		if err != nil {
+			return errors.Wrap(err, "Error creating Dockerfile")
+		}
+
+	} else {
+		logrus.Info("Running nodejs legacy build...")
+
+		err = writer(util.NewTemplateWriter(nginxData, "NgnixConfiguration", NGINX_CONFIG_TEMPLATE), "nginx.conf")
+		if err != nil {
+			return errors.Wrap(err, "Error creating nginxData configuration")
+		}
+		err = writer(util.NewTemplateWriter(dockerData, "NodejsDockerfile", WRENCH_DOCKER_FILE), "Dockerfile")
+		if err != nil {
+			return errors.Wrap(err, "Error creating Dockerfile")
+		}
 	}
-	err = writer(util.NewTemplateWriter(input, "NodejsDockerfile", WRENCH_DOCKER_FILE), "Dockerfile")
-	if err != nil {
-		return errors.Wrap(err, "Error creating Dockerfile")
-	}
-	//TODO: this peeks into Java package.. Should be refactored...
-	bytes, err := resources.Asset("run_tools.sh")
-	if err != nil {
-		return errors.Wrap(err, "Could not find data")
-	}
-	err = writer(util.NewByteWriter(bytes), "architectscripts", "run_tools.sh")
-	if err != nil {
-		return errors.Wrap(err, "Failed add resource run_tools.sh")
-	}
-	err = writer(util.NewByteWriter([]byte(START_SCRIPT)), "architectscripts", "run")
-	if err != nil {
-		return errors.Wrap(err, "Failed creating run script")
-	}
-	err = addProbes(input, writer)
+	err = addProbes(nginxData.HasNodeJSApplication, writer)
 	if err != nil {
 		return err
 	}
-	if !input.HasNodeJSApplication {
+	if !nginxData.HasNodeJSApplication {
 		err = writer(util.NewByteWriter([]byte(BLOCKING_RUN_NODEJS)), "overrides", "run_node")
 		if err != nil {
 			return errors.Wrap(err, "Failed creating nodejs override script")
@@ -219,13 +132,13 @@ func prepareImage(dockerSpec config.DockerSpec, v *openshiftJson, baseImage runt
 	return err
 }
 
-func addProbes(input *templateInput, writer util.FileWriter) error {
+func addProbes(hasNodejsApplication bool, writer util.FileWriter) error {
 	nginxProbe := &probe{
 		Include: true,
 		Port:    8080,
 	}
 	nodeProbe := &probe{
-		Include: input.HasNodeJSApplication,
+		Include: hasNodejsApplication,
 		Port:    9090,
 	}
 	err := writer(util.NewTemplateWriter(nodeProbe, "nodeliveness", READINESS_LIVENESS_SH),
@@ -258,7 +171,7 @@ func findMaintainer(dockerMetadata dockerMetadata) string {
 	return dockerMetadata.Maintainer
 }
 
-func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJson, completeDockerName string, imageBuildTime string, auroraVersion *runtime.AuroraVersion) (*templateInput, error) {
+func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJson, completeDockerName string, imageBuildTime string, auroraVersion *runtime.AuroraVersion) (*NginxfileData, *DockerfileData, error) {
 	labels := make(map[string]string)
 	if v.DockerMetadata.Labels != nil {
 		for k, v := range v.DockerMetadata.Labels {
@@ -288,7 +201,7 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 		overrides = v.Aurora.NodeJS.Overrides
 		err = whitelistOverrides(overrides)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -319,20 +232,26 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 		env[docker.ENV_SNAPSHOT_TAG] = auroraVersion.GetGivenVersion()
 	}
 
-	return &templateInput{
-		Baseimage:            completeDockerName,
-		HasNodeJSApplication: len(nodejsMainfile) != 0,
-		NginxOverrides:       overrides,
-		ConfigurableProxy:    v.Aurora.ConfigurableProxy,
-		Static:               static,
-		ExtraStaticHeaders:   extraHeaders,
-		SPA:                  spa,
-		Path:                 path,
-		Labels:               labels,
-		Env:                  env,
-		PackageDirectory:     "package",
-	}, nil
+	return &NginxfileData{
+			HasNodeJSApplication: len(nodejsMainfile) != 0,
+			ConfigurableProxy:    v.Aurora.ConfigurableProxy,
+			NginxOverrides:       overrides,
+			Path:                 path,
+			ExtraStaticHeaders:   extraHeaders,
+			SPA:                  spa,
+			Content:              static,
+		}, &DockerfileData{
+			Main:             nodejsMainfile,
+			Maintainer:       findMaintainer(v.DockerMetadata),
+			Baseimage:        completeDockerName,
+			PackageDirectory: "package",
+			Static:           static,
+			Labels:           labels,
+			Env:              env,
+			Path:             path,
+		}, nil
 }
+
 func whitelistOverrides(overrides map[string]string) error {
 	if overrides == nil {
 		return nil

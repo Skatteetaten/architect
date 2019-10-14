@@ -73,19 +73,19 @@ func TestThatOverridesAreWhitelistedAndSetCorrectly(t *testing.T) {
 	openshiftJson.Aurora.NodeJS.Overrides = map[string]string{
 		"a_value_not_whitelisted": "value",
 	}
-	_, err := mapObject(&openshiftJson)
+	_, _, err := mapObject(&openshiftJson)
 	assert.EqualError(t, err, "Config a_value_not_whitelisted is not allowed to override with Architect.")
 
 	openshiftJson.Aurora.NodeJS.Overrides = map[string]string{
 		"client_max_body_size": "51m",
 	}
-	_, err = mapObject(&openshiftJson)
+	_, _, err = mapObject(&openshiftJson)
 	assert.EqualError(t, err, "Value on client_max_body_size should be on the form Nm where N is between 1 and 50")
 
 	openshiftJson.Aurora.NodeJS.Overrides = map[string]string{
 		"client_max_body_size": "50m",
 	}
-	_, err = mapObject(&openshiftJson)
+	_, _, err = mapObject(&openshiftJson)
 	assert.NoError(t, err)
 	openshiftJson.Aurora.NodeJS.Overrides = map[string]string{
 		"client_max_body_size": "2m",
@@ -99,17 +99,20 @@ func TestThatLegacyFormatIsMappedCorrect(t *testing.T) {
 	oldOpenShiftJson.Aurora.SPA = true
 	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &newOpenShiftJson))
 	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_LEGACY_FORMAT), &oldOpenShiftJson))
-	tiOld, err := mapObject(&oldOpenShiftJson)
+
+	nOld, dOld, err := mapObject(&oldOpenShiftJson)
 	assert.NoError(t, err)
-	tiNew, err := mapObject(&newOpenShiftJson)
+	nNew, dNew, err := mapObject(&newOpenShiftJson)
 	assert.NoError(t, err)
-	assert.EqualValues(t, tiNew, tiOld)
-	assert.Equal(t, "/", tiNew.Path)
-	assert.Equal(t, "build", tiNew.Static)
-	assert.Equal(t, true, tiNew.SPA)
+	assert.EqualValues(t, dNew, dOld)
+	assert.EqualValues(t, nNew, nOld)
+
+	assert.Equal(t, "/", nNew.Path)
+	assert.Equal(t, "build", dNew.Static)
+	assert.Equal(t, true, nNew.SPA)
 }
 
-func mapObject(openshiftJson *openshiftJson) (*templateInput, error) {
+func mapObject(openshiftJson *openshiftJson) (*NginxfileData, *DockerfileData, error) {
 	dockerSpec := config.DockerSpec{
 		PushExtraTags: config.ParseExtraTags("major"),
 	}
