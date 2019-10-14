@@ -6,23 +6,28 @@ import (
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
+	process "github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/tagger"
 )
 
 type retagger struct {
 	Config      *config.Config
 	Credentials *docker.RegistryCredentials
+	Provider    docker.ImageInfoProvider
+	Builder     process.Builder
 }
 
-func newRetagger(cfg *config.Config, credentials *docker.RegistryCredentials) *retagger {
+func newRetagger(cfg *config.Config, credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, builder process.Builder) *retagger {
 	return &retagger{
 		Config:      cfg,
 		Credentials: credentials,
+		Provider:    provider,
+		Builder:     builder,
 	}
 }
 
-func Retag(cfg *config.Config, credentials *docker.RegistryCredentials) error {
-	r := newRetagger(cfg, credentials)
+func Retag(cfg *config.Config, credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, builder process.Builder) error {
+	r := newRetagger(cfg, credentials, provider, builder)
 	return r.Retag()
 }
 
@@ -31,9 +36,8 @@ func (m *retagger) Retag() error {
 	repository := m.Config.DockerSpec.OutputRepository
 
 	logrus.Debug("Get ENV from image manifest")
-	manifestProvider := docker.NewRegistryClient(m.Config.DockerSpec.InternalPullRegistry)
 
-	imageInfo, err := manifestProvider.GetImageInfo(repository, tag)
+	imageInfo, err := m.Provider.GetImageInfo(repository, tag)
 
 	if err != nil {
 		return errors.Wrap(err, "Failed to retag image")
@@ -99,32 +103,28 @@ func (m *retagger) Retag() error {
 		return err
 	}
 
-	client, err := docker.NewDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "Error initializing Docker")
 	}
 
 	//We need to pull to make sure we push the newest image.. We should probably do this directly
 	//on the registry when we get v2 registry!:)
-	err = client.PullImage(pull)
+	err = m.Builder.Pull(pull)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to pull image: %v", pull)
 	}
-
+	sourceTag := pull.GetCompleteDockerTagName()
 	logrus.Debugf("Retagging temporary image, versionTags=%-v", tagsToPush)
 	for _, tag := range tagsToPush {
-		sourceTag := pull.GetCompleteDockerTagName()
 		logrus.Infof("Tag image %s with alias %s", sourceTag, tag)
-		err := client.TagImage(sourceTag, tag)
+		err := m.Builder.Tag(sourceTag, tag)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to tag image %s with tag %s", push, tag)
 		}
 	}
-	for _, tag := range tagsToPush {
-		err = client.PushImage(tag, m.Credentials)
-		if err != nil {
-			return errors.Wrapf(err, "Failed to push tag %s", tag)
-		}
+	err = m.Builder.Push(sourceTag, tagsToPush, m.Credentials)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to push tag %s", tag)
 	}
 	return nil
 }

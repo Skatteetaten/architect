@@ -57,8 +57,12 @@
                     {
                       "name": "SPLUNK_INDEX",
                       "value": "openshift-test"
+                    },
+                    {
+                      "name": "INTERNAL_PULL_REGISTRY",
+                      "value": "uil0paas-utv-registry01.skead.no:5000"
                     }
-                ],
+                  ],
                 "exposeDockerSocket": true
             }
         },
