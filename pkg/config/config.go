@@ -75,8 +75,10 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 
 	var applicationType ApplicationType = JavaLeveransepakke
 	if appType, err := findEnv(env, "APPLICATION_TYPE"); err == nil {
-		if strings.ToUpper(appType) == "NODEJS" {
+		if strings.ToUpper(appType) == NodeJs {
 			applicationType = NodeJsLeveransepakke
+		} else if strings.ToUpper(appType) == Doozer {
+			applicationType = DoozerLeveranse
 		}
 	}
 
@@ -163,11 +165,13 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	} else {
 		if applicationType == JavaLeveransepakke {
 			applicationSpec.MavenGav.Classifier = Leveransepakke
-		} else {
+		} else if applicationType == NodeJsLeveransepakke {
 			applicationSpec.MavenGav.Classifier = Webleveransepakke
+		} else {
+			applicationSpec.MavenGav.Classifier = Doozerleveransepakke
 		}
 	}
-	if applicationType == JavaLeveransepakke {
+	if applicationType == JavaLeveransepakke || applicationType == DoozerLeveranse {
 		applicationSpec.MavenGav.Type = ZipPackaging
 	} else {
 		applicationSpec.MavenGav.Type = TgzPackaging

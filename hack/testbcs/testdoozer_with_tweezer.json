@@ -1,0 +1,82 @@
+{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "architectconsole",
+    "creationTimestamp": null,
+    "labels": {
+      "affiliation": "aot"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "runPolicy": "Serial",
+    "source": {
+      "type": "None"
+    },
+    "strategy": {
+      "type": "Custom",
+      "customStrategy": {
+        "from": {
+          "kind": "DockerImage",
+          "name": "docker-registry-default.utv.paas.skead.no/auroratest/architect:playtime-develop-SNAPSHOT-go"
+        },
+        "env": [
+          {
+            "name": "BASE_IMAGE_REGISTRY",
+            "value": "container-registry-internal.aurora.skead.no"
+          },
+          {
+            "name": "APPLICATION_TYPE",
+            "value": "doozer"
+          },
+          {
+            "name": "ARTIFACT_ID",
+            "value": "k10471-test-war"
+          },
+          {
+            "name": "GROUP_ID",
+            "value": "no.skatteetaten.aurora.demo"
+          },
+          {
+            "name": "VERSION",
+            "value": "0.0.1-SNAPSHOT"
+          },
+          {
+            "name": "DOCKER_BASE_VERSION",
+            "value": "master-SNAPSHOT"
+          },
+          {
+            "name": "DOCKER_BASE_NAME",
+            "value": "aurora/tweezer"
+          },
+          {
+            "name": "TAG_OVERWRITE",
+            "value": "true"
+          },
+          {
+            "name": "SPLUNK_INDEX",
+            "value": "openshift-test"
+          },
+          {
+            "name": "INTERNAL_PULL_REGISTRY",
+            "value": "container-registry-internal-private-pull.aurora.skead.no"
+          }
+        ],
+        "exposeDockerSocket": true
+      }
+    },
+    "output": {
+      "to": {
+        "kind": "DockerImage",
+        "name": "container-registry-internal.aurora.skead.no/auroratest/architecttest"
+      }
+    },
+    "resources": {},
+    "postCommit": {},
+    "nodeSelector": null
+  },
+  "status": {
+    "lastVersion": 0
+  }
+}

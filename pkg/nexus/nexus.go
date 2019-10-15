@@ -73,7 +73,7 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 	if err != nil {
 		return deliverable, errors.Wrap(err, "Failed to create resource url")
 	}
-	logrus.Debugf("Downloading artifact from %s", resourceUrl)
+	logrus.Infof("Downloading artifact from %s", resourceUrl)
 
 	httpClient := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
