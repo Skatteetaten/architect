@@ -16,10 +16,6 @@ const expectedNodeJsDockerFile = `FROM aurora/wrench:latest
 
 LABEL maintainer="Oyvind <oyvind@dagobah.wars>" version="1.2.3"
 
-COPY ./architectscripts /u01/architect
-
-RUN chmod 755 /u01/architect/*
-
 COPY ./package /u01/application
 
 COPY ./overrides /u01/bin/
@@ -36,7 +32,7 @@ ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_T
 
 WORKDIR "/u01/"
 
-CMD ["/u01/architect/run", "/u01/bin/run_nginx"]`
+CMD ["/u01/bin/run_node", "/u01/bin/run_nginx"]`
 
 const expectedRadishNodeJsDockerFile = `FROM aurora/wrench:latest
 
@@ -58,15 +54,11 @@ ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_T
 
 WORKDIR "/u01/"
 
-CMD ["/u01/architect/run", "/u01/bin/run_nginx"]`
+CMD ["/u01/bin/run_node", "/u01/bin/run_nginx"]`
 
 const expectedNodeJsDockerFileWithoutNodeApp = `FROM aurora/wrench:latest
 
 LABEL maintainer="Oyvind <oyvind@dagobah.wars>" version="1.2.3"
-
-COPY ./architectscripts /u01/architect
-
-RUN chmod 755 /u01/architect/*
 
 COPY ./package /u01/application
 
@@ -84,7 +76,7 @@ ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_T
 
 WORKDIR "/u01/"
 
-CMD ["/u01/architect/run", "/u01/bin/run_nginx"]`
+CMD ["/u01/bin/run_node", "/u01/bin/run_nginx"]`
 
 const expectedRadishNodeJsDockerFileWithoutNodeApp = `FROM aurora/wrench:latest
 
@@ -106,7 +98,7 @@ ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_T
 
 WORKDIR "/u01/"
 
-CMD ["/u01/architect/run", "/u01/bin/run_nginx"]`
+CMD ["/u01/bin/run_node", "/u01/bin/run_nginx"]`
 
 const nginxConfPrefix = `
 worker_processes  1;

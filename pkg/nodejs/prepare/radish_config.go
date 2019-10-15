@@ -6,7 +6,6 @@ import (
 	"io"
 )
 
-
 //Web :
 type Web struct {
 	ConfigurableProxy bool   `json:"configurableProxy"`
@@ -30,7 +29,7 @@ type WebApp struct {
 
 //OpenshiftConfig :
 type OpenshiftConfig struct {
-	Web    Web    `json:"web"`
+	Web Web `json:"web"`
 }
 
 func UnmarshallOpenshiftConfig(buffer io.Reader) (OpenshiftConfig, error) {
