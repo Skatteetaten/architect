@@ -41,7 +41,7 @@ COPY ./{{.PackageDirectory}} /u01/application
 
 COPY ./overrides /u01/bin/
 
-COPY ./app nginx-radish.json $HOME/
+COPY nginx-radish.json $HOME/
 
 COPY ./{{.PackageDirectory}}/{{.Static}} /u01/static{{.Path}}
 

@@ -42,7 +42,7 @@ COPY ./package /u01/application
 
 COPY ./overrides /u01/bin/
 
-COPY ./app nginx-radish.json $HOME/
+COPY nginx-radish.json $HOME/
 
 COPY ./package/app /u01/static/
 
@@ -86,7 +86,7 @@ COPY ./package /u01/application
 
 COPY ./overrides /u01/bin/
 
-COPY ./app nginx-radish.json $HOME/
+COPY nginx-radish.json $HOME/
 
 COPY ./package/app /u01/static/
 
