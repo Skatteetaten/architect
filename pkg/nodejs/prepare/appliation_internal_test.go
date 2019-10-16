@@ -30,9 +30,7 @@ RUN chmod 666 /etc/nginx/nginx.conf && \
 
 ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z" MAIN_JAVASCRIPT_FILE="/u01/application/test.json" PROXY_PASS_HOST="localhost" PROXY_PASS_PORT="9090" PUSH_EXTRA_TAGS="major"
 
-WORKDIR "/u01/"
-
-CMD ["/u01/bin/run_node", "/u01/bin/run_nginx"]`
+WORKDIR "/u01/"`
 
 const expectedRadishNodeJsDockerFile = `FROM aurora/wrench:latest
 
@@ -52,9 +50,7 @@ RUN chmod 666 /etc/nginx/nginx.conf && \
 
 ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z" MAIN_JAVASCRIPT_FILE="/u01/application/test.json" PROXY_PASS_HOST="localhost" PROXY_PASS_PORT="9090" PUSH_EXTRA_TAGS="major"
 
-WORKDIR "/u01/"
-
-CMD ["/u01/bin/run_node", "/u01/bin/run_nginx"]`
+WORKDIR "/u01/"`
 
 const expectedNodeJsDockerFileWithoutNodeApp = `FROM aurora/wrench:latest
 
@@ -74,9 +70,7 @@ RUN chmod 666 /etc/nginx/nginx.conf && \
 
 ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z" MAIN_JAVASCRIPT_FILE="/u01/application/" PROXY_PASS_HOST="localhost" PROXY_PASS_PORT="9090" PUSH_EXTRA_TAGS="major"
 
-WORKDIR "/u01/"
-
-CMD ["/u01/bin/run_node", "/u01/bin/run_nginx"]`
+WORKDIR "/u01/"`
 
 const expectedRadishNodeJsDockerFileWithoutNodeApp = `FROM aurora/wrench:latest
 
@@ -96,9 +90,7 @@ RUN chmod 666 /etc/nginx/nginx.conf && \
 
 ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z" MAIN_JAVASCRIPT_FILE="/u01/application/" PROXY_PASS_HOST="localhost" PROXY_PASS_PORT="9090" PUSH_EXTRA_TAGS="major"
 
-WORKDIR "/u01/"
-
-CMD ["/u01/bin/run_node", "/u01/bin/run_nginx"]`
+WORKDIR "/u01/"`
 
 const nginxConfPrefix = `
 worker_processes  1;
