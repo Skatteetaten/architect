@@ -15,13 +15,14 @@ const expectedDockerfile = `FROM oracle8:2.3.2
 MAINTAINER wrench@sits.no
 LABEL jallaball="Spank me beibi" maintainer="wrench.sits.no" no.skatteetaten.test="TestLabel"
 
-COPY ./app $HOME
-RUN chmod -R 777 $HOME && \
-	ln -s $HOME/logs $HOME/application/logs && \
-	rm $TRUST_STORE && \
-	ln -s $HOME/architect/cacerts $TRUST_STORE
+COPY ./app radish.json $HOME/
+RUN find $HOME/application -type d -exec chmod 755 {} + && \
+	find $HOME/application -type f -exec chmod 644 {} + && \
+	mkdir -p $HOME/logs && \
+	chmod 777 $HOME/logs && \
+	ln -s $HOME/logs $HOME/application/logs
 
-ENV APP_VERSION="2.0.0-SNAPSHOT" AURORA_VERSION="2.0.0-SNAPSHOT-bbuildimage-oracle8-2.3.2" IMAGE_BUILD_TIME="2017-09-10T14:30:10Z" LOGBACK_FILE="$HOME/architect/logback.xml" PUSH_EXTRA_TAGS="major" SNAPSHOT_TAG="2.0.0-SNAPSHOT" TZ="Europe/Oslo"
+ENV APP_VERSION="2.0.0-SNAPSHOT" AURORA_VERSION="2.0.0-SNAPSHOT-bbuildimage-oracle8-2.3.2" IMAGE_BUILD_TIME="2017-09-10T14:30:10Z" PUSH_EXTRA_TAGS="major" SNAPSHOT_TAG="2.0.0-SNAPSHOT" TZ="Europe/Oslo"
 `
 
 func TestBuild(t *testing.T) {
@@ -51,7 +52,8 @@ func TestBuild(t *testing.T) {
 			Labels:     labels,
 		},
 	}
-	writer := prepare.NewLegacyDockerFile(dockerSpec, *auroraVersions, deliverableMetadata, baseImage, "2017-09-10T14:30:10Z")
+
+	writer := prepare.NewRadishDockerFile(dockerSpec, *auroraVersions, deliverableMetadata, baseImage, "2017-09-10T14:30:10Z")
 
 	buffer := new(bytes.Buffer)
 

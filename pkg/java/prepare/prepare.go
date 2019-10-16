@@ -7,7 +7,6 @@ import (
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	deliverable "github.com/skatteetaten/architect/pkg/java/config"
-	"github.com/skatteetaten/architect/pkg/java/prepare/resources"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/util"
 	"io"
@@ -15,6 +14,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+)
+
+const (
+	DeliveryMetadataPath = "metadata/openshift.json"
 )
 
 type FileGenerator interface {
@@ -47,32 +50,13 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 
 	fileWriter := util.NewFileWriter(dockerBuildPath)
 
-	if architecture, exists := baseImage.ImageInfo.Labels["www.skatteetaten.no-imageArchitecture"]; exists && architecture == "java" {
-		logrus.Info("Running radish build")
-		if err := fileWriter(newRadishDescriptor(meta, filepath.Join(DockerBasedir, ApplicationFolder)), "radish.json"); err != nil {
-			return "", errors.Wrap(err, "Unable to create radish descriptor")
-		}
-		if err = fileWriter(NewRadishDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
-			"Dockerfile"); err != nil {
-			return "", errors.Wrap(err, "Failed to create Dockerfile")
-		}
-	} else {
-		logrus.Info("Running legacy build")
-		// Runtime scripts
-		if err := copyDefaultRuntimeScripts(dockerBuildPath); err != nil {
-			return "", errors.Wrap(err, "Failed to add static content to Docker context")
-		}
-
-		// Prepare application
-		if err := prepareEffectiveScripts(applicationFolder, meta); err != nil {
-			return "", errors.Wrap(err, "Failed to prepare application")
-		}
-
-		// Dockerfile
-		if err = fileWriter(NewLegacyDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
-			"Dockerfile"); err != nil {
-			return "", errors.Wrap(err, "Failed to create Dockerfile")
-		}
+	logrus.Info("Running radish build")
+	if err := fileWriter(newRadishDescriptor(meta, filepath.Join(DockerBasedir, ApplicationFolder)), "radish.json"); err != nil {
+		return "", errors.Wrap(err, "Unable to create radish descriptor")
+	}
+	if err = fileWriter(NewRadishDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
+		"Dockerfile"); err != nil {
+		return "", errors.Wrap(err, "Failed to create Dockerfile")
 	}
 
 	return dockerBuildPath, nil
@@ -138,24 +122,6 @@ func loadDeliverableMetadata(metafile string) (*deliverable.DeliverableMetadata,
 	}
 
 	return deliverableMetadata, nil
-}
-
-func copyDefaultRuntimeScripts(dockerBuildPath string) error {
-	scriptDirPath := filepath.Join(dockerBuildPath, "app", "architect")
-
-	if err := os.MkdirAll(scriptDirPath, 0755); err != nil {
-		return errors.Wrap(err, "Failed to create resource folder")
-	}
-
-	for _, asset := range resources.AssetNames() {
-		bytes := resources.MustAsset(asset)
-		err := ioutil.WriteFile(filepath.Join(scriptDirPath, asset), bytes, 0755)
-		if err != nil {
-			return errors.Wrapf(err, "Failed add resource %s", asset)
-		}
-	}
-
-	return nil
 }
 
 func Exists(path string) (bool, error) {
