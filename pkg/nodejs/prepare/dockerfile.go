@@ -29,7 +29,9 @@ RUN chmod 666 /etc/nginx/nginx.conf && \
 
 ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
 
-WORKDIR "/u01/"`
+WORKDIR "/u01/"
+
+CMD ["/u01/bin/run_nginx"]`
 
 const WRENCH_RADISH_DOCKER_FILE string = `FROM {{.Baseimage}}
 
@@ -49,7 +51,9 @@ RUN chmod 666 /etc/nginx/nginx.conf && \
 
 ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
 
-WORKDIR "/u01/"`
+WORKDIR "/u01/"
+
+CMD ["/u01/bin/run_nginx"]`
 
 //We copy this over the script in wrench if we don't have a nodejs app
 const BLOCKING_RUN_NODEJS string = `#!/bin/sh
