@@ -1,6 +1,7 @@
 package prepare
 
 import (
+	"fmt"
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
@@ -50,13 +51,18 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 
 	fileWriter := util.NewFileWriter(dockerBuildPath)
 
-	logrus.Info("Running radish build")
-	if err := fileWriter(newRadishDescriptor(meta, filepath.Join(DockerBasedir, ApplicationFolder)), "radish.json"); err != nil {
-		return "", errors.Wrap(err, "Unable to create radish descriptor")
-	}
-	if err = fileWriter(NewRadishDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
-		"Dockerfile"); err != nil {
-		return "", errors.Wrap(err, "Failed to create Dockerfile")
+	if architecture, exists := baseImage.ImageInfo.Labels["www.skatteetaten.no-imageArchitecture"]; exists && architecture == "java" {
+
+		logrus.Info("Running radish build")
+		if err := fileWriter(newRadishDescriptor(meta, filepath.Join(DockerBasedir, ApplicationFolder)), "radish.json"); err != nil {
+			return "", errors.Wrap(err, "Unable to create radish descriptor")
+		}
+		if err = fileWriter(NewRadishDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
+			"Dockerfile"); err != nil {
+			return "", errors.Wrap(err, "Failed to create Dockerfile")
+		}
+	} else {
+		return "", fmt.Errorf("The base image provided does not support radish. Make sure you use the latest version")
 	}
 
 	return dockerBuildPath, nil

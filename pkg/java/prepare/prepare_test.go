@@ -28,7 +28,7 @@ func TestPrepare(t *testing.T) {
 			ImageInfo: &runtime.ImageInfo{
 				CompleteBaseImageVersion: "hei",
 				Enviroment:               make(map[string]string),
-				Labels:                   make(map[string]string),
+				Labels:                   map[string]string{"www.skatteetaten.no-imageArchitecture": "java"},
 			},
 		})
 
