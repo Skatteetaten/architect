@@ -28,24 +28,19 @@ func TestPrepare(t *testing.T) {
 			ImageInfo: &runtime.ImageInfo{
 				CompleteBaseImageVersion: "hei",
 				Enviroment:               make(map[string]string),
-				Labels:                   make(map[string]string),
+				Labels:                   map[string]string{"www.skatteetaten.no-imageArchitecture": "java"},
 			},
 		})
 
 	assert.NoError(t, err)
 
-	// Test image scripts
-	for _, script := range []string{"logback.xml", "run_tools.sh", "liveness_std.sh", "readiness_std.sh"} {
-		scripPath := filepath.Join(dockerBuildPath, "app", "architect", script)
-		scriptExists, err := prepare.Exists(scripPath)
-
-		assert.NoError(t, err)
-		assert.True(t, scriptExists, "Expected file "+scripPath+" not found")
-	}
-
 	// Dockerfile
 	filePath := filepath.Join(dockerBuildPath, "Dockerfile")
 	fileExists, err := prepare.Exists(filePath)
+
+	//radish
+	filePath = filepath.Join(dockerBuildPath, "radish.json")
+	fileExists, err = prepare.Exists(filePath)
 
 	if err != nil {
 		t.Error(err)
