@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/reference"
@@ -86,6 +87,15 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
+	//Default to docker format
+	if _, err := findEnv(env, "BUILDAH_FORMAT"); err != nil {
+		err = os.Setenv("BUILDAH_FORMAT", "docker")
+		if err != nil && buildStrategy == Buildah {
+			logrus.Fatal("Failed to set BUILDAH_FORMAT", err)
+		}
+		logrus.Info("BUILDAH_FORMAT defaulting to docker")
+	}
+
 	var tlsVerify = true
 	if value, err := findEnv(env, "TLS_VERIFY"); err == nil {
 		if strings.Contains(strings.ToLower(value), "false") {
@@ -169,6 +179,10 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 
 	dockerSpec := DockerSpec{}
 
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 	if externalRegistry, err := findEnv(env, "BASE_IMAGE_REGISTRY"); err == nil {
 		if strings.HasPrefix(externalRegistry, "https://") {
 			dockerSpec.ExternalDockerRegistry = externalRegistry
@@ -181,10 +195,10 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
 		} else {
 			base := registryUrl.Host
-			if _, err := http.Get("https://" + base); err == nil {
+			if err := checkURL(client, "https://", base); err == nil {
 				dockerSpec.ExternalDockerRegistry = "https://" + base
 				logrus.Debugf("Using https: %s", dockerSpec.ExternalDockerRegistry)
-			} else if _, err := http.Get("http://" + base); err == nil {
+			} else if err := checkURL(client, "http://", base); err == nil {
 				dockerSpec.ExternalDockerRegistry = "http://" + base
 				logrus.Debugf("Using insecure registry: %s", dockerSpec.ExternalDockerRegistry)
 			} else {
@@ -199,10 +213,10 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 
 	if internalPullRegistry, err := findEnv(env, "INTERNAL_PULL_REGISTRY"); err == nil {
 		base := internalPullRegistry
-		if _, err := http.Get("https://" + base); err == nil {
+		if err := checkURL(client, "https://", base); err == nil {
 			dockerSpec.InternalPullRegistry = "https://" + base
 			logrus.Debugf("Using https: %s", dockerSpec.ExternalDockerRegistry)
-		} else if _, err := http.Get("http://" + base); err == nil {
+		} else if err := checkURL(client, "http://", base); err == nil {
 			dockerSpec.InternalPullRegistry = "http://" + base
 			logrus.Debugf("Using insecure registry: %s", dockerSpec.ExternalDockerRegistry)
 		} else {
@@ -308,6 +322,15 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		BuildTimeout:    buildTimeout,
 	}
 	return c, nil
+}
+
+func checkURL(client *http.Client, protocol string, base string) error {
+	res, err := client.Get(protocol + base)
+	if err == nil {
+		defer res.Body.Close()
+		return nil
+	}
+	return err
 }
 
 //resolveIpIfInternalRegistry To fix AOT-263

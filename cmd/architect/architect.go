@@ -38,13 +38,36 @@ func RunArchitect(configuration RunConfiguration) {
 		logrus.Fatalf("Could not parse registry credentials %s", err)
 	}
 
+	var builder process.Builder
+
+	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Buildah) {
+		logrus.Info("ALPHA FEATURE: Running buildah builds")
+		builder = &process.BuildahCmd{
+			TlsVerify: c.TlsVerify,
+		}
+
+	} else {
+		if !strings.Contains(strings.ToLower(c.BuildStrategy), config.Docker) {
+			logrus.Warnf("Unsupported build strategy: %s. Defaulting to docker", c.BuildStrategy)
+		}
+
+		builder, err = process.NewDockerBuilder()
+		if err != nil {
+			logrus.Fatal("err", err)
+		}
+
+		logrus.Info("Running docker build")
+	}
+
 	if c.DockerSpec.RetagWith != "" {
+		provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry)
 		logrus.Info("Perform retag")
-		if err := retag.Retag(ctx, c, registryCredentials); err != nil {
+		if err := retag.Retag(ctx, c, registryCredentials, provider, builder); err != nil {
 			logrus.Fatalf("Failed to retag temporary image %s", err)
 		}
 	} else {
-		err := performBuild(ctx, &configuration, c, registryCredentials)
+		provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry)
+		err := performBuild(ctx, &configuration, c, registryCredentials, provider, builder)
 
 		if err != nil {
 			var errorMessage string
@@ -65,7 +88,7 @@ func RunArchitect(configuration RunConfiguration) {
 	}
 	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
 }
-func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, r *docker.RegistryCredentials) error {
+func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, r *docker.RegistryCredentials, provider docker.ImageInfoProvider, builder process.Builder) error {
 	var prepper process.Prepper
 	if c.ApplicationType == config.JavaLeveransepakke {
 		logrus.Info("Perform Java build")
@@ -78,8 +101,6 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 	if c.BinaryBuild && !c.ApplicationSpec.MavenGav.IsSnapshot() {
 		logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
 	}
-
-	provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry)
 
 	ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
 	defer cancel()
@@ -99,6 +120,7 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 		if err != nil {
 			return err
 		}
+
 		logrus.Info("Running docker build")
 		return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, dockerClient)
 	}

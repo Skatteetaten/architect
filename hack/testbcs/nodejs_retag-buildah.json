@@ -27,16 +27,24 @@
                       "value": "uil0paas-utv-registry01.skead.no:5000"
                     },
                     {
+                      "name": "APPLICATION_TYPE",
+                      "value": "nodejs"
+                    },
+                    {
                       "name": "ARTIFACT_ID",
-                      "value": "openshift-reference-springboot-server"
+                      "value": "openshift-referanse-react"
                     },
                     {
                       "name": "GROUP_ID",
-                      "value": "no.skatteetaten.aurora.openshift"
+                      "value": "no.skatteetaten.aurora"
                     },
                     {
                       "name": "VERSION",
-                      "value": "test_retag-SNAPSHOT"
+                      "value": "0.2.1"
+                    },
+                    {
+                      "name": "RETAG_WITH",
+                      "value": "tagwithnodetest"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",
@@ -44,7 +52,7 @@
                     },
                     {
                       "name": "DOCKER_BASE_NAME",
-                      "value": "aurora/wingnut"
+                      "value": "aurora/wrench"
                     },
                     {
                       "name": "TAG_OVERWRITE",
@@ -55,16 +63,16 @@
                       "value": "openshift-test"
                     },
                     {
+                      "name": "INTERNAL_PULL_REGISTRY",
+                      "value": "uil0paas-utv-registry01.skead.no:5000"
+                    },
+                    {
                       "name": "BUILD_STRATEGY",
                       "value": "buildah"
                     },
                     {
                       "name": "TLS_VERIFY",
                       "value": "false"
-                    },
-                    {
-                      "name": "INTERNAL_PULL_REGISTRY",
-                      "value": "uil0paas-utv-registry01.skead.no:5000"
                     }
                 ],
                 "exposeDockerSocket": true
@@ -73,7 +81,7 @@
         "output": {
             "to": {
                 "kind": "DockerImage",
-                "name": "uil0paas-utv-registry01.skead.no:5000/aurora/architecttest"
+                "name": "uil0paas-utv-registry01.skead.no:5000/aurora/webleveransetest"
             }
         },
         "resources": {},
