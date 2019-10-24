@@ -2,6 +2,7 @@ package config
 
 import (
 	"strings"
+	"time"
 )
 
 type ApplicationType string
@@ -39,6 +40,7 @@ type Config struct {
 	BinaryBuild     bool
 	BuildStrategy   string
 	TlsVerify       bool
+	BuildTimeout    time.Duration
 }
 
 type NexusAccess struct {

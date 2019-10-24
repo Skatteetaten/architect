@@ -12,7 +12,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type ConfigReader interface {
@@ -128,6 +130,14 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	} else {
 		logrus.Debugf("Found no nexus secret")
+	}
+
+	var buildTimeout time.Duration = 900
+	if value, err := findEnv(env, "BUILD_TIMEOUT_IN_S"); err == nil {
+		i, err := strconv.Atoi(value)
+		if err == nil {
+			buildTimeout = time.Duration(i)
+		}
 	}
 
 	applicationSpec := ApplicationSpec{}
@@ -309,6 +319,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		BinaryBuild:     build.Spec.Source.Type == api.BuildSourceBinary,
 		BuildStrategy:   buildStrategy,
 		TlsVerify:       tlsVerify,
+		BuildTimeout:    buildTimeout,
 	}
 	return c, nil
 }

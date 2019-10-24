@@ -1,6 +1,7 @@
 package process
 
 import (
+	"context"
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
@@ -11,13 +12,13 @@ import (
 )
 
 type Builder interface {
-	Build(buildFolder string) (string, error)
-	Push(imageid string, tag []string, credentials *docker.RegistryCredentials) error
-	Tag(imageid string, tag string) error
-	Pull(image runtime.DockerImage) error
+	Build(ctx context.Context, buildFolder string) (string, error)
+	Push(ctx context.Context, imageid string, tag []string, credentials *docker.RegistryCredentials) error
+	Tag(ctx context.Context, imageid string, tag string) error
+	Pull(ctx context.Context, image runtime.DockerImage) error
 }
 
-func Build(credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
+func Build(ctx context.Context, credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
 
 	logrus.Debugf("Download deliverable for GAV %-v", cfg.ApplicationSpec)
 	deliverable, err := downloader.DownloadArtifact(&cfg.ApplicationSpec.MavenGav, &cfg.NexusAccess)
@@ -76,11 +77,11 @@ func Build(credentials *docker.RegistryCredentials, provider docker.ImageInfoPro
 
 	for _, buildConfig := range dockerBuildConfig {
 
-		builder.Pull(buildConfig.Baseimage)
+		builder.Pull(ctx, buildConfig.Baseimage)
 
 		logrus.Info("Docker context ", buildConfig.BuildFolder)
 
-		imageid, err := builder.Build(buildConfig.BuildFolder)
+		imageid, err := builder.Build(ctx, buildConfig.BuildFolder)
 
 		if err != nil {
 			return errors.Wrap(err, "There was an error with the build operation.")
@@ -108,13 +109,13 @@ func Build(credentials *docker.RegistryCredentials, provider docker.ImageInfoPro
 		logrus.Debugf("Tag image %s with %s", imageid, tags)
 
 		for _, tag := range tags {
-			err = builder.Tag(imageid, tag)
+			err = builder.Tag(ctx, imageid, tag)
 			if err != nil {
 				return errors.Wrapf(err, "Image tag failed")
 			}
 		}
 
-		return builder.Push(imageid, tags, credentials)
+		return builder.Push(ctx, imageid, tags, credentials)
 	}
 	return nil
 }
