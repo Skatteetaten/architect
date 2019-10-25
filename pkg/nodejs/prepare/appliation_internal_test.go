@@ -7,6 +7,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"path"
+	"strings"
 	"testing"
 )
 
@@ -14,10 +15,6 @@ const buildTime = "2016-09-12T14:30:10Z"
 const expectedNodeJsDockerFile = `FROM aurora/wrench:latest
 
 LABEL maintainer="Oyvind <oyvind@dagobah.wars>" version="1.2.3"
-
-COPY ./architectscripts /u01/architect
-
-RUN chmod 755 /u01/architect/*
 
 COPY ./package /u01/application
 
@@ -35,15 +32,33 @@ ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_T
 
 WORKDIR "/u01/"
 
-CMD ["/u01/architect/run", "/u01/bin/run_nginx"]`
+CMD ["/u01/bin/run_nginx"]`
+
+const expectedRadishNodeJsDockerFile = `FROM aurora/wrench:latest
+
+LABEL maintainer="Oyvind <oyvind@dagobah.wars>" version="1.2.3"
+
+COPY ./package /u01/application
+
+COPY ./overrides /u01/bin/
+
+COPY nginx-radish.json $HOME/
+
+COPY ./package/app /u01/static/
+
+RUN chmod 666 /etc/nginx/nginx.conf && \
+    chmod 777 /etc/nginx && \
+    chmod 755 /u01/bin/*
+
+ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z" MAIN_JAVASCRIPT_FILE="/u01/application/test.json" PROXY_PASS_HOST="localhost" PROXY_PASS_PORT="9090" PUSH_EXTRA_TAGS="major"
+
+WORKDIR "/u01/"
+
+CMD ["/u01/bin/run_nginx"]`
 
 const expectedNodeJsDockerFileWithoutNodeApp = `FROM aurora/wrench:latest
 
 LABEL maintainer="Oyvind <oyvind@dagobah.wars>" version="1.2.3"
-
-COPY ./architectscripts /u01/architect
-
-RUN chmod 755 /u01/architect/*
 
 COPY ./package /u01/application
 
@@ -61,7 +76,29 @@ ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_T
 
 WORKDIR "/u01/"
 
-CMD ["/u01/architect/run", "/u01/bin/run_nginx"]`
+CMD ["/u01/bin/run_nginx"]`
+
+const expectedRadishNodeJsDockerFileWithoutNodeApp = `FROM aurora/wrench:latest
+
+LABEL maintainer="Oyvind <oyvind@dagobah.wars>" version="1.2.3"
+
+COPY ./package /u01/application
+
+COPY ./overrides /u01/bin/
+
+COPY nginx-radish.json $HOME/
+
+COPY ./package/app /u01/static/
+
+RUN chmod 666 /etc/nginx/nginx.conf && \
+    chmod 777 /etc/nginx && \
+    chmod 755 /u01/bin/*
+
+ENV APP_VERSION="1.2.3" AURORA_VERSION="1.2.3-b--baseimageversion" IMAGE_BUILD_TIME="2016-09-12T14:30:10Z" MAIN_JAVASCRIPT_FILE="/u01/application/" PROXY_PASS_HOST="localhost" PROXY_PASS_PORT="9090" PUSH_EXTRA_TAGS="major"
+
+WORKDIR "/u01/"
+
+CMD ["/u01/bin/run_nginx"]`
 
 const nginxConfPrefix = `
 worker_processes  1;
@@ -187,29 +224,64 @@ var osJson = openshiftJson{
 	},
 }
 
-func TestGeneratedFiledWhenNodeJSIsEnabled(t *testing.T) {
+func TestGeneratedFiledWhenNodeJSIsEnabledLegacy(t *testing.T) {
 	files := make(map[string]string)
 	dockerSpec := config.DockerSpec{
 		PushExtraTags: config.ParseExtraTags("major"),
 	}
 	auroraVersion := runtime.NewAuroraVersion("1.2.3", false, "1.2.3", runtime.CompleteVersion("1.2.3-b--baseimageversion"))
-	err := prepareImage(dockerSpec, &osJson, runtime.DockerImage{
+	err := prepareImage(dockerSpec, &osJson, runtime.BaseImage{DockerImage: runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
-	}, auroraVersion, testFileWriter(files), buildTime)
+	},
+		ImageInfo: &runtime.ImageInfo{
+			Labels: map[string]string{},
+		}}, auroraVersion, testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedNodeJsDockerFile, files["Dockerfile"])
 	assert.Equal(t, nginxConfPrefix+expectedNginxConfFilePartial, files["nginx.conf"])
-	assert.NotEmpty(t, files["architectscripts/run"])
-	assert.NotEmpty(t, files["architectscripts/run_tools.sh"])
 	assert.NotEmpty(t, files["overrides/readiness_nginx.sh"])
 	assert.NotEmpty(t, files["overrides/readiness_node.sh"])
 	assert.NotEmpty(t, files["overrides/liveness_node.sh"])
 	assert.NotEmpty(t, files["overrides/liveness_nginx.sh"])
-	assert.Equal(t, len(files), 8)
+	assert.Equal(t, len(files), 6)
 }
 
-func TestGeneratedFilesWhenNodeJSIsDisabled(t *testing.T) {
+func TestGeneratedFileWhenNodeJsIsEnabledRadish(t *testing.T) {
+	files := make(map[string]string)
+
+	dockerSpec := config.DockerSpec{
+		PushExtraTags: config.ParseExtraTags("major"),
+	}
+	auroraVersion := runtime.NewAuroraVersion("1.2.3", false, "1.2.3", runtime.CompleteVersion("1.2.3-b--baseimageversion"))
+	err := prepareImage(dockerSpec, &osJson, runtime.BaseImage{DockerImage: runtime.DockerImage{
+		Tag:        "latest",
+		Repository: "aurora/wrench",
+	},
+		ImageInfo: &runtime.ImageInfo{
+			Labels: map[string]string{"www.skatteetaten.no-imageArchitecture": "nodejs"},
+		}}, auroraVersion, testFileWriter(files), buildTime)
+
+	assert.NoError(t, err)
+
+	assert.Equal(t, expectedRadishNodeJsDockerFile, files["Dockerfile"])
+
+	data, err := UnmarshallOpenshiftConfig(strings.NewReader(files["nginx-radish.json"]))
+	assert.NoError(t, err)
+	assert.Equal(t, data.Web.Nodejs.Main, "test.json")
+	assert.Equal(t, data.Web.WebApp.Path, "/")
+	assert.Equal(t, data.Web.WebApp.DisableTryfiles, false)
+	assert.Equal(t, data.Web.WebApp.Content, "app")
+
+	assert.NotEmpty(t, files["overrides/readiness_nginx.sh"])
+	assert.NotEmpty(t, files["overrides/readiness_node.sh"])
+	assert.NotEmpty(t, files["overrides/liveness_node.sh"])
+	assert.NotEmpty(t, files["overrides/liveness_nginx.sh"])
+	assert.Equal(t, len(files), 6)
+
+}
+
+func TestGeneratedFilesWhenNodeJSIsDisabledLegacy(t *testing.T) {
 	files := make(map[string]string)
 	dockerSpec := config.DockerSpec{
 		PushExtraTags: config.ParseExtraTags("major"),
@@ -217,18 +289,42 @@ func TestGeneratedFilesWhenNodeJSIsDisabled(t *testing.T) {
 	auroraVersion := runtime.NewAuroraVersion("1.2.3", false, "1.2.3", runtime.CompleteVersion("1.2.3-b--baseimageversion"))
 	var openshiftJsonNoNodeJs = osJson
 	openshiftJsonNoNodeJs.Aurora.NodeJS = nil
-	err := prepareImage(dockerSpec, &openshiftJsonNoNodeJs, runtime.DockerImage{
+	err := prepareImage(dockerSpec, &openshiftJsonNoNodeJs, runtime.BaseImage{DockerImage: runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
-	}, auroraVersion, testFileWriter(files), buildTime)
+	}, ImageInfo: &runtime.ImageInfo{
+		Labels: map[string]string{},
+	}}, auroraVersion, testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedNodeJsDockerFileWithoutNodeApp, files["Dockerfile"])
 	assert.Equal(t, nginxConfPrefix+expectedNginxConfFileNoNodejsPartial, files["nginx.conf"])
 	assert.NotEmpty(t, files["overrides/run_node"])
-	assert.Equal(t, len(files), 9)
+	assert.Equal(t, len(files), 7)
 }
 
-func TestThatCustomHeadersIsPresentInNginxConfig(t *testing.T) {
+func TestGeneratedFilesWhenNodeJSIsDisabledRadish(t *testing.T) {
+	files := make(map[string]string)
+
+	dockerSpec := config.DockerSpec{
+		PushExtraTags: config.ParseExtraTags("major"),
+	}
+	auroraVersion := runtime.NewAuroraVersion("1.2.3", false, "1.2.3", runtime.CompleteVersion("1.2.3-b--baseimageversion"))
+	var openshiftJsonNoNodeJs = osJson
+	openshiftJsonNoNodeJs.Aurora.NodeJS = nil
+	err := prepareImage(dockerSpec, &openshiftJsonNoNodeJs, runtime.BaseImage{DockerImage: runtime.DockerImage{
+		Tag:        "latest",
+		Repository: "aurora/wrench",
+	}, ImageInfo: &runtime.ImageInfo{
+		Labels: map[string]string{"www.skatteetaten.no-imageArchitecture": "nodejs"},
+	}}, auroraVersion, testFileWriter(files), buildTime)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expectedRadishNodeJsDockerFileWithoutNodeApp, files["Dockerfile"])
+	assert.NotEmpty(t, files["overrides/run_node"])
+	assert.Equal(t, len(files), 7)
+}
+
+func TestThatCustomHeadersIsPresentInNginxConfigLegacy(t *testing.T) {
 	files := make(map[string]string)
 	dockerSpec := config.DockerSpec{
 		PushExtraTags: config.ParseExtraTags("major"),
@@ -244,23 +340,67 @@ func TestThatCustomHeadersIsPresentInNginxConfig(t *testing.T) {
 		StaticContent: "pathTilStatic",
 	}
 	json.Aurora.Webapp = &webapp
-	err := prepareImage(dockerSpec, &json, runtime.DockerImage{
+	err := prepareImage(dockerSpec, &json, runtime.BaseImage{DockerImage: runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
-	}, auroraVersion, testFileWriter(files), buildTime)
+	},
+		ImageInfo: &runtime.ImageInfo{
+			Labels: map[string]string{},
+		}}, auroraVersion, testFileWriter(files), buildTime)
+
 	assert.NoError(t, err)
 	assert.Equal(t, nginxConfPrefix+expectedNginxConfFileSpaAndCustomHeaders, files["nginx.conf"])
 
 	json.Aurora.Webapp.DisableTryfiles = true
-	err = prepareImage(dockerSpec, &json, runtime.DockerImage{
+	err = prepareImage(dockerSpec, &json, runtime.BaseImage{DockerImage: runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
-	}, auroraVersion, testFileWriter(files), buildTime)
+	}, ImageInfo: &runtime.ImageInfo{
+		Labels: map[string]string{},
+	}}, auroraVersion, testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, nginxConfPrefix+expectedNginxConfFileNoSpaAndCustomHeaders, files["nginx.conf"])
 }
 
-func TestThatOverrideInNginxIsSet(t *testing.T) {
+func TestThatCustomHeadersIsPresentInConfigRadish(t *testing.T) {
+	files := make(map[string]string)
+	dockerSpec := config.DockerSpec{
+		PushExtraTags: config.ParseExtraTags("major"),
+	}
+	json := osJson
+	auroraVersion := runtime.NewAuroraVersion("1.2.3", false, "1.2.3", runtime.CompleteVersion("1.2.3-b--baseimageversion"))
+	webapp := webApplication{
+		DisableTryfiles: false,
+		Headers: map[string]string{
+			"X-Test-Header":  "Tulleheader",
+			"X-Test-Header2": "Tulleheader2",
+		},
+		StaticContent: "pathTilStatic",
+	}
+	json.Aurora.Webapp = &webapp
+	err := prepareImage(dockerSpec, &json, runtime.BaseImage{DockerImage: runtime.DockerImage{
+		Tag:        "latest",
+		Repository: "aurora/wrench",
+	},
+		ImageInfo: &runtime.ImageInfo{
+			Labels: map[string]string{"www.skatteetaten.no-imageArchitecture": "nodejs"},
+		}}, auroraVersion, testFileWriter(files), buildTime)
+
+	assert.NoError(t, err)
+
+	data, err := UnmarshallOpenshiftConfig(strings.NewReader(files["nginx-radish.json"]))
+	assert.NoError(t, err)
+	assert.Equal(t, data.Web.WebApp.Headers, map[string]string{
+		"X-Test-Header":  "Tulleheader",
+		"X-Test-Header2": "Tulleheader2",
+	})
+
+	assert.Equal(t, data.Web.WebApp.Content, "pathTilStatic")
+	assert.Equal(t, data.Web.WebApp.DisableTryfiles, false)
+
+}
+
+func TestThatOverrideInNginxIsSetLegacy(t *testing.T) {
 	files := make(map[string]string)
 	dockerSpec := config.DockerSpec{
 		PushExtraTags: config.ParseExtraTags("major"),
@@ -270,13 +410,43 @@ func TestThatOverrideInNginxIsSet(t *testing.T) {
 	json.Aurora.NodeJS.Overrides = map[string]string{
 		"client_max_body_size": "5m",
 	}
-	err := prepareImage(dockerSpec, &json, runtime.DockerImage{
+	err := prepareImage(dockerSpec, &json, runtime.BaseImage{DockerImage: runtime.DockerImage{
 		Tag:        "latest",
 		Repository: "aurora/wrench",
-	}, auroraVersion, testFileWriter(files), buildTime)
+	},
+		ImageInfo: &runtime.ImageInfo{
+			Labels: map[string]string{},
+		}}, auroraVersion, testFileWriter(files), buildTime)
 	assert.NoError(t, err)
 	assert.Equal(t, nginxConfPrefix+expectedNginxConfigWithOverrides, files["nginx.conf"])
 
+}
+
+func TestThatOverridesIsSetInRadishConfig(t *testing.T) {
+	files := make(map[string]string)
+	dockerSpec := config.DockerSpec{
+		PushExtraTags: config.ParseExtraTags("major"),
+	}
+	json := osJson
+	auroraVersion := runtime.NewAuroraVersion("1.2.3", false, "1.2.3", runtime.CompleteVersion("1.2.3-b--baseimageversion"))
+	json.Aurora.NodeJS.Overrides = map[string]string{
+		"client_max_body_size": "5m",
+	}
+	err := prepareImage(dockerSpec, &json, runtime.BaseImage{DockerImage: runtime.DockerImage{
+		Tag:        "latest",
+		Repository: "aurora/wrench",
+	},
+		ImageInfo: &runtime.ImageInfo{
+			Labels: map[string]string{"www.skatteetaten.no-imageArchitecture": "nodejs"},
+		}}, auroraVersion, testFileWriter(files), buildTime)
+	assert.NoError(t, err)
+
+	data, err := UnmarshallOpenshiftConfig(strings.NewReader(files["nginx-radish.json"]))
+	assert.NoError(t, err)
+
+	assert.Equal(t, data.Web.Nodejs.Overrides, map[string]string{
+		"client_max_body_size": "5m",
+	})
 }
 
 func testFileWriter(files map[string]string) util.FileWriter {
