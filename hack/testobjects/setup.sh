@@ -10,6 +10,6 @@ then
     oc apply -f refapp-cm.json
     oc expose svc refapp
     sleep 2
-    oc tag uil0paas-utv-registry01.skead.no:5000/aurora/webleveransetest-static:0 refapp-static:default --scheduled=true --insecure=true
-    oc tag uil0paas-utv-registry01.skead.no:5000/aurora/webleveransetest-app:0 refapp-app:default --scheduled=true --insecure=true
+    oc tag container-registry-internal-private-pull.aurora.skead.no/aurora/webleveransetest-static:0 refapp-static:default --scheduled=true --insecure=true
+    oc tag container-registry-internal-private-pull.aurora.skead.no/aurora/webleveransetest-app:0 refapp-app:default --scheduled=true --insecure=true
 fi

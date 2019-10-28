@@ -24,7 +24,7 @@
                 "env": [
                     {
                       "name": "BASE_IMAGE_REGISTRY",
-                      "value": "uil0paas-utv-registry01.skead.no:5000"
+                      "value": "container-registry-internal.aurora.skead.no"
                     },
                     {
                       "name": "ARTIFACT_ID",
@@ -56,7 +56,7 @@
                     },
                     {
                       "name": "INTERNAL_PULL_REGISTRY",
-                      "value": "uil0paas-utv-registry01.skead.no:5000"
+                      "value": "container-registry-internal.aurora.skead.no"
                     }
                 ],
                 "exposeDockerSocket": true
@@ -65,7 +65,7 @@
         "output": {
             "to": {
                 "kind": "DockerImage",
-                "name": "uil0paas-utv-registry01.skead.no:5000/aurora/architecttest"
+                "name": "container-registry-internal.aurora.skead.no/auroratest/architecttest"
             }
         },
         "resources": {},
