@@ -190,7 +190,7 @@ func GetDockerConfigPath() (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(usr.HomeDir, ".dockercfg"), nil
+	return filepath.Join(usr.HomeDir, ".docker/config.json"), nil
 }
 
 func LocalRegistryCredentials() func(string) (*RegistryCredentials, error) {

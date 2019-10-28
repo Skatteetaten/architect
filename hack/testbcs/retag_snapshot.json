@@ -44,7 +44,7 @@
                     },
                     {
                       "name": "DOCKER_BASE_NAME",
-                      "value": "aurora/wingnut"
+                      "value": "aurora/wingnut11"
                     },
                     {
                       "name": "TAG_OVERWRITE",
