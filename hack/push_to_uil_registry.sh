@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TARGET=uil0paas-utv-registry01.skead.no:5000/aurora/architect:bleedingedge
+TARGET=container-registry-internal.aurora.skead.no/auroratest/architect:bleedingedge
 TMPFOLDER=$(mktemp -d --suffix "architectimagetest")
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
