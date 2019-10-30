@@ -1,5 +1,5 @@
-hash: d543379e010a87a1880a4b8aa314e6bb52d178fab27078c2ee08da9b9cfa72f9
-updated: 2019-10-30T12:02:58.406758333+01:00
+hash: 9a0c2fc9555c1e9ab4bf19708e9616321c8d2a14b3669bd3653bb00a1928892d
+updated: 2019-10-30T13:27:42.723358266+01:00
 imports:
 - name: github.com/cpuguy83/go-md2man
   version: 691ee98543af2f262f35fbb54bdd42f00b9b9cc5
@@ -67,6 +67,8 @@ imports:
   - tlsconfig
 - name: github.com/docker/go-units
   version: 2fb04c6466a548a03cb009c5569ee1ab1e35398e
+- name: github.com/gijsbers/go-pcre
+  version: a84f3096ab3c390f97c94f4e9f20c60c019068c5
 - name: github.com/glenn-brown/golang-pkg-pcre
   version: 48bb82a8b8ceea98f4e97825b43870f6ba1970d6
   subpackages:
