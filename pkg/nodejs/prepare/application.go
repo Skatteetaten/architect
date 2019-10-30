@@ -9,7 +9,6 @@ import (
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
-	"github.com/gijsbers/go-pcre"
 	"regexp"
 	"strings"
 )
@@ -209,14 +208,7 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 	var exclude []string
 	if v.Aurora.Exclude != nil {
 		for _, value := range v.Aurora.Exclude {
-			_, err := pcre.Compile(value, 0)
-			if err == nil {
-				exclude = append(exclude, value)
-			} else {
-				// Bør vi feile her eller sorterer verdien fra i den endelige konfigurasjon??
-				logrus.Error("Exclude pattern is not a valid regular expression: " + value)	
-				return nil, nil, err
-			}
+			exclude = append(exclude, value)			
 		}		
 	}
 
