@@ -28,7 +28,7 @@ var allowedNginxOverrides = map[string]func(string) error{
 			return err
 		}
 		if !match {
-			return errors.New("Value on client_max_body_size should be onsdfs the form Nm where N is between 1 and 50")
+			return errors.New("Value on client_max_body_size should be on the form Nm where N is between 1 and 50")
 		}
 		return nil
 	},
