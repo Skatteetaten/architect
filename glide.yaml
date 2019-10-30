@@ -23,3 +23,6 @@ import:
 - package: github.com/spf13/pflag
 - package: github.com/google/uuid
   version: ^1.1.1
+- package: github.com/glenn-brown/golang-pkg-pcre
+  subpackages:
+  - src/pkg/pcre
