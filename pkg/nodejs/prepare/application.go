@@ -9,6 +9,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
+	"github.com/glenn-brown/golang-pkg-pcre/src/pkg/pcre"
 	"regexp"
 	"strings"
 )
@@ -28,7 +29,7 @@ var allowedNginxOverrides = map[string]func(string) error{
 			return err
 		}
 		if !match {
-			return errors.New("Value on client_max_body_size should be on the form Nm where N is between 1 and 50")
+			return errors.New("Value on client_max_body_size should be onsdfs the form Nm where N is between 1 and 50")
 		}
 		return nil
 	},
@@ -198,17 +199,30 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 	var err error
 	if v.Aurora.NodeJS != nil {
 		nodejsMainfile = strings.TrimSpace(v.Aurora.NodeJS.Main)
-		overrides = v.Aurora.NodeJS.Overrides
+		overrides = v.Aurora.NodeJS.Overrides		
 		err = whitelistOverrides(overrides)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 
+	var exclude []string
+	if v.Aurora.Exclude != nil {
+		for _, value := range v.Aurora.Exclude {
+			_, err := pcre.Compile(value, 0)
+			if err == nil {
+				exclude = append(exclude, value)
+			} else {
+				// Bør vi feile her eller sorterer verdien fra i den endelige konfigurasjon??
+				logrus.Error("Exclude pattern is not a valid regular expression: " + value)	
+				return nil, nil, errors.Errorf(err.Message)
+			}
+		}		
+	}
+
 	var static string
 	var spa bool
 	var extraHeaders map[string]string
-
 	if v.Aurora.Webapp == nil {
 		static = v.Aurora.Static
 		spa = v.Aurora.SPA
@@ -240,6 +254,7 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 			ExtraStaticHeaders:   extraHeaders,
 			SPA:                  spa,
 			Content:              static,
+			Exclude:             exclude,
 		}, &DockerfileData{
 			Main:             nodejsMainfile,
 			Maintainer:       findMaintainer(v.DockerMetadata),
