@@ -23,5 +23,19 @@ make
 #Run test and coverage
 make test
 
+#Create archive
+ARCHIVEFOLDER="architect_app"
+mkdir bin/amd64/$ARCHIVEFOLDER
+cp bin/amd64/architect bin/amd64/$ARCHIVEFOLDER/architect
+#Copy metadata if available
+if test -f "metadata/openshift.json"; then
+  mkdir bin/amd64/$ARCHIVEFOLDER/metadata
+  cp metadata/openshift.json bin/amd64/$ARCHIVEFOLDER/metadata/openshift.json
+else
+  echo "NB: Openshift metadata not found"
+fi
+echo "Creating archive architect.zip:"
 cd bin/amd64
-tar -cvzf architect.tar.gz architect
+zip -r architect.zip $ARCHIVEFOLDER
+#cleanup
+rm -rf $ARCHIVEFOLDER
