@@ -195,10 +195,10 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
 		} else {
 			base := registryUrl.Host
-			if err := checkURL(client, "https://", base); err == nil {
+			if err := checkURL(client, "https://", base, "/v2/"); err == nil {
 				dockerSpec.ExternalDockerRegistry = "https://" + base
 				logrus.Debugf("Using https: %s", dockerSpec.ExternalDockerRegistry)
-			} else if err := checkURL(client, "http://", base); err == nil {
+			} else if err := checkURL(client, "http://", base, "/v2/"); err == nil {
 				dockerSpec.ExternalDockerRegistry = "http://" + base
 				logrus.Debugf("Using insecure registry: %s", dockerSpec.ExternalDockerRegistry)
 			} else {
@@ -213,10 +213,10 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 
 	if internalPullRegistry, err := findEnv(env, "INTERNAL_PULL_REGISTRY"); err == nil {
 		base := internalPullRegistry
-		if err := checkURL(client, "https://", base); err == nil {
+		if err := checkURL(client, "https://", base, "/v2/"); err == nil {
 			dockerSpec.InternalPullRegistry = "https://" + base
 			logrus.Debugf("Using https: %s", dockerSpec.ExternalDockerRegistry)
-		} else if err := checkURL(client, "http://", base); err == nil {
+		} else if err := checkURL(client, "http://", base, "/v2/"); err == nil {
 			dockerSpec.InternalPullRegistry = "http://" + base
 			logrus.Debugf("Using insecure registry: %s", dockerSpec.ExternalDockerRegistry)
 		} else {
@@ -324,8 +324,8 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	return c, nil
 }
 
-func checkURL(client *http.Client, protocol string, base string) error {
-	res, err := client.Get(protocol + base)
+func checkURL(client *http.Client, protocol string, base string, path string) error {
+	res, err := client.Get(protocol + base + path)
 	if err == nil {
 		defer res.Body.Close()
 		return nil
