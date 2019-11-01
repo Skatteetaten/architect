@@ -28,6 +28,8 @@ type FileConfigReader struct {
 	pathToConfigFile string
 }
 
+const FallbackDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
+
 func NewInClusterConfigReader() ConfigReader {
 	return &InClusterConfigReader{}
 }
@@ -183,6 +185,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
+
 	if externalRegistry, err := findEnv(env, "BASE_IMAGE_REGISTRY"); err == nil {
 		if strings.HasPrefix(externalRegistry, "https://") {
 			dockerSpec.ExternalDockerRegistry = externalRegistry
@@ -192,7 +195,8 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	} else if strings.ToLower(build.Spec.CommonSpec.Output.To.Kind) == "dockerimage" {
 		registryUrl, err := url.Parse("https://" + build.Spec.CommonSpec.Output.To.Name)
 		if err != nil {
-			dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
+			dockerSpec.ExternalDockerRegistry = FallbackDockerRegistry
+			logrus.Warnf("Failed to parse dockerimage-url from BC for ExternalDockerRegistry. Using %s", FallbackDockerRegistry)
 		} else {
 			base := registryUrl.Host
 			if err := checkURL(client, "https://", base); err == nil {
@@ -202,13 +206,14 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 				dockerSpec.ExternalDockerRegistry = "http://" + base
 				logrus.Debugf("Using insecure registry: %s", dockerSpec.ExternalDockerRegistry)
 			} else {
-				dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
+				dockerSpec.ExternalDockerRegistry = FallbackDockerRegistry
+				logrus.Warnf("Failed to access url %s from BC for ExternalDockerRegistry. Using %s", base, FallbackDockerRegistry)
 			}
 		}
-
 	} else {
 		//If all fails
-		dockerSpec.ExternalDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
+		dockerSpec.ExternalDockerRegistry = FallbackDockerRegistry
+		logrus.Warnf("Failed to find a specified url for ExternalDockerRegistry. Using %s", FallbackDockerRegistry)
 	}
 
 	if internalPullRegistry, err := findEnv(env, "INTERNAL_PULL_REGISTRY"); err == nil {
@@ -220,10 +225,12 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			dockerSpec.InternalPullRegistry = "http://" + base
 			logrus.Debugf("Using insecure registry: %s", dockerSpec.ExternalDockerRegistry)
 		} else {
-			dockerSpec.InternalPullRegistry = "https://docker-registry.aurora.sits.no:5000"
+			dockerSpec.InternalPullRegistry = FallbackDockerRegistry
+			logrus.Warnf("Failed to access url %s for InternalPullRegistry. Using %s", internalPullRegistry, FallbackDockerRegistry)
 		}
 	} else {
-		dockerSpec.InternalPullRegistry = "https://docker-registry.aurora.sits.no:5000"
+		dockerSpec.InternalPullRegistry = FallbackDockerRegistry
+		logrus.Warnf("Failed to find a specified url for InternalPullRegistry. Using %s", FallbackDockerRegistry)
 	}
 
 	if pushExtraTags, err := findEnv(env, "PUSH_EXTRA_TAGS"); err == nil {
