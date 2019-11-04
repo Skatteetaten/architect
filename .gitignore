@@ -30,3 +30,4 @@ dockerbuild/
 .dockerfile*
 binary
 .go
+.vscode
