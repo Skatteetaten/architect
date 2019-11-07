@@ -19,7 +19,7 @@ type Tracer struct {
 }
 
 func (t *Tracer ) AddImageMetadata(data interface{}) {
-	t.send(`{ "docker": "dunno" }`)
+	t.send(`{ "docker": "Hello from architect" }`)
 }
 
 func (t* Tracer) send(jsonStr string) {

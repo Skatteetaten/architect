@@ -9,6 +9,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/tagger"
+	"github.com/skatteetaten/architect/pkg/trace"
 )
 
 type Builder interface {
@@ -33,6 +34,9 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 	if err != nil {
 		return errors.Wrap(err, "Unable to get the complete build version")
 	}
+
+	trace := trace.NewTracer(cfg.Sporingstjeneste, cfg.SporingsContext)
+	trace.AddImageMetadata("")
 
 	completeBaseImageVersion := imageInfo.CompleteBaseImageVersion
 
