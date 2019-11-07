@@ -35,8 +35,8 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 		return errors.Wrap(err, "Unable to get the complete build version")
 	}
 
-	trace := trace.NewTracer(cfg.Sporingstjeneste, cfg.SporingsContext)
-	trace.AddImageMetadata("")
+	t := trace.NewTracer(cfg.Sporingstjeneste, cfg.SporingsContext)
+	t.AddImageMetadata("")
 
 	completeBaseImageVersion := imageInfo.CompleteBaseImageVersion
 

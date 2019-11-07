@@ -2,6 +2,7 @@ package trace
 
 import (
 	"bytes"
+	"github.com/Sirupsen/logrus"
 	"net/http"
 )
 
@@ -19,6 +20,7 @@ type Tracer struct {
 }
 
 func (t *Tracer ) AddImageMetadata(data interface{}) {
+	logrus.Info("Sender til sporingslogger")
 	t.send(`{ "docker": "Hello from architect" }`)
 }
 
