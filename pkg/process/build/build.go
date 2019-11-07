@@ -114,7 +114,6 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 				return errors.Wrapf(err, "Image tag failed")
 			}
 		}
-
 		return builder.Push(ctx, imageid, tags, credentials)
 	}
 	return nil
