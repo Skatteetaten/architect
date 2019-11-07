@@ -89,7 +89,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
-	var sporingscontext  = ""
+	var sporingscontext = ""
 	if value, err := findEnv(env, "SPORINGSCONTEXT"); err == nil {
 		logrus.Debugf("Sporingscontext: %s", value)
 		sporingscontext = value
@@ -330,16 +330,16 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 	logrus.Debugf("Pushing to %s/%s:%s", dockerSpec.OutputRegistry, dockerSpec.OutputRepository, dockerSpec.TagWith)
 	c := &Config{
-		ApplicationType: applicationType,
-		ApplicationSpec: applicationSpec,
-		DockerSpec:      dockerSpec,
-		BuilderSpec:     builderSpec,
-		NexusAccess:     nexusAccess,
-		BinaryBuild:     build.Spec.Source.Type == api.BuildSourceBinary,
-		BuildStrategy:   buildStrategy,
-		TlsVerify:       tlsVerify,
-		BuildTimeout:    buildTimeout,
-		SporingsContext: sporingscontext,
+		ApplicationType:  applicationType,
+		ApplicationSpec:  applicationSpec,
+		DockerSpec:       dockerSpec,
+		BuilderSpec:      builderSpec,
+		NexusAccess:      nexusAccess,
+		BinaryBuild:      build.Spec.Source.Type == api.BuildSourceBinary,
+		BuildStrategy:    buildStrategy,
+		TlsVerify:        tlsVerify,
+		BuildTimeout:     buildTimeout,
+		SporingsContext:  sporingscontext,
 		Sporingstjeneste: sporingstjeneste,
 	}
 	return c, nil

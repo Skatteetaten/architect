@@ -132,6 +132,7 @@ func (registry *RegistryClient) GetImageInfo(repository string, tag string) (*ru
 		Labels:                   v1Image.Config.Labels,
 		Enviroment:               envMap,
 		CompleteBaseImageVersion: baseImageVersion,
+		Digest:                   manifestMeta.Config.Digest,
 	}, nil
 }
 

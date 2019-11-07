@@ -2,48 +2,45 @@ package trace
 
 import (
 	"bytes"
-	"github.com/Sirupsen/logrus"
+	"fmt"
 	"net/http"
 )
 
-func NewTracer(sporingsUrl string, context string) *Tracer{
+func NewTracer(sporingsUrl string, context string) *Tracer {
 	return &Tracer{
-		url: sporingsUrl,
+		url:     sporingsUrl,
 		context: context,
+		enabled: sporingsUrl != "" && context != "",
 	}
-
 }
 
 type Tracer struct {
-	url string
+	url     string
 	context string
+	enabled bool
 }
 
-func (t *Tracer ) AddImageMetadata(data interface{}) {
-	logrus.Info("Sender til sporingslogger")
-	t.send(`{"docker": "Hello from architect"}`)
+func (t *Tracer) AddImageMetadata(key string, data interface{}) {
+	if t.enabled {
+		t.send(fmt.Sprintf(`{"%s": %s}`, key, data))
+	}
 }
 
-func (t* Tracer) send(jsonStr string) {
-
+func (t *Tracer) send(jsonStr string) {
 	uri := t.url + "/api/v1/trace/" + t.context
 
-	logrus.Info("uri ", uri)
-	logrus.Info("Sending ", jsonStr)
-	req, err := http.NewRequest("POST", uri, bytes.NewBuffer([]byte(jsonStr)))
-	if err != nil {
-		panic(err)
-	}
+	if t.enabled {
+		req, err := http.NewRequest("POST", uri, bytes.NewBuffer([]byte(jsonStr)))
+		req.Header.Set("Content-Type", "application/json")
+		if err != nil {
+			panic(err)
+		}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			panic(err)
+		}
+		defer resp.Body.Close()
 	}
-	defer resp.Body.Close()
-
 }
-
-
-
-

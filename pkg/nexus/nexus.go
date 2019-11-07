@@ -30,6 +30,13 @@ type BinaryDownloader struct {
 
 type Deliverable struct {
 	Path string
+	SHA1 string
+}
+
+type Dependency struct {
+	Name string
+	SHA1 string
+	Size int64
 }
 
 func NewNexusDownloader(baseUrl string) Downloader {
@@ -80,6 +87,7 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 			return http.ErrUseLastResponse
 		},
 	}
+
 	var location = ""
 	var httpResponse *http.Response
 	var nextURL = resourceUrl
@@ -134,7 +142,21 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 	deliverable.Path = filePath
 	logrus.Debugf("Downloaded artifact to %s", deliverable.Path)
 
+	hash, _ := hashFileSHA1(deliverable.Path)
+	deliverable.SHA1 = hash
+
 	return deliverable, nil
+}
+
+func FilePathWalkDir(root string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, err
 }
 
 /*

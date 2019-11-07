@@ -2,6 +2,7 @@ package process
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config"
@@ -19,8 +20,16 @@ type Builder interface {
 	Pull(ctx context.Context, image runtime.DockerImage) error
 }
 
-func Build(ctx context.Context, credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
+type metadata struct {
+	ImageName    string
+	ImageInfo    *runtime.ImageInfo
+	Tags         map[string]string
+	NexusSHA1    string
+	Dependencies []nexus.Dependency
+}
 
+func Build(ctx context.Context, credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
+	tracer := trace.NewTracer(cfg.Sporingstjeneste, cfg.SporingsContext)
 	logrus.Debugf("Download deliverable for GAV %-v", cfg.ApplicationSpec)
 	deliverable, err := downloader.DownloadArtifact(&cfg.ApplicationSpec.MavenGav, &cfg.NexusAccess)
 	if err != nil {
@@ -35,8 +44,8 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 		return errors.Wrap(err, "Unable to get the complete build version")
 	}
 
-	t := trace.NewTracer(cfg.Sporingstjeneste, cfg.SporingsContext)
-	t.AddImageMetadata("")
+	biJson, _ := json.Marshal(imageInfo)
+	tracer.AddImageMetadata("baseImage", biJson)
 
 	completeBaseImageVersion := imageInfo.CompleteBaseImageVersion
 
@@ -85,6 +94,8 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 		logrus.Info("Docker context ", buildConfig.BuildFolder)
 
+		dependencyMetadata, _ := nexus.ExtractDependecyMetadata(buildConfig.BuildFolder)
+
 		imageid, err := builder.Build(ctx, buildConfig.BuildFolder)
 
 		if err != nil {
@@ -111,14 +122,30 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 		tags, err := tagResolver.ResolveTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
 		logrus.Debugf("Tag image %s with %s", imageid, tags)
-
-		for _, tag := range tags {
+		t, _ := tagResolver.GetTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
+		metaTags := make(map[string]string)
+		for i, tag := range tags {
 			err = builder.Tag(ctx, imageid, tag)
 			if err != nil {
 				return errors.Wrapf(err, "Image tag failed")
 			}
+			metaTags[t[i]] = tag
 		}
-		return builder.Push(ctx, imageid, tags, credentials)
+
+		err = builder.Push(ctx, imageid, tags, credentials)
+
+		firstImage, err := provider.GetImageInfo(buildConfig.DockerRepository, t[0])
+
+		meta := metadata{
+			ImageName:    buildConfig.DockerRepository,
+			Tags:         metaTags,
+			ImageInfo:    firstImage,
+			NexusSHA1:    deliverable.SHA1,
+			Dependencies: dependencyMetadata,
+		}
+		metameta, _ := json.Marshal(meta)
+		tracer.AddImageMetadata("dockerImage", metameta)
+		return err
 	}
 	return nil
 }

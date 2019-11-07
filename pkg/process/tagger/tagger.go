@@ -16,6 +16,7 @@ import (
 
 type TagResolver interface {
 	ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error)
+	GetTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error)
 }
 
 type SingleTagTagResolver struct {
@@ -26,6 +27,10 @@ type SingleTagTagResolver struct {
 
 func (m *SingleTagTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
 	return docker.CreateImageNameFromSpecAndTags([]string{m.Tag}, m.Registry, m.Repository), nil
+}
+
+func (m *SingleTagTagResolver) GetTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
+	return []string{m.Tag}, nil
 }
 
 type NormalTagResolver struct {
@@ -42,6 +47,14 @@ func (m *NormalTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushE
 	}
 	tags = append(tags)
 	return docker.CreateImageNameFromSpecAndTags(tags, m.Registry, m.Repository), nil
+}
+
+func (m *NormalTagResolver) GetTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
+	tags, err := findCandidateTags(appVersion, m.Overwrite, m.Repository, pushExtratags, m.Provider)
+	if err != nil {
+		return nil, err
+	}
+	return tags, nil
 }
 
 func findCandidateTags(appVersion *runtime.AuroraVersion, tagOverwrite bool, outputRepository string,
