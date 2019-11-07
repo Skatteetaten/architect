@@ -32,15 +32,17 @@ const (
 )
 
 type Config struct {
-	ApplicationType ApplicationType
-	ApplicationSpec ApplicationSpec
-	DockerSpec      DockerSpec
-	BuilderSpec     BuilderSpec
-	NexusAccess     NexusAccess
-	BinaryBuild     bool
-	BuildStrategy   string
-	TlsVerify       bool
-	BuildTimeout    time.Duration
+	ApplicationType  ApplicationType
+	ApplicationSpec  ApplicationSpec
+	DockerSpec       DockerSpec
+	BuilderSpec      BuilderSpec
+	NexusAccess      NexusAccess
+	BinaryBuild      bool
+	BuildStrategy    string
+	TlsVerify        bool
+	BuildTimeout     time.Duration
+	SporingsContext  string
+	Sporingstjeneste string
 }
 
 type NexusAccess struct {

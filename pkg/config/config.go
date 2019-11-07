@@ -89,6 +89,16 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
+	var sporingscontext  = ""
+	if value, err := findEnv(env, "SPORINGSCONTEXT"); err == nil {
+		sporingscontext = value
+	}
+
+	var sporingstjeneste = ""
+	if value, err := findEnv(env, "SPORINGSTJENESTE"); err == nil {
+		sporingstjeneste = value
+	}
+
 	//Default to docker format
 	if _, err := findEnv(env, "BUILDAH_FORMAT"); err != nil {
 		err = os.Setenv("BUILDAH_FORMAT", "docker")
@@ -327,6 +337,8 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		BuildStrategy:   buildStrategy,
 		TlsVerify:       tlsVerify,
 		BuildTimeout:    buildTimeout,
+		SporingsContext: sporingscontext,
+		Sporingstjeneste: sporingstjeneste,
 	}
 	return c, nil
 }
