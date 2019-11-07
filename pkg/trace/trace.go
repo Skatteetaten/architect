@@ -21,14 +21,20 @@ type Tracer struct {
 
 func (t *Tracer ) AddImageMetadata(data interface{}) {
 	logrus.Info("Sender til sporingslogger")
-	t.send(`{ "docker": "Hello from architect" }`)
+	t.send(`{"docker": "Hello from architect"}`)
 }
 
 func (t* Tracer) send(jsonStr string) {
 
 	uri := t.url + "/api/v1/trace/" + t.context
 
+	logrus.Info("uri ", uri)
+	logrus.Info("Sending ", jsonStr)
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer([]byte(jsonStr)))
+	if err != nil {
+		panic(err)
+	}
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
