@@ -198,7 +198,7 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 	var err error
 	if v.Aurora.NodeJS != nil {
 		nodejsMainfile = strings.TrimSpace(v.Aurora.NodeJS.Main)
-		overrides = v.Aurora.NodeJS.Overrides		
+		overrides = v.Aurora.NodeJS.Overrides
 		err = whitelistOverrides(overrides)
 		if err != nil {
 			return nil, nil, err
@@ -208,8 +208,8 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 	var exclude []string
 	if v.Aurora.Exclude != nil {
 		for _, value := range v.Aurora.Exclude {
-			exclude = append(exclude, value)			
-		}		
+			exclude = append(exclude, value)
+		}
 	}
 
 	var static string
@@ -246,7 +246,7 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 			ExtraStaticHeaders:   extraHeaders,
 			SPA:                  spa,
 			Content:              static,
-			Exclude:             exclude,
+			Exclude:              exclude,
 		}, &DockerfileData{
 			Main:             nodejsMainfile,
 			Maintainer:       findMaintainer(v.DockerMetadata),

@@ -11,7 +11,7 @@ type Web struct {
 	ConfigurableProxy bool     `json:"configurableProxy"`
 	Nodejs            Nodejs   `json:"nodejs"`
 	WebApp            WebApp   `json:"webapp"`
-	Exclude			  []string `json:"exclude"` 	
+	Exclude           []string `json:"exclude"`
 }
 
 //Nodejs :
@@ -54,7 +54,7 @@ func newRadishNginxConfig(docker *DockerfileData, nginx *NginxfileData) util.Wri
 					DisableTryfiles: !nginx.SPA,
 					Headers:         nginx.ExtraStaticHeaders,
 				},
-				Exclude:             nginx.Exclude,
+				Exclude: nginx.Exclude,
 			},
 		}
 		err := json.NewEncoder(writer).Encode(data)

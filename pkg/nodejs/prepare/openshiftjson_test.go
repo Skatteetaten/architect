@@ -103,7 +103,7 @@ func TestThatExcludeIsSetCorrectly(t *testing.T) {
 	nginxConf, _, err := mapObject(&openshiftJson)
 
 	assert.NoError(t, err)
-	assert.Equal(t, openshiftJson.Aurora.Exclude, nginxConf.Exclude)	
+	assert.Equal(t, openshiftJson.Aurora.Exclude, nginxConf.Exclude)
 }
 
 func TestThatExcludeRegExIsValid(t *testing.T) {
