@@ -205,10 +205,16 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 		}
 	}
 
+	var exclude []string
+	if v.Aurora.Exclude != nil {
+		for _, value := range v.Aurora.Exclude {
+			exclude = append(exclude, value)
+		}
+	}
+
 	var static string
 	var spa bool
 	var extraHeaders map[string]string
-
 	if v.Aurora.Webapp == nil {
 		static = v.Aurora.Static
 		spa = v.Aurora.SPA
@@ -240,6 +246,7 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 			ExtraStaticHeaders:   extraHeaders,
 			SPA:                  spa,
 			Content:              static,
+			Exclude:              exclude,
 		}, &DockerfileData{
 			Main:             nodejsMainfile,
 			Maintainer:       findMaintainer(v.DockerMetadata),

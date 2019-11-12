@@ -8,6 +8,7 @@ type auroraApplication struct {
 	Static            string          `json:"static"`
 	Webapp            *webApplication `json:"webapp"`
 	ConfigurableProxy bool            `json:"configurableProxy"`
+	Exclude           []string        `json:"exclude"`
 	//Deprecated
 	Path string `json:"path"`
 	//Deprecated

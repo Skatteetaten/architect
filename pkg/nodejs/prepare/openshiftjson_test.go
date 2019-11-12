@@ -93,6 +93,42 @@ func TestThatOverridesAreWhitelistedAndSetCorrectly(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestThatExcludeIsSetCorrectly(t *testing.T) {
+	openshiftJson := openshiftJson{}
+	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &openshiftJson))
+	openshiftJson.Aurora.Exclude = []string{
+		"test/test1.swf",
+		"test/test2.swf",
+	}
+	nginxConf, _, err := mapObject(&openshiftJson)
+
+	assert.NoError(t, err)
+	assert.Equal(t, openshiftJson.Aurora.Exclude, nginxConf.Exclude)
+}
+
+func TestThatExcludeRegExIsValid(t *testing.T) {
+	openshiftJson := openshiftJson{}
+	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &openshiftJson))
+	openshiftJson.Aurora.Exclude = []string{
+		"(.*myapp)/(.+\\.php)$",
+		".+\\.(?<ext>.*)$",
+		"~*.+\\.(.+)$",
+	}
+	_, _, err := mapObject(&openshiftJson)
+	assert.NoError(t, err)
+}
+
+func TestThatExcludeRegExIsInvalid(t *testing.T) {
+	t.SkipNow()
+	openshiftJson := openshiftJson{}
+	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &openshiftJson))
+	openshiftJson.Aurora.Exclude = []string{
+		"(.mya*pp)/(+\\.php)$",
+	}
+	_, _, err := mapObject(&openshiftJson)
+	assert.Error(t, err)
+}
+
 func TestThatLegacyFormatIsMappedCorrect(t *testing.T) {
 	oldOpenShiftJson := openshiftJson{}
 	newOpenShiftJson := openshiftJson{}

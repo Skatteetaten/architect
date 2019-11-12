@@ -8,6 +8,7 @@ type NginxfileData struct {
 	ExtraStaticHeaders   map[string]string
 	SPA                  bool
 	Content              string
+	Exclude              []string
 }
 
 const NGINX_CONFIG_TEMPLATE string = `
