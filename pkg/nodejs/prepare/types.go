@@ -8,7 +8,6 @@ type auroraApplication struct {
 	Static            string          `json:"static"`
 	Webapp            *webApplication `json:"webapp"`
 	ConfigurableProxy bool            `json:"configurableProxy"`
-	Exclude           []string        `json:"exclude"`
 	//Deprecated
 	Path string `json:"path"`
 	//Deprecated
@@ -16,10 +15,13 @@ type auroraApplication struct {
 }
 
 type webApplication struct {
-	StaticContent   string            `json:"content"`
-	Path            string            `json:"path"`
-	Headers         map[string]string `json:"headers"`
-	DisableTryfiles bool              `json:"disableTryfiles"`
+	StaticContent   string                 `json:"content"`
+	Path            string                 `json:"path"`
+	Headers         map[string]string      `json:"headers"`
+	Gzip            nginxGzip              `json:"gzip"`
+	Locations       map[string]interface{} `json:"locations"`
+	Exclude         []string               `json:"exclude"`
+	DisableTryfiles bool                   `json:"disableTryfiles"`
 }
 
 type nodeJSApplication struct {
@@ -45,6 +47,22 @@ type PreparedImage struct {
 type probe struct {
 	Include bool
 	Port    int
+}
+
+type nginxLocations map[string]*nginxLocation
+
+type nginxLocation struct {
+	Headers map[string]string `json:"headers"`
+	Gzip    nginxGzip         `json:"gzip"`
+}
+
+type nginxGzip struct {
+	Use       string `json:"use"`
+	MinLength int    `json:"min_length"`
+	Vary      string `json:"vary"`
+	Proxied   string `json:"proxied"`
+	Types     string `json:"types"`
+	Disable   string `json:"disable"`
 }
 
 type templateInput struct {
