@@ -8,10 +8,12 @@ import (
 
 //Web :
 type Web struct {
-	ConfigurableProxy bool     `json:"configurableProxy"`
-	Nodejs            Nodejs   `json:"nodejs"`
-	WebApp            WebApp   `json:"webapp"`
-	Exclude           []string `json:"exclude"`
+	ConfigurableProxy bool           `json:"configurableProxy"`
+	Nodejs            Nodejs         `json:"nodejs"`
+	WebApp            WebApp         `json:"webapp"`
+	Gzip              nginxGzip      `json:"gzip"`
+	Exclude           []string       `json:"exclude"`
+	Locations         nginxLocations `json:"locations"`
 }
 
 //Nodejs :
@@ -54,7 +56,9 @@ func newRadishNginxConfig(docker *DockerfileData, nginx *NginxfileData) util.Wri
 					DisableTryfiles: !nginx.SPA,
 					Headers:         nginx.ExtraStaticHeaders,
 				},
-				Exclude: nginx.Exclude,
+				Gzip:      nginx.Gzip,
+				Exclude:   nginx.Exclude,
+				Locations: nginx.Locations,
 			},
 		}
 		err := json.NewEncoder(writer).Encode(data)

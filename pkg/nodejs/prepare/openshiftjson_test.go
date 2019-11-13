@@ -261,7 +261,7 @@ func TestThatCustomLocationsIsPresentInNginx(t *testing.T) {
 	assert.NoError(t, json.Unmarshal([]byte(openshiftJsonJSONWithLocations), &openshiftJson))
 	nginxfileData, _, err := mapObject(&openshiftJson)
 
-	assert.NoError(t, err)	
+	assert.NoError(t, err)
 	assert.Equal(t, 3, len(nginxfileData.Locations))
 
 	// Test index.html configuration
