@@ -67,46 +67,46 @@ const openshiftJsonJSONWithLocations = `
 		 "runtime": "nodeLTS"
 	  },
 	  "webapp": {
-		 "content": "app",
-		 "gzip": {
-			"use": "on",
-			"min_length": 2048,
-			"vary": "on"
-		 },
-		 "headers": {
-			"X-Some-Header": "Verdi"
-		 },
-		 "locations": {
-			"index.html": {
-			  "headers": {
-				 "Cache-Control": "no-cache",
-				 "X-XSS-Protection": "1",
-				 "X-Frame-Options": "DENY"
-			  },
-			  "gzip": {
-				 "use": "on",
-				 "min_length": 1024,
-				 "vary": "on"
-			  }
-			},
-			"index_other.html": {
-			  "headers": {
-				 "Cache-Control": "max-age=60",
-				 "X-XSS-Protection": "0"
-			  },
-			  "gzip": {
-				 "use": "off"
-			  }
-			},
-			"index/other.html": {
-				"headers": {
-				   "Cache-Control": "no-store",
-				   "X-XSS-Protection": "1; mode=block"
-				}
-			}
-		 },
+		 "content": "app",		 
 		 "static": "app"
-	  }
+	  },
+	  "gzip": {
+		"use": "on",
+		"min_length": 2048,
+		"vary": "on"
+	 },
+	 "headers": {
+		"X-Some-Header": "Verdi"
+	 },
+	 "locations": {
+		"index.html": {
+		  "headers": {
+			 "Cache-Control": "no-cache",
+			 "X-XSS-Protection": "1",
+			 "X-Frame-Options": "DENY"
+		  },
+		  "gzip": {
+			 "use": "on",
+			 "min_length": 1024,
+			 "vary": "on"
+		  }
+		},
+		"index_other.html": {
+		  "headers": {
+			 "Cache-Control": "max-age=60",
+			 "X-XSS-Protection": "0"
+		  },
+		  "gzip": {
+			 "use": "off"
+		  }
+		},
+		"index/other.html": {
+			"headers": {
+			   "Cache-Control": "no-store",
+			   "X-XSS-Protection": "1; mode=block"
+			}
+		}
+	 }
 	}
  } 
 `
@@ -189,20 +189,20 @@ func TestThatOverridesAreWhitelistedAndSetCorrectly(t *testing.T) {
 func TestThatExcludeIsSetCorrectly(t *testing.T) {
 	openshiftJson := openshiftJson{}
 	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &openshiftJson))
-	openshiftJson.Aurora.Webapp.Exclude = []string{
+	openshiftJson.Aurora.Exclude = []string{
 		"test/test1.swf",
 		"test/test2.swf",
 	}
 	nginxConf, _, err := mapObject(&openshiftJson)
 
 	assert.NoError(t, err)
-	assert.Equal(t, openshiftJson.Aurora.Webapp.Exclude, nginxConf.Exclude)
+	assert.Equal(t, openshiftJson.Aurora.Exclude, nginxConf.Exclude)
 }
 
 func TestThatExcludeRegExIsValid(t *testing.T) {
 	openshiftJson := openshiftJson{}
 	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &openshiftJson))
-	openshiftJson.Aurora.Webapp.Exclude = []string{
+	openshiftJson.Aurora.Exclude = []string{
 		"(.*myapp)/(.+\\.php)$",
 		".+\\.(?<ext>.*)$",
 		"~*.+\\.(.+)$",
@@ -215,7 +215,7 @@ func TestThatExcludeRegExIsInvalid(t *testing.T) {
 	t.SkipNow()
 	openshiftJson := openshiftJson{}
 	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &openshiftJson))
-	openshiftJson.Aurora.Webapp.Exclude = []string{
+	openshiftJson.Aurora.Exclude = []string{
 		"(.mya*pp)/(+\\.php)$",
 	}
 	_, _, err := mapObject(&openshiftJson)

@@ -221,11 +221,11 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 		static = v.Aurora.Webapp.StaticContent
 		spa = v.Aurora.Webapp.DisableTryfiles == false
 		extraHeaders = v.Aurora.Webapp.Headers
-		gZip = v.Aurora.Webapp.Gzip
-		nginxLocationMap = buildNginxLocations(v.Aurora.Webapp.Locations)
+		gZip = v.Aurora.Gzip
+		nginxLocationMap = buildNginxLocations(v.Aurora.Locations)
 
-		if v.Aurora.Webapp.Exclude != nil {
-			for _, value := range v.Aurora.Webapp.Exclude {
+		if v.Aurora.Exclude != nil {
+			for _, value := range v.Aurora.Exclude {
 				exclude = append(exclude, value)
 			}
 		}
