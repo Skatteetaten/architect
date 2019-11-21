@@ -2,7 +2,7 @@ package trace
 
 import (
 	"bytes"
-	"fmt"
+	"encoding/json"
 	"net/http"
 )
 
@@ -20,9 +20,13 @@ type Tracer struct {
 	enabled bool
 }
 
-func (t *Tracer) AddImageMetadata(key string, data interface{}) {
+func (t *Tracer) AddImageMetadata(kind string, data string) {
 	if t.enabled {
-		t.send(fmt.Sprintf(`{"%s": %s}`, key, data))
+		var x map[string]interface{}
+		json.Unmarshal([]byte(data), &x)
+		x["type"] = "kind"
+		d, _ := json.Marshal(x)
+		t.send(string(d))
 	}
 }
 

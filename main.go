@@ -63,7 +63,7 @@ func initializeAndRunOnOpenShift() {
 	if c.BinaryBuild {
 		binaryInput, err := util.ExtractBinaryFromStdIn()
 		if err != nil {
-			logrus.Fatalf("Could not read binary input", err)
+			logrus.Fatalf("Could not read binary input: %s", err)
 		}
 		nexusDownloader = nexus.NewBinaryDownloader(binaryInput)
 	} else {

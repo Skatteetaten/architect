@@ -205,19 +205,30 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 		}
 	}
 
+	var exclude []string
 	var static string
 	var spa bool
 	var extraHeaders map[string]string
-
+	var gZip = nginxGzip{}
+	var nginxLocationMap = make(nginxLocations)
 	if v.Aurora.Webapp == nil {
 		static = v.Aurora.Static
 		spa = v.Aurora.SPA
+		exclude = nil
 		extraHeaders = nil
-
+		nginxLocationMap = nil
 	} else {
 		static = v.Aurora.Webapp.StaticContent
 		spa = v.Aurora.Webapp.DisableTryfiles == false
 		extraHeaders = v.Aurora.Webapp.Headers
+		gZip = v.Aurora.Gzip
+		nginxLocationMap = buildNginxLocations(v.Aurora.Locations)
+
+		if v.Aurora.Exclude != nil {
+			for _, value := range v.Aurora.Exclude {
+				exclude = append(exclude, value)
+			}
+		}
 	}
 
 	env := make(map[string]string)
@@ -240,6 +251,9 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 			ExtraStaticHeaders:   extraHeaders,
 			SPA:                  spa,
 			Content:              static,
+			Exclude:              exclude,
+			Gzip:                 gZip,
+			Locations:            nginxLocationMap,
 		}, &DockerfileData{
 			Main:             nodejsMainfile,
 			Maintainer:       findMaintainer(v.DockerMetadata),
@@ -250,6 +264,43 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 			Env:              env,
 			Path:             path,
 		}, nil
+}
+
+func buildNginxLocations(locations map[string]interface{}) nginxLocations {
+	if locations == nil || len(locations) == 0 {
+		return nil
+	}
+
+	var nginxLocationMap = make(nginxLocations)
+
+	for locKey, locValue := range locations {
+		myMap := locValue.(map[string]interface{})
+		gZip := nginxGzip{}
+
+		if val, ok := myMap["gzip"]; ok {
+			gzipMap := val.(map[string]interface{})
+			if val, ok := gzipMap["use"]; ok {
+				gZip.Use = val.(string)
+			}
+
+			if val, ok := gzipMap["min_length"]; ok {
+				gZip.MinLength = int(val.(float64))
+			}
+
+			if val, ok := gzipMap["vary"]; ok {
+				gZip.Vary = val.(string)
+			}
+		}
+
+		headersMap := make(map[string]string)
+		if val, ok := myMap["headers"]; ok {
+			for headerKey, headerValue := range val.(map[string]interface{}) {
+				headersMap[headerKey] = headerValue.(string)
+			}
+		}
+		nginxLocationMap[locKey] = &nginxLocation{headersMap, gZip}
+	}
+	return nginxLocationMap
 }
 
 func whitelistOverrides(overrides map[string]string) error {

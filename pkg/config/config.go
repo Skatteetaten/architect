@@ -120,13 +120,13 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	nexusAccess := NexusAccess{
 		NexusUrl: "https://aurora/nexus/service/local/artifact/maven/content",
 	}
-	secretMountPath := ""
-	for _, secret := range customStrategy.Secrets {
-		logrus.Debugf("Found secret %s", secret.SecretSource.Name)
-		if secret.SecretSource.Name == "jenkins-slave-nexus" {
-			secretMountPath = secret.MountPath
-		}
-	}
+	secretMountPath := "/u01/nexus"
+	//for _, secret := range customStrategy.Secrets {
+	//	logrus.Debugf("Found secret %s", secret.SecretSource.Name)
+	//	if secret.SecretSource.Name == "jenkins-slave-nexus" {
+	//		secretMountPath = secret.MountPath
+	//	}
+	//}
 	if secretMountPath != "" {
 		var secretPath = secretMountPath + "/nexus.json"
 		jsonFile, err := ioutil.ReadFile(secretPath)
@@ -143,7 +143,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			logrus.Warnf("Could not read nexus config at %s, error: %s", secretPath, err)
 		}
 	} else {
-		logrus.Debugf("Found no nexus secret")
+		logrus.Warnf("Found no nexus secret")
 	}
 
 	var buildTimeout time.Duration = 900

@@ -45,7 +45,7 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 	}
 
 	biJson, _ := json.Marshal(imageInfo)
-	tracer.AddImageMetadata("baseImage", biJson)
+	tracer.AddImageMetadata("baseImage", string(biJson))
 
 	completeBaseImageVersion := imageInfo.CompleteBaseImageVersion
 
@@ -144,7 +144,7 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 			Dependencies: dependencyMetadata,
 		}
 		metameta, _ := json.Marshal(meta)
-		tracer.AddImageMetadata("dockerImage", metameta)
+		tracer.AddImageMetadata("releasedImage", string(metameta))
 		return err
 	}
 	return nil
