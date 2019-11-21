@@ -123,9 +123,16 @@ func (registry *RegistryClient) GetImageInfo(repository string, tag string) (*ru
 	}
 
 	baseImageVersion, exists := envMap["BASE_IMAGE_VERSION"]
+	// TODO Remove when an aurora tomcat base image is made
+	tomcatVersion, tomcatExists := envMap["TOMCAT_VERSION"]
 
 	if !exists {
-		return nil, errors.Errorf("Unable to get BASE_IMAGE_VERSION. %s is not a compatible image", repository)
+		if !tomcatExists {
+			return nil, errors.Errorf("Unable to get BASE_IMAGE_VERSION. %s is not a compatible image", repository)
+		} else {
+			// TODO HACK - REMOVE!
+			baseImageVersion = tomcatVersion
+		}
 	}
 
 	return &runtime.ImageInfo{
