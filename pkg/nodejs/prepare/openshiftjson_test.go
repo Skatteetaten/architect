@@ -50,6 +50,99 @@ const OPENSHIFT_JSON_NEW_FORMAT_SPA_NOT_SET = `
     }
 }`
 
+const openshiftJsonJSONWithLocations = `
+{
+	"docker": {
+	  "maintainer": "Aurora OpenShift Utvikling <utvpaas@skatteetaten.no>",
+	  "labels": {
+		 "io.k8s.description": "Demo application with React on Openshift.",
+		 "io.openshift.tags": "openshift,react,nodejs"
+	  }
+	},
+	"web": {
+	  "nodejs": {
+		 "assets": "api",
+		 "main": "api/server.js",
+		 "waf": "aurora-standard",
+		 "runtime": "nodeLTS"
+	  },
+	  "webapp": {
+		 "content": "app",		 
+		 "static": "app"
+	  },
+	  "gzip": {
+		"use": "on",
+		"min_length": 2048,
+		"vary": "on"
+	 },
+	 "headers": {
+		"X-Some-Header": "Verdi"
+	 },
+	 "locations": {
+		"index.html": {
+		  "headers": {
+			 "Cache-Control": "no-cache",
+			 "X-XSS-Protection": "1",
+			 "X-Frame-Options": "DENY"
+		  },
+		  "gzip": {
+			 "use": "on",
+			 "min_length": 1024,
+			 "vary": "on"
+		  }
+		},
+		"index_other.html": {
+		  "headers": {
+			 "Cache-Control": "max-age=60",
+			 "X-XSS-Protection": "0"
+		  },
+		  "gzip": {
+			 "use": "off"
+		  }
+		},
+		"index/other.html": {
+			"headers": {
+			   "Cache-Control": "no-store",
+			   "X-XSS-Protection": "1; mode=block"
+			}
+		}
+	 }
+	}
+ } 
+`
+
+const openshiftJsonJSONWithNoLocations = `
+{
+	"docker": {
+	  "maintainer": "Aurora OpenShift Utvikling <utvpaas@skatteetaten.no>",
+	  "labels": {
+		 "io.k8s.description": "Demo application with React on Openshift.",
+		 "io.openshift.tags": "openshift,react,nodejs"
+	  }
+	},
+	"web": {
+	  "nodejs": {
+		 "assets": "api",
+		 "main": "api/server.js",
+		 "waf": "aurora-standard",
+		 "runtime": "nodeLTS"
+	  },
+	  "webapp": {
+		 "content": "app",
+		 "gzip": {
+			"use": "on",
+			"min_length": 2048,
+			"vary": "on"
+		 },
+		 "headers": {
+			"X-Some-Header": "Verdi"
+		 },
+		 "static": "app"
+	  }
+	}
+ } 
+`
+
 func TestThatSpaDefaultToTrueInWebAppBlock(t *testing.T) {
 	openshiftJson := openshiftJson{}
 	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &openshiftJson))
@@ -93,6 +186,42 @@ func TestThatOverridesAreWhitelistedAndSetCorrectly(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestThatExcludeIsSetCorrectly(t *testing.T) {
+	openshiftJson := openshiftJson{}
+	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &openshiftJson))
+	openshiftJson.Aurora.Exclude = []string{
+		"test/test1.swf",
+		"test/test2.swf",
+	}
+	nginxConf, _, err := mapObject(&openshiftJson)
+
+	assert.NoError(t, err)
+	assert.Equal(t, openshiftJson.Aurora.Exclude, nginxConf.Exclude)
+}
+
+func TestThatExcludeRegExIsValid(t *testing.T) {
+	openshiftJson := openshiftJson{}
+	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &openshiftJson))
+	openshiftJson.Aurora.Exclude = []string{
+		"(.*myapp)/(.+\\.php)$",
+		".+\\.(?<ext>.*)$",
+		"~*.+\\.(.+)$",
+	}
+	_, _, err := mapObject(&openshiftJson)
+	assert.NoError(t, err)
+}
+
+func TestThatExcludeRegExIsInvalid(t *testing.T) {
+	t.SkipNow()
+	openshiftJson := openshiftJson{}
+	assert.NoError(t, json.Unmarshal([]byte(OPENSHIFT_JSON_NEW_FORMAT), &openshiftJson))
+	openshiftJson.Aurora.Exclude = []string{
+		"(.mya*pp)/(+\\.php)$",
+	}
+	_, _, err := mapObject(&openshiftJson)
+	assert.Error(t, err)
+}
+
 func TestThatLegacyFormatIsMappedCorrect(t *testing.T) {
 	oldOpenShiftJson := openshiftJson{}
 	newOpenShiftJson := openshiftJson{}
@@ -110,6 +239,79 @@ func TestThatLegacyFormatIsMappedCorrect(t *testing.T) {
 	assert.Equal(t, "/", nNew.Path)
 	assert.Equal(t, "build", dNew.Static)
 	assert.Equal(t, true, nNew.SPA)
+}
+
+func TestThatRootGzipIsPresentInNginx(t *testing.T) {
+	openshiftJson := openshiftJson{}
+	assert.NoError(t, json.Unmarshal([]byte(openshiftJsonJSONWithLocations), &openshiftJson))
+	nginxfileData, _, err := mapObject(&openshiftJson)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, nginxfileData.Gzip)
+	assert.Equal(t, "on", nginxfileData.Gzip.Use)
+	assert.Equal(t, 2048, nginxfileData.Gzip.MinLength)
+	assert.Equal(t, "on", nginxfileData.Gzip.Vary)
+	assert.Equal(t, "", nginxfileData.Gzip.Proxied)
+	assert.Equal(t, "", nginxfileData.Gzip.Types)
+	assert.Equal(t, "", nginxfileData.Gzip.Disable)
+}
+
+func TestThatCustomLocationsIsPresentInNginx(t *testing.T) {
+	openshiftJson := openshiftJson{}
+	assert.NoError(t, json.Unmarshal([]byte(openshiftJsonJSONWithLocations), &openshiftJson))
+	nginxfileData, _, err := mapObject(&openshiftJson)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 3, len(nginxfileData.Locations))
+
+	// Test index.html configuration
+	assert.Equal(t, 3, len(nginxfileData.Locations["index.html"].Headers))
+	assert.Equal(t, "no-cache", nginxfileData.Locations["index.html"].Headers["Cache-Control"])
+	assert.Equal(t, "1", nginxfileData.Locations["index.html"].Headers["X-XSS-Protection"])
+	assert.Equal(t, "DENY", nginxfileData.Locations["index.html"].Headers["X-Frame-Options"])
+
+	assert.NotNil(t, nginxfileData.Locations["index.html"].Gzip)
+	assert.Equal(t, "on", nginxfileData.Locations["index.html"].Gzip.Use)
+	assert.Equal(t, 1024, nginxfileData.Locations["index.html"].Gzip.MinLength)
+	assert.Equal(t, "on", nginxfileData.Locations["index.html"].Gzip.Vary)
+	assert.Equal(t, "", nginxfileData.Locations["index.html"].Gzip.Proxied)
+	assert.Equal(t, "", nginxfileData.Locations["index.html"].Gzip.Types)
+	assert.Equal(t, "", nginxfileData.Locations["index.html"].Gzip.Disable)
+
+	// Test index_other.html configuration
+	assert.Equal(t, 2, len(nginxfileData.Locations["index_other.html"].Headers))
+	assert.Equal(t, "max-age=60", nginxfileData.Locations["index_other.html"].Headers["Cache-Control"])
+	assert.Equal(t, "0", nginxfileData.Locations["index_other.html"].Headers["X-XSS-Protection"])
+
+	assert.NotNil(t, nginxfileData.Locations["index_other.html"].Gzip)
+	assert.Equal(t, "off", nginxfileData.Locations["index_other.html"].Gzip.Use)
+	assert.Equal(t, 0, nginxfileData.Locations["index_other.html"].Gzip.MinLength)
+	assert.Equal(t, "", nginxfileData.Locations["index_other.html"].Gzip.Vary)
+	assert.Equal(t, "", nginxfileData.Locations["index_other.html"].Gzip.Proxied)
+	assert.Equal(t, "", nginxfileData.Locations["index_other.html"].Gzip.Types)
+	assert.Equal(t, "", nginxfileData.Locations["index_other.html"].Gzip.Disable)
+
+	// Test index/other.html configuration
+	assert.Equal(t, 2, len(nginxfileData.Locations["index/other.html"].Headers))
+	assert.Equal(t, "no-store", nginxfileData.Locations["index/other.html"].Headers["Cache-Control"])
+	assert.Equal(t, "1; mode=block", nginxfileData.Locations["index/other.html"].Headers["X-XSS-Protection"])
+
+	assert.NotNil(t, nginxfileData.Locations["index/other.html"].Gzip)
+	assert.Equal(t, "", nginxfileData.Locations["index/other.html"].Gzip.Use)
+	assert.Equal(t, 0, nginxfileData.Locations["index/other.html"].Gzip.MinLength)
+	assert.Equal(t, "", nginxfileData.Locations["index/other.html"].Gzip.Vary)
+	assert.Equal(t, "", nginxfileData.Locations["index/other.html"].Gzip.Proxied)
+	assert.Equal(t, "", nginxfileData.Locations["index/other.html"].Gzip.Types)
+	assert.Equal(t, "", nginxfileData.Locations["index/other.html"].Gzip.Disable)
+}
+
+func TestThatNoCustomLocationsIsPresentInNginx(t *testing.T) {
+	openshiftJson := openshiftJson{}
+	assert.NoError(t, json.Unmarshal([]byte(openshiftJsonJSONWithNoLocations), &openshiftJson))
+	nginxfileData, _, err := mapObject(&openshiftJson)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(nginxfileData.Locations))
 }
 
 func mapObject(openshiftJson *openshiftJson) (*NginxfileData, *DockerfileData, error) {
