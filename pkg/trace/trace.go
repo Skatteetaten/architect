@@ -24,7 +24,7 @@ func (t *Tracer) AddImageMetadata(kind string, data string) {
 	if t.enabled {
 		var x map[string]interface{}
 		json.Unmarshal([]byte(data), &x)
-		x["type"] = "kind"
+		x["type"] = kind
 		d, _ := json.Marshal(x)
 		t.send(string(d))
 	}
