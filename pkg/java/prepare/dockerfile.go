@@ -10,17 +10,6 @@ import (
 	"io"
 )
 
-// The base directory where all code is copied in the Docker image
-const DockerBasedir = "/u01"
-
-// Where in the build folder the application is put
-const DockerfileApplicationFolder = "app"
-
-const ApplicationFolder = "application"
-
-// The directory where the application is prepared
-const ApplicationBuildFolder = DockerfileApplicationFolder + "/" + ApplicationFolder
-
 var radishDockerFileTemplate string = `FROM {{.BaseImage}}
 
 MAINTAINER {{.Maintainer}}

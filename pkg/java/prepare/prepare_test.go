@@ -5,6 +5,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/java/prepare"
 	"github.com/skatteetaten/architect/pkg/nexus"
+	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
@@ -36,11 +37,11 @@ func TestPrepare(t *testing.T) {
 
 	// Dockerfile
 	filePath := filepath.Join(dockerBuildPath, "Dockerfile")
-	fileExists, err := prepare.Exists(filePath)
+	fileExists, err := util.Exists(filePath)
 
 	//radish
 	filePath = filepath.Join(dockerBuildPath, "radish.json")
-	fileExists, err = prepare.Exists(filePath)
+	fileExists, err = util.Exists(filePath)
 
 	if err != nil {
 		t.Error(err)
@@ -50,7 +51,7 @@ func TestPrepare(t *testing.T) {
 
 	// Application
 	applicationPath := filepath.Join(dockerBuildPath, "app", "application")
-	applicationExists, err := prepare.Exists(applicationPath)
+	applicationExists, err := util.Exists(applicationPath)
 
 	if err != nil {
 		t.Error(err)
