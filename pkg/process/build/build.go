@@ -44,8 +44,10 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 		return errors.Wrap(err, "Unable to get the complete build version")
 	}
 
-	biJson, _ := json.Marshal(imageInfo)
-	tracer.AddImageMetadata("baseImage", string(biJson))
+	biJson, err := json.Marshal(imageInfo)
+	if err == nil {
+		tracer.AddImageMetadata("baseImage", string(biJson))
+	}
 
 	completeBaseImageVersion := imageInfo.CompleteBaseImageVersion
 
@@ -143,8 +145,11 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 			NexusSHA1:    deliverable.SHA1,
 			Dependencies: dependencyMetadata,
 		}
-		metameta, _ := json.Marshal(meta)
-		tracer.AddImageMetadata("releasedImage", string(metameta))
+		metameta, err := json.Marshal(meta)
+		if err == nil {
+			tracer.AddImageMetadata("releasedImage", string(metameta))
+		}
+
 		return err
 	}
 	return nil

@@ -23,9 +23,15 @@ type Tracer struct {
 func (t *Tracer) AddImageMetadata(kind string, data string) {
 	if t.enabled {
 		var x map[string]interface{}
-		json.Unmarshal([]byte(data), &x)
+		err := json.Unmarshal([]byte(data), &x)
+		if err != nil {
+			return
+		}
 		x["type"] = kind
-		d, _ := json.Marshal(x)
+		d, err := json.Marshal(x)
+		if err != nil {
+			return
+		}
 		t.send(string(d))
 	}
 }
@@ -35,15 +41,15 @@ func (t *Tracer) send(jsonStr string) {
 
 	if t.enabled {
 		req, err := http.NewRequest("POST", uri, bytes.NewBuffer([]byte(jsonStr)))
-		req.Header.Set("Content-Type", "application/json")
 		if err != nil {
-			panic(err)
+			return
 		}
+		req.Header.Set("Content-Type", "application/json")
 
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
-			panic(err)
+			return
 		}
 		defer resp.Body.Close()
 	}
