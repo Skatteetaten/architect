@@ -22,7 +22,7 @@ type Builder interface {
 
 type metadata struct {
 	ImageName    string
-	ImageInfo    *runtime.ImageInfo
+	ImageInfo    map[string]interface{}
 	Tags         map[string]string
 	NexusSHA1    string
 	Dependencies []nexus.Dependency
@@ -44,9 +44,12 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 		return errors.Wrap(err, "Unable to get the complete build version")
 	}
 
-	biJson, err := json.Marshal(imageInfo)
+	baseImageConfig, err := provider.GetImageConfig(application.BaseImageSpec.BaseImage, imageInfo.Digest)
 	if err == nil {
-		tracer.AddImageMetadata("baseImage", string(biJson))
+		d, err := json.Marshal(baseImageConfig)
+		if err == nil {
+			tracer.AddImageMetadata("baseImage", "image", string(d))
+		}
 	}
 
 	completeBaseImageVersion := imageInfo.CompleteBaseImageVersion
@@ -136,18 +139,25 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 		err = builder.Push(ctx, imageid, tags, credentials)
 
-		firstImage, err := provider.GetImageInfo(buildConfig.DockerRepository, t[0])
-
-		meta := metadata{
-			ImageName:    buildConfig.DockerRepository,
-			Tags:         metaTags,
-			ImageInfo:    firstImage,
-			NexusSHA1:    deliverable.SHA1,
-			Dependencies: dependencyMetadata,
-		}
-		metameta, err := json.Marshal(meta)
+		imageInfo, err := provider.GetImageInfo(buildConfig.DockerRepository, t[0])
 		if err == nil {
-			tracer.AddImageMetadata("releasedImage", string(metameta))
+
+			imageConfig, err := provider.GetImageConfig(buildConfig.DockerRepository, imageInfo.Digest)
+			if err == nil {
+				meta := metadata{
+					ImageName:    buildConfig.DockerRepository,
+					Tags:         metaTags,
+					ImageInfo:    imageConfig,
+					NexusSHA1:    deliverable.SHA1,
+					Dependencies: dependencyMetadata,
+				}
+
+				metameta, err := json.Marshal(meta)
+				if err == nil {
+					tracer.AddImageMetadata("releasedImage", "releasedImage", string(metameta))
+				}
+
+			}
 		}
 
 		return err

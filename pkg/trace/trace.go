@@ -20,14 +20,15 @@ type Tracer struct {
 	enabled bool
 }
 
-func (t *Tracer) AddImageMetadata(kind string, data string) {
+func (t *Tracer) AddImageMetadata(kind string, imageType string, data string) {
 	if t.enabled {
 		var x map[string]interface{}
 		err := json.Unmarshal([]byte(data), &x)
 		if err != nil {
 			return
 		}
-		x["type"] = kind
+		x["type"] = imageType
+		x["kind"] = kind
 		d, err := json.Marshal(x)
 		if err != nil {
 			return

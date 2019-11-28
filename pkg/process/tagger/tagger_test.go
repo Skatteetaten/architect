@@ -299,6 +299,14 @@ func (registry *RegistryMockAppend) GetImageInfo(repository string, tag string) 
 	return &runtime.ImageInfo{}, nil
 }
 
+func (registry *RegistryMock) GetImageConfig(repository string, digest string) (map[string]interface{}, error) {
+	return nil, nil
+}
+
+func (registry *RegistryMockAppend) GetImageConfig(repository string, digest string) (map[string]interface{}, error) {
+	return nil, nil
+}
+
 func verifyTagListContent(t *testing.T, actualList []string, expectedList []string) {
 	expectedListExpanded := make([]string, len(expectedList))
 	for i := range expectedList {

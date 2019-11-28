@@ -3,7 +3,6 @@ package nexus
 import (
 	"errors"
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	"os"
 	"path/filepath"
 )
@@ -35,7 +34,6 @@ func ExtractDependecyMetadata(buildFolder string) ([]Dependency, error) {
 			SHA1: sha1,
 			Size: info.Size(),
 		})
-		logrus.Infof("Calculated sha %s from %s", sha1, file)
 	}
 
 	return metadata, nil
