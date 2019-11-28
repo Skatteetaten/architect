@@ -94,7 +94,7 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 		httpResponse, err = httpClient.Do(req)
 		if httpResponse.StatusCode == http.StatusFound {
 			location = httpResponse.Header.Get("Location")
-			logrus.Debugf("Got redirect to location: %s", location)
+			logrus.Infof("Got redirect to location: %s", location)
 			nextURL = location
 			httpResponse.Body.Close()
 		} else if err != nil {
