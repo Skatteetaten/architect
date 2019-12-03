@@ -36,6 +36,22 @@ RUN find $HOME/application -type d -exec chmod 755 {} + && \
 ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
 `
 
+//TODO: Hack. Remove code later
+var radishTestImageDockerFile string = `FROM {{.BaseImage}}
+
+MAINTAINER {{.Maintainer}}
+LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
+
+COPY ./app radish.json $HOME/
+RUN find $HOME/application -type d -exec chmod 777 {} + && \
+	find $HOME/application -type f -exec chmod 644 {} + && \
+	mkdir -p $HOME/logs && \
+	chmod 777 $HOME/logs && \
+	ln -s $HOME/logs $HOME/application/logs
+
+ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
+`
+
 type DockerfileData struct {
 	BaseImage  string
 	Maintainer string
@@ -95,5 +111,25 @@ func NewRadishDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.Aur
 		}
 
 		return util.NewTemplateWriter(data, "Dockerfile", radishDockerFileTemplate)(writer)
+	}
+}
+
+//TODO: Hack. Remove code later
+func NewRadishTestImageDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVersion, meta config.DeliverableMetadata,
+	baseImage runtime.DockerImage, imageBuildTime string) util.WriterFunc {
+	return func(writer io.Writer) error {
+
+		if err := verifyMetadata(meta); err != nil {
+			return err
+		}
+		env := createEnv(auroraVersion, dockerSpec.PushExtraTags, imageBuildTime)
+		data := &DockerfileData{
+			BaseImage:  baseImage.GetCompleteDockerTagName(),
+			Maintainer: meta.Docker.Maintainer,
+			Labels:     createLabels(meta),
+			Env:        env,
+		}
+
+		return util.NewTemplateWriter(data, "Dockerfile", radishTestImageDockerFile)(writer)
 	}
 }

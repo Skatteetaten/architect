@@ -61,6 +61,17 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 			"Dockerfile"); err != nil {
 			return "", errors.Wrap(err, "Failed to create Dockerfile")
 		}
+		//TODO: Hack. Remove code later
+	} else if architecture, exists := baseImage.ImageInfo.Labels["www.skatteetaten.no-imageArchitecture"]; exists && architecture == "java-test" {
+		logrus.Info("Running test image build")
+
+		if err := fileWriter(newRadishDescriptor(meta, filepath.Join(DockerBasedir, ApplicationFolder)), "radish.json"); err != nil {
+			return "", errors.Wrap(err, "Unable to create radish descriptor")
+		}
+		if err = fileWriter(NewRadishTestImageDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
+			"Dockerfile"); err != nil {
+			return "", errors.Wrap(err, "Failed to create Dockerfile")
+		}
 	} else {
 		return "", fmt.Errorf("The base image provided does not support radish. Make sure you use the latest version")
 	}
