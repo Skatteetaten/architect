@@ -5,6 +5,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/doozer/prepare"
 	"github.com/skatteetaten/architect/pkg/nexus"
+	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
@@ -19,7 +20,7 @@ func TestPrepare(t *testing.T) {
 		"0.0.1-b1.11.0-oracle8-1.0.2")
 
 	dockerBuildPath, err := prepare.Prepare(global.DockerSpec{}, auroraVersions,
-		nexus.Deliverable{Path: "testdata/test-war-0.0.1-SNAPSHOT-DozerLeveranse.zip"},
+		nexus.Deliverable{Path: "testdata/test-war-0.0.1-SNAPSHOT-DoozerLeveranse.zip"},
 		runtime.BaseImage{
 			DockerImage: runtime.DockerImage{
 				Repository: "test",
@@ -36,7 +37,7 @@ func TestPrepare(t *testing.T) {
 
 	// Dockerfile
 	filePath := filepath.Join(dockerBuildPath, "Dockerfile")
-	fileExists, err := prepare.Exists(filePath)
+	fileExists, err := util.Exists(filePath)
 
 	if err != nil {
 		t.Error(err)
@@ -46,7 +47,7 @@ func TestPrepare(t *testing.T) {
 
 	// Application
 	applicationPath := filepath.Join(dockerBuildPath, "app", "application")
-	applicationExists, err := prepare.Exists(applicationPath)
+	applicationExists, err := util.Exists(applicationPath)
 
 	if err != nil {
 		t.Error(err)

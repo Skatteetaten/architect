@@ -107,33 +107,24 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
+	// TODO: Remove when Nexus 2 server is no more
 	nexusAccess := NexusAccess{
 		NexusUrl: "https://aurora/nexus/service/local/artifact/maven/content",
 	}
-	secretMountPath := "/u01/nexus"
-	//for _, secret := range customStrategy.Secrets {
-	//	logrus.Debugf("Found secret %s", secret.SecretSource.Name)
-	//	if secret.SecretSource.Name == "jenkins-slave-nexus" {
-	//		secretMountPath = secret.MountPath
-	//	}
-	//}
-	if secretMountPath != "" {
-		var secretPath = secretMountPath + "/nexus.json"
-		jsonFile, err := ioutil.ReadFile(secretPath)
-		if err == nil {
-			var data map[string]interface{}
-			err := json.Unmarshal(jsonFile, &data)
-			if err != nil {
-				return nil, errors.Wrapf(err, "Could not parse %s. Must be correct json when specified.", secretPath)
-			}
-			nexusAccess.NexusUrl = data["nexusUrl"].(string)
-			nexusAccess.Username = data["username"].(string)
-			nexusAccess.Password = data["password"].(string)
-		} else {
-			logrus.Warnf("Could not read nexus config at %s, error: %s", secretPath, err)
+
+	secretPath := "/u01/nexus/nexus.json"
+	jsonFile, err := ioutil.ReadFile(secretPath)
+	if err == nil {
+		var data map[string]interface{}
+		err := json.Unmarshal(jsonFile, &data)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Could not parse %s. Must be correct json when specified.", secretPath)
 		}
+		nexusAccess.NexusUrl = data["nexusUrl"].(string)
+		nexusAccess.Username = data["username"].(string)
+		nexusAccess.Password = data["password"].(string)
 	} else {
-		logrus.Warnf("Found no nexus secret")
+		logrus.Warnf("Could not read nexus config at %s, error: %s", secretPath, err)
 	}
 
 	var buildTimeout time.Duration = 900

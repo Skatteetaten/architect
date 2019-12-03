@@ -19,16 +19,15 @@ type MetadataDocker struct {
 	Labels     map[string]string `json:"labels"`
 }
 
-// TODO: Consider if "destPath" is available for fetching from image in some way and can be optional
+// TODO: Consider if "destPath" is available for fetching from base image in some way and can be optional
 type MetadataDoozer struct {
 	SrcPath      string `json:"srcPath"`
 	FileName     string `json:"fileName"`
 	DestPath     string `json:"destPath"`
-	DestFilename string `json:"destFilename"`
-	CmdScript    string `json:"cmdScript"`
+	DestFilename string `json:"destFilename"` // Optional. Will use FileName as default
+	CmdScript    string `json:"cmdScript"`    // Optional if base image CMD is applicable
 }
 
-// TODO: Consider if MetadataJava is at all necessary for doozer builds
 type MetadataJava struct {
 	MainClass       string `json:"mainClass"`
 	JvmOpts         string `json:"jvmOpts"`

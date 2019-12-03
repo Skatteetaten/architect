@@ -34,9 +34,8 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 	}
 
 	// Unzip deliverable
-	applicationFolder := filepath.Join(dockerBuildPath, ApplicationBuildFolder)
-
-	err = extractAndRenameDeliverable(dockerBuildPath, deliverable.Path)
+	applicationFolder := filepath.Join(dockerBuildPath, util.ApplicationBuildFolder)
+	err = util.ExtractAndRenameDeliverable(dockerBuildPath, deliverable.Path)
 
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to extract application archive")
@@ -54,7 +53,7 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 	fileWriter := util.NewFileWriter(dockerBuildPath)
 
 	logrus.Info("Running radish build (doozer)")
-	if err := fileWriter(newRadishDescriptor(meta, filepath.Join(DockerBasedir, ApplicationFolder)), "radish.json"); err != nil {
+	if err := fileWriter(newRadishDescriptor(meta, filepath.Join(util.DockerBasedir, util.ApplicationFolder)), "radish.json"); err != nil {
 		return "", errors.Wrap(err, "Unable to create radish descriptor")
 	}
 	if err = fileWriter(NewDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
@@ -65,46 +64,8 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 	return dockerBuildPath, nil
 }
 
-func extractAndRenameDeliverable(dockerBuildFolder string, deliverablePath string) error {
-
-	applicationRoot := filepath.Join(dockerBuildFolder, DockerfileApplicationFolder)
-	renamedApplicationFolder := filepath.Join(dockerBuildFolder, ApplicationBuildFolder)
-	if err := os.MkdirAll(dockerBuildFolder, 0755); err != nil {
-		return errors.Wrap(err, "Failed to create application directory in Docker context")
-	}
-
-	if err := ExtractDeliverable(deliverablePath, applicationRoot); err != nil {
-		return errors.Wrapf(err, "Failed to extract application archive")
-	}
-
-	if err := renameSingleFolderInDirectory(applicationRoot, renamedApplicationFolder); err != nil {
-		return errors.Wrap(err, "Failed to rename application directory in Docker context")
-	} else {
-		return nil
-	}
-}
-
-// When we unzip the delivery, it will have an additional level.
-// eg. app/myapplication-LEVERANSEPAKKE-SNAPSHOT -> app/application
-func renameSingleFolderInDirectory(base string, newName string) error {
-	list, err := ioutil.ReadDir(base)
-
-	if err != nil {
-		return errors.Wrapf(err, "Failed to open application directory %s", base)
-	} else if len(list) == 0 {
-		return errors.Errorf("Application root folder does not exist %s", base)
-	}
-
-	folderToBeRenamed := filepath.Join(base, list[0].Name())
-	if err = os.Rename(folderToBeRenamed, newName); err != nil {
-		return errors.Wrapf(err, "Rename from %s to %s failed", folderToBeRenamed, newName)
-	} else {
-		return nil
-	}
-}
-
 func loadDeliverableMetadata(metafile string) (*deliverable.DeliverableMetadata, error) {
-	fileExists, err := Exists(metafile)
+	fileExists, err := util.Exists(metafile)
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not find %s in deliverable", path.Base(metafile))
@@ -125,18 +86,4 @@ func loadDeliverableMetadata(metafile string) (*deliverable.DeliverableMetadata,
 	}
 
 	return deliverableMetadata, nil
-}
-
-func Exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-
-		return false, errors.Wrap(err, "Failed to stat file")
-	}
-
-	return true, nil
 }
