@@ -11,12 +11,9 @@ timestamps {
         iqOrganizationName       : 'Team AOT',
         openShiftBaseImage       : 'builder',
         openShiftBaseImageVersion: 'latest',
-        openShiftBuilderImage    : 'architect',
-        openShiftBuilderVersion  : '1',
         versionStrategy          : [
             [branch: 'master', versionHint: '1']
-        ],
-        debug                    : true
+        ]
     ]
 
     def tagVersion
