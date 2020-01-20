@@ -30,12 +30,18 @@ timestamps {
         git = fileLoader.load('git/git')
         go = fileLoader.load('go/go')
         utilities = fileLoader.load('utilities/utilities')
+        propertiesUtils = fileLoader.load('utilities/properties')
         doozerleveranse = fileLoader.load('templates/doozerleveranse')
       }
     }
 
     stage('Checkout') {
       checkout scm
+    }
+
+    stage('Prepare') {
+     props = propertiesUtils.getDefaultProps(config)
+     utilities.initProps(props, git)
     }
 
     stage('Test and coverage') {
