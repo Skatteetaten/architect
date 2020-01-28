@@ -13,6 +13,7 @@ def config = [
     openShiftBaseImageVersion: 'latest',
     goVersion                : 'Go 1.12',
     artifactPath             : 'bin/amd64/',
+    credentialsId: "github",
     versionStrategy          : [
         [branch: 'master', versionHint: '1']
         ]
