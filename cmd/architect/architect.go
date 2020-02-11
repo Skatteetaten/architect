@@ -102,8 +102,11 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 		prepper = doozer.Prepper()
 	}
 
-	if c.BinaryBuild && !c.ApplicationSpec.MavenGav.IsSnapshot() {
-		logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
+	if !c.LocalBuild {
+		if c.BinaryBuild && !c.ApplicationSpec.MavenGav.IsSnapshot() {
+			logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
+		}
+
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)

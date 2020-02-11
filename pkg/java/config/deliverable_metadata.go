@@ -14,8 +14,10 @@ type DeliverableMetadata struct {
 }
 
 type MetadataDocker struct {
-	Maintainer string            `json:"maintainer"`
-	Labels     map[string]string `json:"labels"`
+	Maintainer  string            `json:"maintainer"`
+	Labels      map[string]string `json:"labels"`
+	BaseImage   string            `json:"baseImage"`
+	BaseVersion string            `json:"baseVersion"`
 }
 
 type MetadataJava struct {
