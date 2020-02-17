@@ -1,15 +1,15 @@
 package config_test
 
 import (
-	"github.com/docker/docker/pkg/testutil/assert"
 	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestJavaLeveransePakkeConfig(t *testing.T) {
 	r := config.NewFileConfigReader("../../testdata/build.json")
 	c, err := r.ReadConfig()
-	assert.NilError(t, err)
+	assert.NoError(t, err)
 	completeDockerName := c.DockerSpec.OutputRegistry + "/" + c.DockerSpec.OutputRepository
 	assert.Equal(t, "docker-registry.themoon.com:5000/groupid/app", completeDockerName)
 	assert.Equal(t, config.JavaLeveransepakke, c.ApplicationType)
@@ -22,7 +22,8 @@ func TestJavaLeveransePakkeConfig(t *testing.T) {
 func TestNodeJSLeveransePakkeConfig(t *testing.T) {
 	r := config.NewFileConfigReader("../../testdata/nodejsbuild.json")
 	c, err := r.ReadConfig()
-	assert.NilError(t, err)
+
+	assert.NoError(t, err)
 	completeDockerName := c.DockerSpec.OutputRegistry + "/" + c.DockerSpec.OutputRepository
 	assert.Equal(t, "docker-registry.themoon.com:5000/groupid/app", completeDockerName)
 	assert.Equal(t, config.NodeJsLeveransepakke, c.ApplicationType)
@@ -34,13 +35,13 @@ func TestNodeJSLeveransePakkeConfig(t *testing.T) {
 func TestTagWithConfig(t *testing.T) {
 	r := config.NewFileConfigReader("../../testdata/build.json")
 	c, err := r.ReadConfig()
-	assert.NilError(t, err)
+	assert.NoError(t, err)
 	completeDockerName := c.DockerSpec.OutputRegistry + "/" + c.DockerSpec.OutputRepository
 	assert.Equal(t, "docker-registry.themoon.com:5000/groupid/app", completeDockerName)
 	assert.Equal(t, "", c.DockerSpec.TagWith)
 	r = config.NewFileConfigReader("../../testdata/build_tagwith.json")
 	c, err = r.ReadConfig()
-	assert.NilError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "docker-registry.themoon.com:5000/groupid/app", completeDockerName)
 	assert.Equal(t, "supertaggen", c.DockerSpec.TagWith)
 }
@@ -58,7 +59,7 @@ func TestHidingPasswordWhenGettingNExusAccessString(t *testing.T) {
 func TestGetUrlFromOutput(t *testing.T) {
 	r := config.NewFileConfigReader("../../testdata/bug-sitj-650.json")
 	c, err := r.ReadConfig()
-	assert.NilError(t, err)
+	assert.NoError(t, err)
 	completeDockerName := c.DockerSpec.OutputRegistry + "/" + c.DockerSpec.OutputRepository
 	assert.Equal(t, "container-registry-internal-snapshot.aurora.skead.no:443/no_skatteetaten_aurora_openshift/openshift-reference-springboot-server-kotlin", completeDockerName)
 }

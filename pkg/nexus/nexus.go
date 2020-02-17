@@ -1,8 +1,8 @@
 package nexus
 
 import (
-	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"io"
 	"io/ioutil"

@@ -2,9 +2,9 @@ package tagger
 
 import (
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	extVersion "github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
