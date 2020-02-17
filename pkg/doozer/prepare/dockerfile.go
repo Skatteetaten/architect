@@ -108,6 +108,10 @@ func NewDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVer
 			destPath = meta.Doozer.DestPath
 		}
 
+		if meta.Doozer.FileName != "" {
+			destPath += meta.Doozer.FileName
+		}
+
 		data := &DockerfileData{
 			BaseImage:  baseImage.GetCompleteDockerTagName(),
 			Maintainer: meta.Docker.Maintainer,
