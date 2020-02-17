@@ -4,7 +4,7 @@
 def goleveranse
 def config = [
     artifactId               : 'architect',
-    groupId                  : 'ske.aurora.openshift',
+    groupId                  : 'aurora',
     deliveryBundleClassifier : "Doozerleveransepakke",
     scriptVersion            : 'v7',
     pipelineScript           : 'https://git.aurora.skead.no/scm/ao/aurora-pipeline-scripts.git',
