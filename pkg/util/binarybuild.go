@@ -1,8 +1,8 @@
 package util
 
 import (
-	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"os"
@@ -43,4 +43,3 @@ func ExtractBinaryFromFile(file string) (string, error) {
 	return tmpfile.Name(), nil
 
 }
-

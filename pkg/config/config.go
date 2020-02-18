@@ -4,9 +4,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/Sirupsen/logrus"
-	"github.com/docker/docker/reference"
+	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config/api"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -462,11 +462,15 @@ func findBaseImage(env map[string]string) (DockerBaseImageSpec, error) {
 }
 
 func findOutputRepository(dockerName string) (string, error) {
-	name, err := reference.ParseNamed(dockerName)
+
+	name, err := reference.ParseNormalizedNamed(dockerName)
+
+	//name, err := reference.ParseNamed(dockerName)
 	if err != nil {
 		return "", errors.Wrap(err, "Error parsing docker registry reference")
 	}
-	return name.RemoteName(), nil
+
+	return reference.Path(name), nil
 
 }
 
@@ -475,7 +479,7 @@ func findOutputRegistry(dockerName string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "Error parsing docker registry reference")
 	}
-	return name.Hostname(), nil
+	return reference.Domain(name), nil
 }
 
 func findOutputTag(dockerName string) (string, error) {

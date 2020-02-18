@@ -42,7 +42,7 @@ type Config struct {
 	BuilderSpec     BuilderSpec
 	NexusAccess     NexusAccess
 	BinaryBuild     bool
-	LocalBuild 	    bool
+	LocalBuild      bool
 	BuildStrategy   string
 	TlsVerify       bool
 	BuildTimeout    time.Duration
