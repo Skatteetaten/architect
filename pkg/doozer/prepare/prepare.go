@@ -56,7 +56,10 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 	if err := fileWriter(newRadishDescriptor(meta, filepath.Join(util.DockerBasedir, util.ApplicationFolder)), "radish.json"); err != nil {
 		return "", errors.Wrap(err, "Unable to create radish descriptor")
 	}
-	if err = fileWriter(NewDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
+
+	destinationPath := baseImage.ImageInfo.Labels["www.skatteetaten.no-destinationPath"]
+
+	if err = fileWriter(NewDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp(), destinationPath),
 		"Dockerfile"); err != nil {
 		return "", errors.Wrap(err, "Failed to create Dockerfile")
 	}

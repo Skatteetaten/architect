@@ -2,6 +2,7 @@ package prepare
 
 import (
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	global "github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
@@ -78,32 +79,38 @@ func verifyMetadata(meta config.DeliverableMetadata) error {
 	}
 	if meta.Doozer == nil {
 		return errors.Errorf("Deliverable metadata does not contain \"Doozer\" element")
-	} else if meta.Doozer.SrcPath == "" {
-		return errors.Errorf("Deliverable metadata does not contain \"Doozer.SrcPath\" element")
-	} else if meta.Doozer.FileName == "" {
-		return errors.Errorf("Deliverable metadata does not contain \"Doozer.FileName\" element")
-	} else if meta.Doozer.DestPath == "" {
-		return errors.Errorf("Deliverable metadata does not contain \"Doozer.DestPath\" element")
 	}
 
 	return nil
 }
 
 func NewDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVersion, meta config.DeliverableMetadata,
-	baseImage runtime.DockerImage, imageBuildTime string) util.WriterFunc {
+	baseImage runtime.DockerImage, imageBuildTime string, destinationPath string) util.WriterFunc {
 	return func(writer io.Writer) error {
 		if err := verifyMetadata(meta); err != nil {
 			return err
 		}
 		env := createEnv(auroraVersion, dockerSpec.PushExtraTags, imageBuildTime)
-		destFilename := meta.Doozer.FileName
-		if meta.Doozer.DestFilename != "" {
-			destFilename = meta.Doozer.DestFilename
-		}
 
 		dockerFileTemplate := dockerFileTemplateBody
 		if meta.Doozer.CmdScript != "" {
 			dockerFileTemplate += dockerFileTemplateCmd
+		}
+
+		var destPath string
+
+		if meta.Doozer.DestPath != "" {
+			destPath = meta.Doozer.DestPath
+			if meta.Doozer.DestPath != "" {
+				logrus.Warnf("The destination path is overridden by provided metadata: %s", meta.Doozer.DestPath)
+			}
+			logrus.Debugf("Using destination path %s  from metadata", destinationPath)
+		} else {
+			destPath = destinationPath
+		}
+
+		if meta.Doozer.FileName != "" {
+			destPath += meta.Doozer.FileName
 		}
 
 		data := &DockerfileData{
@@ -111,7 +118,7 @@ func NewDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVer
 			Maintainer: meta.Docker.Maintainer,
 			SrcPath:    meta.Doozer.SrcPath,
 			FileName:   meta.Doozer.FileName,
-			DestPath:   meta.Doozer.DestPath + destFilename,
+			DestPath:   destPath,
 			CmdScript:  meta.Doozer.CmdScript,
 			Labels:     createLabels(meta),
 			Env:        env,

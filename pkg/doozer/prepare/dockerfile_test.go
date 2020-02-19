@@ -87,7 +87,7 @@ func TestBuild(t *testing.T) {
 			DestPath: "/path/to/your/destiny/",
 		},
 	}
-	writer := prepare.NewDockerFile(dockerSpec, *auroraVersions, deliverableMetadata, baseImage, "2017-09-10T14:30:10Z")
+	writer := prepare.NewDockerFile(dockerSpec, *auroraVersions, deliverableMetadata, baseImage, "2017-09-10T14:30:10Z", "")
 
 	buffer := new(bytes.Buffer)
 
@@ -129,7 +129,7 @@ func TestBuildWithCmdScript(t *testing.T) {
 			CmdScript: "./bin/somestartupcmd",
 		},
 	}
-	writer := prepare.NewDockerFile(dockerSpec, *auroraVersions, deliverableMetadata, baseImage, "2017-09-10T14:30:10Z")
+	writer := prepare.NewDockerFile(dockerSpec, *auroraVersions, deliverableMetadata, baseImage, "2017-09-10T14:30:10Z", "")
 
 	buffer := new(bytes.Buffer)
 
