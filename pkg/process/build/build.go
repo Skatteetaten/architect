@@ -77,7 +77,10 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 	for _, buildConfig := range dockerBuildConfig {
 
-		builder.Pull(ctx, buildConfig.Baseimage)
+		err := builder.Pull(ctx, buildConfig.Baseimage)
+		if err != nil {
+			return errors.Wrap(err, "There was an error with the pull operation.")
+		}
 
 		logrus.Info("Docker context ", buildConfig.BuildFolder)
 
@@ -109,13 +112,17 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 		logrus.Debugf("Tag image %s with %s", imageid, tags)
 
 		for _, tag := range tags {
+			logrus.Infof("Tag: %s", tag)
 			err = builder.Tag(ctx, imageid, tag)
 			if err != nil {
 				return errors.Wrapf(err, "Image tag failed")
 			}
 		}
 
-		return builder.Push(ctx, imageid, tags, credentials)
+		if !cfg.NoPush {
+			return builder.Push(ctx, imageid, tags, credentials)
+		}
+
 	}
 	return nil
 }
