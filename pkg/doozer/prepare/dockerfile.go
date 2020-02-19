@@ -98,14 +98,15 @@ func NewDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVer
 		}
 
 		var destPath string
-		if destinationPath != "" {
-			destPath = destinationPath
-			if meta.Doozer.DestPath != "" {
-				logrus.Warnf("The destination path is overridden by the base image: %s", meta.Doozer.DestPath)
-			}
-			logrus.Debugf("Using destination path %s from image", destinationPath)
-		} else {
+
+		if meta.Doozer.DestPath != "" {
 			destPath = meta.Doozer.DestPath
+			if meta.Doozer.DestPath != "" {
+				logrus.Warnf("The destination path is overridden by provided metadata: %s", meta.Doozer.DestPath)
+			}
+			logrus.Debugf("Using destination path %s  from metadata", destinationPath)
+		} else {
+			destPath = destinationPath
 		}
 
 		if meta.Doozer.FileName != "" {
