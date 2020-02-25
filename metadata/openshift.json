@@ -9,8 +9,7 @@
   "doozer": {
     "srcPath": "./",
     "fileName": "architect",
-    "destPath": "/u01/bin/",
-    "destFilename": "main",
+    "destPath": "/u01/bin/main",
     "cmdScript": "/u01/bin/main"
   }
 }
