@@ -2,10 +2,11 @@ package prepare
 
 import (
 	"encoding/json"
+	"testing"
+
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 const OPENSHIFT_JSON_NEW_FORMAT = `
@@ -72,6 +73,7 @@ const openshiftJsonJSONWithLocations = `
 	  },
 	  "gzip": {
 		"use": "on",
+		"useStatic": "on",
 		"min_length": 2048,
 		"vary": "on"
 	 },
@@ -249,6 +251,7 @@ func TestThatRootGzipIsPresentInNginx(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, nginxfileData.Gzip)
 	assert.Equal(t, "on", nginxfileData.Gzip.Use)
+	assert.Equal(t, "on", nginxfileData.Gzip.UseStatic)
 	assert.Equal(t, 2048, nginxfileData.Gzip.MinLength)
 	assert.Equal(t, "on", nginxfileData.Gzip.Vary)
 	assert.Equal(t, "", nginxfileData.Gzip.Proxied)

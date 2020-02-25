@@ -58,6 +58,7 @@ type nginxLocation struct {
 
 type nginxGzip struct {
 	Use       string `json:"use"`
+	UseStatic string `json:"useStatic"`
 	MinLength int    `json:"min_length"`
 	Vary      string `json:"vary"`
 	Proxied   string `json:"proxied"`
