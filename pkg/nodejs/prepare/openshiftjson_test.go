@@ -89,6 +89,7 @@ const openshiftJsonJSONWithLocations = `
 		  },
 		  "gzip": {
 			 "use": "on",
+			 "useStatic": "on",
 			 "min_length": 1024,
 			 "vary": "on"
 		  }
@@ -275,6 +276,7 @@ func TestThatCustomLocationsIsPresentInNginx(t *testing.T) {
 
 	assert.NotNil(t, nginxfileData.Locations["index.html"].Gzip)
 	assert.Equal(t, "on", nginxfileData.Locations["index.html"].Gzip.Use)
+	assert.Equal(t, "on", nginxfileData.Locations["index.html"].Gzip.UseStatic)
 	assert.Equal(t, 1024, nginxfileData.Locations["index.html"].Gzip.MinLength)
 	assert.Equal(t, "on", nginxfileData.Locations["index.html"].Gzip.Vary)
 	assert.Equal(t, "", nginxfileData.Locations["index.html"].Gzip.Proxied)
