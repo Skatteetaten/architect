@@ -1,16 +1,17 @@
 package prepare
 
 import (
+	"regexp"
+	"strings"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/nexus"
-	"github.com/skatteetaten/architect/pkg/process/build"
+	process "github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
-	"regexp"
-	"strings"
 )
 
 /*
@@ -281,6 +282,10 @@ func buildNginxLocations(locations map[string]interface{}) nginxLocations {
 			gzipMap := val.(map[string]interface{})
 			if val, ok := gzipMap["use"]; ok {
 				gZip.Use = val.(string)
+			}
+
+			if val, ok := gzipMap["useStatic"]; ok {
+				gZip.UseStatic = val.(string)
 			}
 
 			if val, ok := gzipMap["min_length"]; ok {
