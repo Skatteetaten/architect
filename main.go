@@ -28,7 +28,7 @@ import (
 
 func main() {
 	// We are called main. Assume we run in a container
-	if strings.HasSuffix(os.Args[:1][0], "main") && len(os.Args) == 1 {
+	if strings.HasSuffix(os.Args[:1][0], "architect") && len(os.Args) == 1 {
 		initializeAndRunOnOpenShift()
 	} else {
 		cmd.Execute()
