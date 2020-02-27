@@ -283,21 +283,6 @@ func buildNginxLocations(locations map[string]interface{}) nginxLocations {
 
 			if val, ok := gzipMap["use_static"]; ok {
 				gZip.UseStatic = val.(string)
-				if val, ok := gzipMap["vary"]; ok {
-					gZip.Vary = val.(string)
-				}
-
-				if val, ok := gzipMap["proxied"]; ok {
-					gZip.Proxied = val.(string)
-				}
-
-				if val, ok := gzipMap["disable"]; ok {
-					gZip.Disable = val.(string)
-				}
-
-				if val, ok := gzipMap["http_version"]; ok {
-					gZip.HttpVersion = val.(string)
-				}
 			}
 
 		}

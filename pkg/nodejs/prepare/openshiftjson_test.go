@@ -72,12 +72,7 @@ const openshiftJsonJSONWithLocations = `
 		 "static": "app"
 	  },
 	  "gzip": {
-		"use_static": "on",
-		"vary": "on",
-		"proxied": "expired no-cache no-store private auth",
-		"vary": "on",
-		"disable": "msie6",
-		"http_version": "1.1"
+		"use_static": "on"
 	 },
 	 "headers": {
 		"X-Some-Header": "Verdi"
@@ -90,8 +85,7 @@ const openshiftJsonJSONWithLocations = `
 			 "X-Frame-Options": "DENY"
 		  },
 		  "gzip": {
-			 "use_static": "on",
-			 "vary": "on"
+			 "use_static": "on"
 		  }
 		},
 		"index_other.html": {
@@ -250,13 +244,7 @@ func TestThatRootGzipIsPresentInNginx(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, nginxfileData.Gzip)
-	assert.Equal(t, "on", nginxfileData.Gzip.Use)
 	assert.Equal(t, "on", nginxfileData.Gzip.UseStatic)
-	assert.Equal(t, 2048, nginxfileData.Gzip.MinLength)
-	assert.Equal(t, "on", nginxfileData.Gzip.Vary)
-	assert.Equal(t, "", nginxfileData.Gzip.Proxied)
-	assert.Equal(t, "", nginxfileData.Gzip.Types)
-	assert.Equal(t, "", nginxfileData.Gzip.Disable)
 }
 
 func TestThatCustomLocationsIsPresentInNginx(t *testing.T) {
@@ -266,10 +254,6 @@ func TestThatCustomLocationsIsPresentInNginx(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(nginxfileData.Locations))
-	assert.Equal(t, "expired no-cache no-store private auth", nginxfileData.Gzip.Proxied)
-	assert.Equal(t, "on", nginxfileData.Gzip.Vary)
-	assert.Equal(t, "msie6", nginxfileData.Gzip.Disable)
-	assert.Equal(t, "1.1", nginxfileData.Gzip.HttpVersion)
 
 	// Test index.html configuration
 	assert.Equal(t, 3, len(nginxfileData.Locations["index.html"].Headers))
@@ -279,10 +263,6 @@ func TestThatCustomLocationsIsPresentInNginx(t *testing.T) {
 
 	assert.NotNil(t, nginxfileData.Locations["index.html"].Gzip)
 	assert.Equal(t, "on", nginxfileData.Locations["index.html"].Gzip.UseStatic)
-	assert.Equal(t, "on", nginxfileData.Locations["index.html"].Gzip.Vary)
-	assert.Equal(t, "", nginxfileData.Locations["index.html"].Gzip.Proxied)
-	assert.Equal(t, "", nginxfileData.Locations["index.html"].Gzip.Disable)
-	assert.Equal(t, "", nginxfileData.Locations["index.html"].Gzip.HttpVersion)
 
 	// Test index_other.html configuration
 	assert.Equal(t, 2, len(nginxfileData.Locations["index_other.html"].Headers))
@@ -298,12 +278,7 @@ func TestThatCustomLocationsIsPresentInNginx(t *testing.T) {
 	assert.Equal(t, "1; mode=block", nginxfileData.Locations["index/other.html"].Headers["X-XSS-Protection"])
 
 	assert.NotNil(t, nginxfileData.Locations["index/other.html"].Gzip)
-	assert.Equal(t, "", nginxfileData.Locations["index/other.html"].Gzip.Use)
-	assert.Equal(t, 0, nginxfileData.Locations["index/other.html"].Gzip.MinLength)
-	assert.Equal(t, "", nginxfileData.Locations["index/other.html"].Gzip.Vary)
-	assert.Equal(t, "", nginxfileData.Locations["index/other.html"].Gzip.Proxied)
-	assert.Equal(t, "", nginxfileData.Locations["index/other.html"].Gzip.Types)
-	assert.Equal(t, "", nginxfileData.Locations["index/other.html"].Gzip.Disable)
+
 }
 
 func TestThatNoCustomLocationsIsPresentInNginx(t *testing.T) {
