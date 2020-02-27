@@ -280,21 +280,26 @@ func buildNginxLocations(locations map[string]interface{}) nginxLocations {
 
 		if val, ok := myMap["gzip"]; ok {
 			gzipMap := val.(map[string]interface{})
-			if val, ok := gzipMap["use"]; ok {
-				gZip.Use = val.(string)
-			}
 
-			if val, ok := gzipMap["useStatic"]; ok {
+			if val, ok := gzipMap["use_static"]; ok {
 				gZip.UseStatic = val.(string)
+				if val, ok := gzipMap["vary"]; ok {
+					gZip.Vary = val.(string)
+				}
+
+				if val, ok := gzipMap["proxied"]; ok {
+					gZip.Proxied = val.(string)
+				}
+
+				if val, ok := gzipMap["disable"]; ok {
+					gZip.Disable = val.(string)
+				}
+
+				if val, ok := gzipMap["http_version"]; ok {
+					gZip.HttpVersion = val.(string)
+				}
 			}
 
-			if val, ok := gzipMap["min_length"]; ok {
-				gZip.MinLength = int(val.(float64))
-			}
-
-			if val, ok := gzipMap["vary"]; ok {
-				gZip.Vary = val.(string)
-			}
 		}
 
 		headersMap := make(map[string]string)
