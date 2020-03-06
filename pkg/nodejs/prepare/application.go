@@ -1,16 +1,17 @@
 package prepare
 
 import (
-	"github.com/Sirupsen/logrus"
+	"regexp"
+	"strings"
+
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/nexus"
-	"github.com/skatteetaten/architect/pkg/process/build"
+	process "github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
-	"regexp"
-	"strings"
 )
 
 /*
@@ -279,17 +280,11 @@ func buildNginxLocations(locations map[string]interface{}) nginxLocations {
 
 		if val, ok := myMap["gzip"]; ok {
 			gzipMap := val.(map[string]interface{})
-			if val, ok := gzipMap["use"]; ok {
-				gZip.Use = val.(string)
+
+			if val, ok := gzipMap["use_static"]; ok {
+				gZip.UseStatic = val.(string)
 			}
 
-			if val, ok := gzipMap["min_length"]; ok {
-				gZip.MinLength = int(val.(float64))
-			}
-
-			if val, ok := gzipMap["vary"]; ok {
-				gZip.Vary = val.(string)
-			}
 		}
 
 		headersMap := make(map[string]string)

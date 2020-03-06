@@ -1,7 +1,7 @@
 package architect
 
 import (
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/nexus"
@@ -9,20 +9,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var noPush bool
+
 func init() {
-	Build.Flags().StringP("fileconfig", "f", "", "Path to file config. If not set, the environment variable BUILD is read")
-	Build.Flags().StringP("skippush", "s", "", "If set, Docker push will not be performed")
-	Build.Flags().BoolVarP(&localRepo, "binary", "b", false, "If set, the Leveransepakke will be fetched from stdin")
+	Build.Flags().StringP("file", "f", "", "Path to the compressed leveransepakke")
+	Build.Flags().StringP("type", "t", "java", "Application type [java, doozer, nodejs]")
+	Build.Flags().StringP("output", "o", "", "Output repository with tag e.g aurora/architect:latest")
+	Build.Flags().StringP("from", "", "", "Base image e.g aurora/wingnut11:latest")
+	Build.Flags().StringP("push-registry", "", "container-registry-internal.aurora.skead.no", "Push registry")
+	Build.Flags().StringP("pull-registry", "", "container-registry-internal-private-pull.aurora.skead.no", "Pull registry")
+	Build.Flags().BoolVarP(&noPush, "no-push", "", false, "If true the image is not pushed")
 	Build.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 }
 
 var Build = &cobra.Command{
-
-	Use:   "build",
-	Short: "Build Docker image from Zip",
-	Long:  `TODO`,
+	Use:   "build --file <file> --from <baseimage:version> --output <repository:tag> --type [java | nodejs | doozer] ",
+	Short: "Build Docker image from binary source",
 	Run: func(cmd *cobra.Command, args []string) {
-		var configReader = config.NewInClusterConfigReader()
+
 		var nexusDownloader nexus.Downloader
 		if verbose {
 			logrus.SetLevel(logrus.DebugLevel)
@@ -30,33 +34,37 @@ var Build = &cobra.Command{
 			logrus.SetLevel(logrus.InfoLevel)
 		}
 
-		if len(cmd.Flag("fileconfig").Value.String()) != 0 {
-			conf := cmd.Flag("fileconfig").Value.String()
-			logrus.Debugf("Using config from %s", conf)
-			configReader = config.NewFileConfigReader(conf)
+		notValid := len(cmd.Flag("file").Value.String()) == 0 ||
+			len(cmd.Flag("output").Value.String()) == 0 ||
+			len(cmd.Flag("from").Value.String()) == 0 ||
+			len(cmd.Flag("type").Value.String()) == 0
+
+		if notValid {
+			err := cmd.Help()
+			if err != nil {
+				panic(err)
+			}
+			return
 		}
 
+		leveransepakke := cmd.Flag("file").Value.String()
+		logrus.Debugf("Building %s", leveransepakke)
+
 		// Read build config
+		var configReader = config.NewCmdConfigReader(cmd, args, noPush)
 		c, err := configReader.ReadConfig()
 		if err != nil {
 			logrus.Fatalf("Could not read configuration: %s", err)
 		}
 
 		var binaryInput string
-		if c.BinaryBuild {
-			binaryInput, err = util.ExtractBinaryFromStdIn()
-			if err != nil {
-				logrus.Fatalf("Could not read binary input: %s", err)
-			}
+
+		binaryInput, err = util.ExtractBinaryFromFile(leveransepakke)
+		if err != nil {
+			logrus.Fatalf("Could not read binary input: %s", err)
 		}
 
-		if c.BinaryBuild {
-			nexusDownloader = nexus.NewBinaryDownloader(binaryInput)
-		} else {
-			mavenRepo := c.NexusAccess.NexusUrl
-			logrus.Debugf("Using Maven repo on %s", mavenRepo)
-			nexusDownloader = nexus.NewNexusDownloader(mavenRepo)
-		}
+		nexusDownloader = nexus.NewBinaryDownloader(binaryInput)
 
 		RunArchitect(RunConfiguration{
 			NexusDownloader:         nexusDownloader,

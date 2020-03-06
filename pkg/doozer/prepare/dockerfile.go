@@ -2,20 +2,28 @@ package prepare
 
 import (
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	global "github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/java/config"
+	"github.com/skatteetaten/architect/pkg/doozer/config"
 	"github.com/skatteetaten/architect/pkg/util"
 	"io"
 )
 
-var radishDockerFileTemplate string = `FROM {{.BaseImage}}
+var dockerFileTemplateBody string = `FROM {{.BaseImage}}
 
 MAINTAINER {{.Maintainer}}
 LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
 
+# temp env hack until standard base image is available
+ENV LANG='en_US.UTF-8' \
+    TZ=Europe/Oslo \
+    HOME=/u01
+
 COPY ./app radish.json $HOME/
+COPY ./app/application/{{.SrcPath}}{{.FileName}} {{.DestPath}}
+
 RUN find $HOME/application -type d -exec chmod 755 {} + && \
 	find $HOME/application -type f -exec chmod 644 {} + && \
 	mkdir -p $HOME/logs && \
@@ -24,26 +32,16 @@ RUN find $HOME/application -type d -exec chmod 755 {} + && \
 
 ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
 `
-
-//TODO: Hack. Remove code later
-var radishTestImageDockerFile string = `FROM {{.BaseImage}}
-
-MAINTAINER {{.Maintainer}}
-LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
-
-COPY ./app radish.json $HOME/
-RUN find $HOME/application -type d -exec chmod 777 {} + && \
-	find $HOME/application -type f -exec chmod 644 {} + && \
-	mkdir -p $HOME/logs && \
-	chmod 777 $HOME/logs && \
-	ln -s $HOME/logs $HOME/application/logs
-
-ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
+var dockerFileTemplateCmd string = `CMD "{{.CmdScript}}"
 `
 
 type DockerfileData struct {
 	BaseImage  string
 	Maintainer string
+	SrcPath    string
+	FileName   string
+	DestPath   string
+	CmdScript  string
 	Labels     map[string]string
 	Env        map[string]string
 }
@@ -73,52 +71,59 @@ func createLabels(meta config.DeliverableMetadata) map[string]string {
 	return labels
 }
 
-// TODO Consider moving this func
 func verifyMetadata(meta config.DeliverableMetadata) error {
 	if meta.Docker == nil {
 		return errors.Errorf("Deliverable metadata does not contain \"Docker\" element")
 	} else if meta.Docker.Maintainer == "" {
 		return errors.Errorf("Deliverable metadata does not contain \"Docker.Maintainer\" element")
 	}
+	if meta.Doozer == nil {
+		return errors.Errorf("Deliverable metadata does not contain \"Doozer\" element")
+	}
 
 	return nil
 }
 
-func NewRadishDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVersion, meta config.DeliverableMetadata,
-	baseImage runtime.DockerImage, imageBuildTime string) util.WriterFunc {
+func NewDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVersion, meta config.DeliverableMetadata,
+	baseImage runtime.DockerImage, imageBuildTime string, destinationPath string) util.WriterFunc {
 	return func(writer io.Writer) error {
-
 		if err := verifyMetadata(meta); err != nil {
 			return err
 		}
 		env := createEnv(auroraVersion, dockerSpec.PushExtraTags, imageBuildTime)
+
+		dockerFileTemplate := dockerFileTemplateBody
+		if meta.Doozer.CmdScript != "" {
+			dockerFileTemplate += dockerFileTemplateCmd
+		}
+
+		var destPath string
+
+		if meta.Doozer.DestPath != "" {
+			destPath = meta.Doozer.DestPath
+			if meta.Doozer.DestPath != "" {
+				logrus.Warnf("The destination path is overridden by provided metadata: %s", meta.Doozer.DestPath)
+			}
+			logrus.Debugf("Using destination path %s  from metadata", destinationPath)
+		} else {
+			destPath = destinationPath
+		}
+
+		if meta.Doozer.FileName != "" {
+			destPath += meta.Doozer.FileName
+		}
+
 		data := &DockerfileData{
 			BaseImage:  baseImage.GetCompleteDockerTagName(),
 			Maintainer: meta.Docker.Maintainer,
+			SrcPath:    meta.Doozer.SrcPath,
+			FileName:   meta.Doozer.FileName,
+			DestPath:   destPath,
+			CmdScript:  meta.Doozer.CmdScript,
 			Labels:     createLabels(meta),
 			Env:        env,
 		}
 
-		return util.NewTemplateWriter(data, "Dockerfile", radishDockerFileTemplate)(writer)
-	}
-}
-
-//TODO: Hack. Remove code later
-func NewRadishTestImageDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVersion, meta config.DeliverableMetadata,
-	baseImage runtime.DockerImage, imageBuildTime string) util.WriterFunc {
-	return func(writer io.Writer) error {
-
-		if err := verifyMetadata(meta); err != nil {
-			return err
-		}
-		env := createEnv(auroraVersion, dockerSpec.PushExtraTags, imageBuildTime)
-		data := &DockerfileData{
-			BaseImage:  baseImage.GetCompleteDockerTagName(),
-			Maintainer: meta.Docker.Maintainer,
-			Labels:     createLabels(meta),
-			Env:        env,
-		}
-
-		return util.NewTemplateWriter(data, "Dockerfile", radishTestImageDockerFile)(writer)
+		return util.NewTemplateWriter(data, "Dockerfile", dockerFileTemplate)(writer)
 	}
 }

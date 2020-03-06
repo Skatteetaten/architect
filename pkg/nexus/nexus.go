@@ -1,8 +1,8 @@
 package nexus
 
 import (
-	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"io"
 	"io/ioutil"
@@ -80,7 +80,7 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 	if err != nil {
 		return deliverable, errors.Wrap(err, "Failed to create resource url")
 	}
-	logrus.Debugf("Downloading artifact from %s", resourceUrl)
+	logrus.Infof("Downloading artifact from %s", resourceUrl)
 
 	httpClient := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -102,7 +102,7 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 		httpResponse, err = httpClient.Do(req)
 		if httpResponse.StatusCode == http.StatusFound {
 			location = httpResponse.Header.Get("Location")
-			logrus.Debugf("Got redirect to location: %s", location)
+			logrus.Infof("Got redirect to location: %s", location)
 			nextURL = location
 			httpResponse.Body.Close()
 		} else if err != nil {

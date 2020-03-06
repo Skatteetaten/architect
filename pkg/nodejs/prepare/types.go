@@ -57,12 +57,7 @@ type nginxLocation struct {
 }
 
 type nginxGzip struct {
-	Use       string `json:"use"`
-	MinLength int    `json:"min_length"`
-	Vary      string `json:"vary"`
-	Proxied   string `json:"proxied"`
-	Types     string `json:"types"`
-	Disable   string `json:"disable"`
+	UseStatic string `json:"use_static"`
 }
 
 type templateInput struct {

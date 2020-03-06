@@ -3,8 +3,8 @@ package process
 import (
 	"context"
 	"encoding/json"
-	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
@@ -95,7 +95,10 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 	for _, buildConfig := range dockerBuildConfig {
 
-		builder.Pull(ctx, buildConfig.Baseimage)
+		err := builder.Pull(ctx, buildConfig.Baseimage)
+		if err != nil {
+			return errors.Wrap(err, "There was an error with the pull operation.")
+		}
 
 		logrus.Info("Docker context ", buildConfig.BuildFolder)
 
@@ -130,6 +133,7 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 		t, _ := tagResolver.GetTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
 		metaTags := make(map[string]string)
 		for i, tag := range tags {
+			logrus.Infof("Tag: %s", tag)
 			err = builder.Tag(ctx, imageid, tag)
 			if err != nil {
 				return errors.Wrapf(err, "Image tag failed")
@@ -137,26 +141,28 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 			metaTags[t[i]] = tag
 		}
 
-		err = builder.Push(ctx, imageid, tags, credentials)
+		if !cfg.NoPush {
+			err = builder.Push(ctx, imageid, tags, credentials)
 
-		imageInfo, err := provider.GetImageInfo(buildConfig.DockerRepository, t[0])
-		if err == nil {
-
-			imageConfig, err := provider.GetImageConfig(buildConfig.DockerRepository, imageInfo.Digest)
+			imageInfo, err := provider.GetImageInfo(buildConfig.DockerRepository, t[0])
 			if err == nil {
-				meta := metadata{
-					ImageName:    buildConfig.DockerRepository,
-					Tags:         metaTags,
-					ImageInfo:    imageConfig,
-					NexusSHA1:    deliverable.SHA1,
-					Dependencies: dependencyMetadata,
-				}
 
-				metameta, err := json.Marshal(meta)
+				imageConfig, err := provider.GetImageConfig(buildConfig.DockerRepository, imageInfo.Digest)
 				if err == nil {
-					tracer.AddImageMetadata("releasedImage", "releasedImage", string(metameta))
-				}
+					meta := metadata{
+						ImageName:    buildConfig.DockerRepository,
+						Tags:         metaTags,
+						ImageInfo:    imageConfig,
+						NexusSHA1:    deliverable.SHA1,
+						Dependencies: dependencyMetadata,
+					}
 
+					metameta, err := json.Marshal(meta)
+					if err == nil {
+						tracer.AddImageMetadata("releasedImage", "releasedImage", string(metameta))
+					}
+
+				}
 			}
 		}
 

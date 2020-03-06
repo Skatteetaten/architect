@@ -1,0 +1,15 @@
+{
+  "docker": {
+    "maintainer": "Aurora OpenShift Utvikling <utvpaas@skatteetaten.no>",
+    "labels": {
+      "io.k8s.description": "Architect build with architect for Openshift.",
+      "io.openshift.tags": "openshift"
+    }
+  },
+  "doozer": {
+    "srcPath": "./",
+    "fileName": "architect",
+    "destPath": "/u01/bin/",
+    "cmdScript": "/u01/bin/architect"
+  }
+}

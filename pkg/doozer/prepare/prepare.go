@@ -1,13 +1,12 @@
 package prepare
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
-	deliverable "github.com/skatteetaten/architect/pkg/java/config"
+	deliverable "github.com/skatteetaten/architect/pkg/doozer/config"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/util"
 	"io"
@@ -15,6 +14,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+)
+
+const (
+	DeliveryMetadataPath = "metadata/openshift.json"
 )
 
 type FileGenerator interface {
@@ -39,37 +42,26 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 	}
 
 	// Load metadata
-	meta, err := loadDeliverableMetadata(filepath.Join(applicationFolder, util.DeliveryMetadataPath))
-
+	metadatafolder := filepath.Join(applicationFolder, DeliveryMetadataPath)
+	logrus.Debugf("metadatafolder: %v", metadatafolder)
+	meta, err := loadDeliverableMetadata(metadatafolder)
+	logrus.Debugf("meta: %v", meta)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to read application metadata")
 	}
 
 	fileWriter := util.NewFileWriter(dockerBuildPath)
 
-	if architecture, exists := baseImage.ImageInfo.Labels["www.skatteetaten.no-imageArchitecture"]; exists && architecture == "java" {
+	logrus.Info("Running radish build (doozer)")
+	if err := fileWriter(newRadishDescriptor(meta, filepath.Join(util.DockerBasedir, util.ApplicationFolder)), "radish.json"); err != nil {
+		return "", errors.Wrap(err, "Unable to create radish descriptor")
+	}
 
-		logrus.Info("Running radish build")
-		if err := fileWriter(newRadishDescriptor(meta, filepath.Join(util.DockerBasedir, util.ApplicationFolder)), "radish.json"); err != nil {
-			return "", errors.Wrap(err, "Unable to create radish descriptor")
-		}
-		if err = fileWriter(NewRadishDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
-			"Dockerfile"); err != nil {
-			return "", errors.Wrap(err, "Failed to create Dockerfile")
-		}
-		//TODO: Hack. Remove code later
-	} else if architecture, exists := baseImage.ImageInfo.Labels["www.skatteetaten.no-imageArchitecture"]; exists && architecture == "java-test" {
-		logrus.Info("Running test image build")
+	destinationPath := baseImage.ImageInfo.Labels["www.skatteetaten.no-destinationPath"]
 
-		if err := fileWriter(newRadishDescriptor(meta, filepath.Join(util.DockerBasedir, util.ApplicationFolder)), "radish.json"); err != nil {
-			return "", errors.Wrap(err, "Unable to create radish descriptor")
-		}
-		if err = fileWriter(NewRadishTestImageDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
-			"Dockerfile"); err != nil {
-			return "", errors.Wrap(err, "Failed to create Dockerfile")
-		}
-	} else {
-		return "", fmt.Errorf("The base image provided does not support radish. Make sure you use the latest version")
+	if err = fileWriter(NewDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp(), destinationPath),
+		"Dockerfile"); err != nil {
+		return "", errors.Wrap(err, "Failed to create Dockerfile")
 	}
 
 	return dockerBuildPath, nil

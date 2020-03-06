@@ -3,9 +3,10 @@ package architect
 import (
 	"context"
 	"fmt"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/docker"
+	"github.com/skatteetaten/architect/pkg/doozer"
 	"github.com/skatteetaten/architect/pkg/java"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/nodejs/prepare"
@@ -55,8 +56,6 @@ func RunArchitect(configuration RunConfiguration) {
 		if err != nil {
 			logrus.Fatal("err", err)
 		}
-
-		logrus.Info("Running docker build")
 	}
 
 	if c.DockerSpec.RetagWith != "" {
@@ -96,10 +95,16 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 	} else if c.ApplicationType == config.NodeJsLeveransepakke {
 		logrus.Info("Perform Webleveranse build")
 		prepper = prepare.Prepper()
+	} else if c.ApplicationType == config.DoozerLeveranse {
+		logrus.Info("Perform Doozerleveranse build")
+		prepper = doozer.Prepper()
 	}
 
-	if c.BinaryBuild && !c.ApplicationSpec.MavenGav.IsSnapshot() {
-		logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
+	if !c.LocalBuild {
+		if c.BinaryBuild && !c.ApplicationSpec.MavenGav.IsSnapshot() {
+			logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
+		}
+
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)

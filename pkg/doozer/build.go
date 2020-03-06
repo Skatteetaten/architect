@@ -1,4 +1,4 @@
-package java
+package doozer
 
 import (
 	"github.com/pkg/errors"
@@ -6,7 +6,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/java/prepare"
+	"github.com/skatteetaten/architect/pkg/doozer/prepare"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/build"
 )

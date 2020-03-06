@@ -4,9 +4,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/image"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"io/ioutil"
 	"net/http"
@@ -141,7 +141,6 @@ func (registry *RegistryClient) GetImageInfo(repository string, tag string) (*ru
 	}
 
 	baseImageVersion, exists := envMap["BASE_IMAGE_VERSION"]
-
 	if !exists {
 		return nil, errors.Errorf("Unable to get BASE_IMAGE_VERSION. %s is not a compatible image", repository)
 	}

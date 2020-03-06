@@ -10,6 +10,9 @@ type ApplicationType string
 const (
 	JavaLeveransepakke   ApplicationType = "JavaLeveransepakke"
 	NodeJsLeveransepakke ApplicationType = "NodeJsLeveranse"
+	DoozerLeveranse      ApplicationType = "DoozerLeveranse"
+	NodeJs                               = "NODEJS"
+	Doozer                               = "DOOZER"
 )
 
 type PackageType string
@@ -22,8 +25,9 @@ const (
 type Classifier string
 
 const (
-	Webleveransepakke Classifier = "Webleveransepakke"
-	Leveransepakke    Classifier = "Leveransepakke"
+	Leveransepakke       Classifier = "Leveransepakke"
+	Webleveransepakke    Classifier = "Webleveransepakke"
+	Doozerleveransepakke Classifier = "Doozerleveransepakke"
 )
 
 const (
@@ -32,15 +36,17 @@ const (
 )
 
 type Config struct {
-	ApplicationType  ApplicationType
-	ApplicationSpec  ApplicationSpec
-	DockerSpec       DockerSpec
-	BuilderSpec      BuilderSpec
-	NexusAccess      NexusAccess
-	BinaryBuild      bool
-	BuildStrategy    string
-	TlsVerify        bool
-	BuildTimeout     time.Duration
+	ApplicationType ApplicationType
+	ApplicationSpec ApplicationSpec
+	DockerSpec      DockerSpec
+	BuilderSpec     BuilderSpec
+	NexusAccess     NexusAccess
+	BinaryBuild     bool
+	LocalBuild      bool
+	BuildStrategy   string
+	TlsVerify       bool
+	BuildTimeout    time.Duration
+	NoPush          bool
 	SporingsContext  string
 	Sporingstjeneste string
 }

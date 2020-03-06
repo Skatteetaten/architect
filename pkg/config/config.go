@@ -3,10 +3,12 @@ package config
 import (
 	"crypto/tls"
 	"encoding/json"
-	"github.com/Sirupsen/logrus"
-	"github.com/docker/docker/reference"
+	"fmt"
+	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config/api"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -28,6 +30,12 @@ type FileConfigReader struct {
 	pathToConfigFile string
 }
 
+type CmdConfigReader struct {
+	NoPush bool
+	Cmd    *cobra.Command
+	Args   []string
+}
+
 const FallbackDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
 
 func NewInClusterConfigReader() ConfigReader {
@@ -36,6 +44,70 @@ func NewInClusterConfigReader() ConfigReader {
 
 func NewFileConfigReader(filepath string) ConfigReader {
 	return &FileConfigReader{pathToConfigFile: filepath}
+}
+
+func NewCmdConfigReader(cmd *cobra.Command, args []string, noPush bool) ConfigReader {
+	return &CmdConfigReader{
+		Cmd:    cmd,
+		Args:   args,
+		NoPush: noPush,
+	}
+}
+
+func (m *CmdConfigReader) ReadConfig() (*Config, error) {
+
+	var applicationType = JavaLeveransepakke
+
+	if len(m.Cmd.Flag("type").Value.String()) != 0 {
+		value := m.Cmd.Flag("type").Value.String()
+		if strings.ToLower(value) == "java" {
+			applicationType = JavaLeveransepakke
+		} else if strings.ToLower(value) == "nodejs" {
+			applicationType = NodeJsLeveransepakke
+		} else if strings.ToLower(value) == "doozer" {
+			applicationType = DoozerLeveranse
+		}
+	}
+
+	fromraw := m.Cmd.Flag("from").Value.String()
+	from := strings.Split(fromraw, ":")
+	if len(from) != 2 {
+		return nil, errors.New("--from: baseimage is malformed: " + fromraw)
+	}
+
+	outputraw := m.Cmd.Flag("output").Value.String()
+	output := strings.Split(outputraw, ":")
+	if len(output) != 2 {
+		return nil, errors.New("--output: repository is malformed: " + outputraw)
+	}
+
+	pushRegistry := m.Cmd.Flag("push-registry").Value.String()
+	pullRegistry := m.Cmd.Flag("pull-registry").Value.String()
+
+	return &Config{
+		NoPush:          m.NoPush,
+		BinaryBuild:     true,
+		LocalBuild:      true,
+		ApplicationType: applicationType,
+		BuildStrategy:   Docker,
+		ApplicationSpec: ApplicationSpec{
+			MavenGav: MavenGav{
+				Version: output[1],
+			},
+			BaseImageSpec: DockerBaseImageSpec{
+				BaseImage:   from[0],
+				BaseVersion: from[1],
+			},
+		},
+		DockerSpec: DockerSpec{
+			InternalPullRegistry: fmt.Sprintf("https://%s:443", pullRegistry),
+			OutputRegistry:       pushRegistry,
+			OutputRepository:     output[0],
+			TagWith:              output[1],
+		},
+		BuildTimeout: 900,
+	}, nil
+
 }
 
 func (m *FileConfigReader) ReadConfig() (*Config, error) {
@@ -75,8 +147,10 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 
 	var applicationType ApplicationType = JavaLeveransepakke
 	if appType, err := findEnv(env, "APPLICATION_TYPE"); err == nil {
-		if strings.ToUpper(appType) == "NODEJS" {
+		if strings.ToUpper(appType) == NodeJs {
 			applicationType = NodeJsLeveransepakke
+		} else if strings.ToUpper(appType) == Doozer {
+			applicationType = DoozerLeveranse
 		}
 	}
 
@@ -117,33 +191,24 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
+	// TODO: Remove when Nexus 2 server is no more
 	nexusAccess := NexusAccess{
 		NexusUrl: "https://aurora/nexus/service/local/artifact/maven/content",
 	}
-	secretMountPath := "/u01/nexus"
-	//for _, secret := range customStrategy.Secrets {
-	//	logrus.Debugf("Found secret %s", secret.SecretSource.Name)
-	//	if secret.SecretSource.Name == "jenkins-slave-nexus" {
-	//		secretMountPath = secret.MountPath
-	//	}
-	//}
-	if secretMountPath != "" {
-		var secretPath = secretMountPath + "/nexus.json"
-		jsonFile, err := ioutil.ReadFile(secretPath)
-		if err == nil {
-			var data map[string]interface{}
-			err := json.Unmarshal(jsonFile, &data)
-			if err != nil {
-				return nil, errors.Wrapf(err, "Could not parse %s. Must be correct json when specified.", secretPath)
-			}
-			nexusAccess.NexusUrl = data["nexusUrl"].(string)
-			nexusAccess.Username = data["username"].(string)
-			nexusAccess.Password = data["password"].(string)
-		} else {
-			logrus.Warnf("Could not read nexus config at %s, error: %s", secretPath, err)
+
+	secretPath := "/u01/nexus/nexus.json"
+	jsonFile, err := ioutil.ReadFile(secretPath)
+	if err == nil {
+		var data map[string]interface{}
+		err := json.Unmarshal(jsonFile, &data)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Could not parse %s. Must be correct json when specified.", secretPath)
 		}
+		nexusAccess.NexusUrl = data["nexusUrl"].(string)
+		nexusAccess.Username = data["username"].(string)
+		nexusAccess.Password = data["password"].(string)
 	} else {
-		logrus.Warnf("Found no nexus secret")
+		logrus.Warnf("Could not read nexus config at %s, error: %s", secretPath, err)
 	}
 
 	var buildTimeout time.Duration = 900
@@ -175,11 +240,13 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	} else {
 		if applicationType == JavaLeveransepakke {
 			applicationSpec.MavenGav.Classifier = Leveransepakke
-		} else {
+		} else if applicationType == NodeJsLeveransepakke {
 			applicationSpec.MavenGav.Classifier = Webleveransepakke
+		} else {
+			applicationSpec.MavenGav.Classifier = Doozerleveransepakke
 		}
 	}
-	if applicationType == JavaLeveransepakke {
+	if applicationType == JavaLeveransepakke || applicationType == DoozerLeveranse {
 		applicationSpec.MavenGav.Type = ZipPackaging
 	} else {
 		applicationSpec.MavenGav.Type = TgzPackaging
@@ -409,11 +476,15 @@ func findBaseImage(env map[string]string) (DockerBaseImageSpec, error) {
 }
 
 func findOutputRepository(dockerName string) (string, error) {
-	name, err := reference.ParseNamed(dockerName)
+
+	name, err := reference.ParseNormalizedNamed(dockerName)
+
+	//name, err := reference.ParseNamed(dockerName)
 	if err != nil {
 		return "", errors.Wrap(err, "Error parsing docker registry reference")
-	}
-	return name.RemoteName(), nil
+	
+
+	return reference.Path(name), nil
 
 }
 
@@ -422,7 +493,7 @@ func findOutputRegistry(dockerName string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "Error parsing docker registry reference")
 	}
-	return name.Hostname(), nil
+	return reference.Domain(name), nil
 }
 
 func findOutputTag(dockerName string) (string, error) {

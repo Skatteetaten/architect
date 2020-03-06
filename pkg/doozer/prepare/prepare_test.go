@@ -3,7 +3,7 @@ package prepare_test
 import (
 	global "github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
-	"github.com/skatteetaten/architect/pkg/java/prepare"
+	"github.com/skatteetaten/architect/pkg/doozer/prepare"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/stretchr/testify/assert"
@@ -14,13 +14,13 @@ import (
 
 func TestPrepare(t *testing.T) {
 	auroraVersions := runtime.NewAuroraVersion(
-		"2.0.0",
+		"0.0.1",
 		true,
-		"2.0.0",
-		"2.0.0-b1.11.0-oracle8-1.0.2")
+		"0.0.1",
+		"0.0.1-b1.11.0-oracle8-1.0.2")
 
 	dockerBuildPath, err := prepare.Prepare(global.DockerSpec{}, auroraVersions,
-		nexus.Deliverable{Path: "testdata/minarch-1.2.22-Leveransepakke.zip"},
+		nexus.Deliverable{Path: "testdata/test-war-0.0.1-SNAPSHOT-DoozerLeveranse.zip"},
 		runtime.BaseImage{
 			DockerImage: runtime.DockerImage{
 				Repository: "test",
@@ -29,7 +29,7 @@ func TestPrepare(t *testing.T) {
 			ImageInfo: &runtime.ImageInfo{
 				CompleteBaseImageVersion: "hei",
 				Enviroment:               make(map[string]string),
-				Labels:                   map[string]string{"www.skatteetaten.no-imageArchitecture": "java"},
+				Labels:                   make(map[string]string),
 			},
 		})
 
@@ -38,10 +38,6 @@ func TestPrepare(t *testing.T) {
 	// Dockerfile
 	filePath := filepath.Join(dockerBuildPath, "Dockerfile")
 	fileExists, err := util.Exists(filePath)
-
-	//radish
-	filePath = filepath.Join(dockerBuildPath, "radish.json")
-	fileExists, err = util.Exists(filePath)
 
 	if err != nil {
 		t.Error(err)
