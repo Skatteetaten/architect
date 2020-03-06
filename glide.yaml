@@ -28,3 +28,4 @@ import:
   version: v2.0.1
 - package: github.com/cpuguy83/go-md2man
   version: v1.0.10
+- package: github.com/openshift/api

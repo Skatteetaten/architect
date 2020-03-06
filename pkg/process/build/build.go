@@ -2,7 +2,6 @@ package process
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
@@ -21,6 +20,8 @@ type Builder interface {
 }
 
 type metadata struct {
+	ImageType    string `json:"type,omitempty"`
+	Kind         string `json:"kind,omitempty"`
 	ImageName    string
 	ImageInfo    map[string]interface{}
 	Tags         map[string]string
@@ -29,7 +30,13 @@ type metadata struct {
 }
 
 func Build(ctx context.Context, credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
-	tracer := trace.NewTracer(cfg.Sporingstjeneste, cfg.SporingsContext)
+	sporingscontext := cfg.SporingsContext
+	if sporingscontext == "" {
+		logrus.Infof("Use Context %s from the build definition", cfg.OwnerReferenceUid)
+		sporingscontext = cfg.OwnerReferenceUid
+	}
+	tracer := trace.NewTracer(cfg.Sporingstjeneste, sporingscontext)
+
 	logrus.Debugf("Download deliverable for GAV %-v", cfg.ApplicationSpec)
 	deliverable, err := downloader.DownloadArtifact(&cfg.ApplicationSpec.MavenGav, &cfg.NexusAccess)
 	if err != nil {
@@ -46,10 +53,15 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 	baseImageConfig, err := provider.GetImageConfig(application.BaseImageSpec.BaseImage, imageInfo.Digest)
 	if err == nil {
-		d, err := json.Marshal(baseImageConfig)
-		if err == nil {
-			tracer.AddImageMetadata("baseImage", "image", string(d))
-		}
+		baseImageConfig["type"] = "image"
+		baseImageConfig["kind"] = "baseImage"
+		baseImageConfig["name"] = application.BaseImageSpec.BaseImage
+		baseImageConfig["version"] = application.BaseImageSpec.BaseVersion
+		logrus.Debugf("Pushing trace data %v", baseImageConfig)
+		tracer.AddImageMetadata(baseImageConfig)
+	} else {
+		logrus.Warnf("Unable to find information about %s:%s. Got error: %s", application.BaseImageSpec.BaseImage,
+			application.BaseImageSpec.BaseVersion, err)
 	}
 
 	completeBaseImageVersion := imageInfo.CompleteBaseImageVersion
@@ -130,7 +142,7 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 		tags, err := tagResolver.ResolveTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
 		logrus.Debugf("Tag image %s with %s", imageid, tags)
-		t, _ := tagResolver.GetTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
+		t, _ := tagResolver.ResolveShortTag(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
 		metaTags := make(map[string]string)
 		for i, tag := range tags {
 			logrus.Infof("Tag: %s", tag)
@@ -146,23 +158,29 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 			imageInfo, err := provider.GetImageInfo(buildConfig.DockerRepository, t[0])
 			if err == nil {
-
 				imageConfig, err := provider.GetImageConfig(buildConfig.DockerRepository, imageInfo.Digest)
 				if err == nil {
-					meta := metadata{
+					imageConfig["type"] = "image"
+				}
+				//Nexus uses sha1 digests on artifacts
+				if err == nil {
+					payload := metadata{
+						ImageType:    "deployableImage",
+						Kind:         "deployableImage",
 						ImageName:    buildConfig.DockerRepository,
 						Tags:         metaTags,
 						ImageInfo:    imageConfig,
 						NexusSHA1:    deliverable.SHA1,
 						Dependencies: dependencyMetadata,
 					}
-
-					metameta, err := json.Marshal(meta)
-					if err == nil {
-						tracer.AddImageMetadata("releasedImage", "releasedImage", string(metameta))
-					}
-
+					tracer.AddImageMetadata(payload)
+				} else {
+					logrus.Warnf("Unable to find information about %s:%s. Got error: %s",
+						buildConfig.DockerRepository, imageInfo.Digest, err)
 				}
+			} else {
+				logrus.Warnf("Unable to find information about %s:%s. Got error: %s",
+					buildConfig.DockerRepository, t[0], err)
 			}
 		}
 

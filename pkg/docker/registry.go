@@ -87,7 +87,6 @@ func (registry *RegistryClient) GetImageConfig(repository string, digest string)
 	if err != nil {
 		return nil, err
 	}
-	result["type"] = "image"
 
 	return result, nil
 }

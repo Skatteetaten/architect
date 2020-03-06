@@ -2,8 +2,11 @@ package trace
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"github.com/sirupsen/logrus"
 	"net/http"
+	"time"
 )
 
 func NewTracer(sporingsUrl string, context string) *Tracer {
@@ -20,29 +23,28 @@ type Tracer struct {
 	enabled bool
 }
 
-func (t *Tracer) AddImageMetadata(kind string, imageType string, data string) {
+func (t *Tracer) AddImageMetadata(data interface{}) {
 	if t.enabled {
-		var x map[string]interface{}
-		err := json.Unmarshal([]byte(data), &x)
+		ctx := context.Background()
+		timeoutIn := time.Now().Add(30 * time.Millisecond)
+		context.WithDeadline(ctx, timeoutIn)
+
+		d, err := json.Marshal(data)
 		if err != nil {
+			logrus.Warnf("Unable to unmarshal image metadata. Got error %s", err)
 			return
 		}
-		x["type"] = imageType
-		x["kind"] = kind
-		d, err := json.Marshal(x)
-		if err != nil {
-			return
-		}
-		t.send(string(d))
+		t.send(ctx, string(d))
 	}
 }
 
-func (t *Tracer) send(jsonStr string) {
+func (t *Tracer) send(ctx context.Context, jsonStr string) {
 	uri := t.url + "/api/v1/trace/" + t.context
 
 	if t.enabled {
-		req, err := http.NewRequest("POST", uri, bytes.NewBuffer([]byte(jsonStr)))
+		req, err := http.NewRequestWithContext(ctx, "POST", uri, bytes.NewBuffer([]byte(jsonStr)))
 		if err != nil {
+			logrus.Warnf("Unable to create request: %s", err)
 			return
 		}
 		req.Header.Set("Content-Type", "application/json")
@@ -50,6 +52,7 @@ func (t *Tracer) send(jsonStr string) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
+			logrus.Warnf("Request failed: %s", err)
 			return
 		}
 		defer resp.Body.Close()

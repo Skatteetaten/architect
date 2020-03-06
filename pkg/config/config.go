@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/docker/distribution/reference"
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/skatteetaten/architect/pkg/config/api"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"net"
@@ -130,7 +130,8 @@ func (m *InClusterConfigReader) ReadConfig() (*Config, error) {
 }
 
 func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, error) {
-	build := api.Build{}
+	build := buildv1.Build{}
+
 	err := json.Unmarshal(buildConfig, &build)
 	if err != nil {
 		return nil, err
@@ -170,7 +171,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 
 	var sporingstjeneste = ""
-	if value, err := findEnv(env, "SPORINGSTJENESTE"); err == nil {
+	if value, err := findEnv(env, "SPORINGSTJENESTE"); err == nil && value != "" {
 		logrus.Debugf("Sporingstjeneste: %s", value)
 		sporingstjeneste = value
 	}
@@ -397,17 +398,18 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 	logrus.Debugf("Pushing to %s/%s:%s", dockerSpec.OutputRegistry, dockerSpec.OutputRepository, dockerSpec.TagWith)
 	c := &Config{
-		ApplicationType:  applicationType,
-		ApplicationSpec:  applicationSpec,
-		DockerSpec:       dockerSpec,
-		BuilderSpec:      builderSpec,
-		NexusAccess:      nexusAccess,
-		BinaryBuild:      build.Spec.Source.Type == api.BuildSourceBinary,
-		BuildStrategy:    buildStrategy,
-		TlsVerify:        tlsVerify,
-		BuildTimeout:     buildTimeout,
-		SporingsContext:  sporingscontext,
-		Sporingstjeneste: sporingstjeneste,
+		ApplicationType:   applicationType,
+		ApplicationSpec:   applicationSpec,
+		DockerSpec:        dockerSpec,
+		BuilderSpec:       builderSpec,
+		NexusAccess:       nexusAccess,
+		BinaryBuild:       build.Spec.Source.Type == buildv1.BuildSourceBinary,
+		BuildStrategy:     buildStrategy,
+		TlsVerify:         tlsVerify,
+		BuildTimeout:      buildTimeout,
+		SporingsContext:   sporingscontext,
+		Sporingstjeneste:  sporingstjeneste,
+		OwnerReferenceUid: string(build.UID),
 	}
 	return c, nil
 }
@@ -482,7 +484,7 @@ func findOutputRepository(dockerName string) (string, error) {
 	//name, err := reference.ParseNamed(dockerName)
 	if err != nil {
 		return "", errors.Wrap(err, "Error parsing docker registry reference")
-	
+	}
 
 	return reference.Path(name), nil
 

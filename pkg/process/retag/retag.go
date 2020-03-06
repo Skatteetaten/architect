@@ -98,7 +98,7 @@ func (m *retagger) Retag(ctx context.Context) error {
 		Tag:        m.Config.DockerSpec.RetagWith,
 	}
 
-	tags, err := t.ResolveTags(appVersion, pushExtraTags)
+	tagsToPush, err := t.ResolveTags(appVersion, pushExtraTags)
 
 	if err != nil {
 		return err
@@ -115,8 +115,8 @@ func (m *retagger) Retag(ctx context.Context) error {
 		return errors.Wrapf(err, "Failed to pull image: %v", pull)
 	}
 	sourceTag := pull.GetCompleteDockerTagName()
-	logrus.Debugf("Retagging temporary image, versionTags=%-v", tags)
-	for _, tag := range tags {
+	logrus.Debugf("Retagging temporary image, versionTags=%-v", tagsToPush)
+	for _, tag := range tagsToPush {
 		logrus.Infof("Tag image %s with alias %s", sourceTag, tag)
 		err := m.Builder.Tag(ctx, sourceTag, tag)
 		if err != nil {
@@ -124,7 +124,7 @@ func (m *retagger) Retag(ctx context.Context) error {
 		}
 	}
 
-	err = m.Builder.Push(ctx, sourceTag, tags, m.Credentials)
+	err = m.Builder.Push(ctx, sourceTag, tagsToPush, m.Credentials)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to push tag %s", tag)
 	}

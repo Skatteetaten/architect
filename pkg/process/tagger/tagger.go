@@ -16,7 +16,7 @@ import (
 
 type TagResolver interface {
 	ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error)
-	GetTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error)
+	ResolveShortTag(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error)
 }
 
 type SingleTagTagResolver struct {
@@ -29,7 +29,7 @@ func (m *SingleTagTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pu
 	return docker.CreateImageNameFromSpecAndTags([]string{m.Tag}, m.Registry, m.Repository), nil
 }
 
-func (m *SingleTagTagResolver) GetTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
+func (m *SingleTagTagResolver) ResolveShortTag(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
 	return []string{m.Tag}, nil
 }
 
@@ -49,7 +49,7 @@ func (m *NormalTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushE
 	return docker.CreateImageNameFromSpecAndTags(tags, m.Registry, m.Repository), nil
 }
 
-func (m *NormalTagResolver) GetTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
+func (m *NormalTagResolver) ResolveShortTag(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
 	tags, err := findCandidateTags(appVersion, m.Overwrite, m.Repository, pushExtratags, m.Provider)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func findCandidateTags(appVersion *runtime.AuroraVersion, tagOverwrite bool, out
 
 		tagsInRepo, err := provider.GetTags(outputRepository)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Error in GetTags, repository=%s", outputRepository)
+			return nil, errors.Wrapf(err, "Error in ResolveShortTag, repository=%s", outputRepository)
 		}
 		logrus.Debug("Tags in repository ", tagsInRepo.Tags)
 		repositoryTags = tagsInRepo.Tags

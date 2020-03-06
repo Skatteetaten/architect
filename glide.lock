@@ -1,5 +1,5 @@
-hash: cec5ea0a4d96652e0c3ba76d6162de28c1407c493e7b3418385310fda07986be
-updated: 2020-02-12T15:39:17.947894256+01:00
+hash: 03fec5952b203ed1402ee8331251cae043b4ff1c1fb7550296033902e2d02316
+updated: 2020-03-09T12:05:47.1737624+01:00
 imports:
 - name: github.com/containerd/containerd
   version: cbf3ee0e22635920adc221b7bf570cd82ab7bab9
@@ -129,6 +129,8 @@ imports:
   version: 39c287c415bf86fb5b7506528d471db5405f8ca8
   subpackages:
   - specs-go
+- name: github.com/openshift/api
+  version: e5737622441f37ae3fe6a287effbf802fa4ba567
 - name: github.com/pkg/errors
   version: ba968bfe8b2f7e042a574c888954fccecfa385b4
 - name: github.com/russross/blackfriday
