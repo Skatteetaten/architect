@@ -31,3 +31,4 @@ dockerbuild/
 binary
 .go
 .vscode
+run/

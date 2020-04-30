@@ -10,6 +10,7 @@ type ImageInfo struct {
 	CompleteBaseImageVersion string
 	Labels                   map[string]string
 	Enviroment               map[string]string
+	Digest                   string
 }
 
 type BaseImage struct {

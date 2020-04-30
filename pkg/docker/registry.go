@@ -17,6 +17,7 @@ import (
 type ImageInfoProvider interface {
 	GetImageInfo(repository string, tag string) (*runtime.ImageInfo, error)
 	GetTags(repository string) (*TagsAPIResponse, error)
+	GetImageConfig(repository string, digest string) (map[string]interface{}, error)
 }
 
 type Manifest struct {
@@ -72,6 +73,22 @@ func (registry *RegistryClient) getRegistryBlob(repository string, digestID stri
 		return nil, errors.Wrapf(err, "Failed in getRegistryBlob for request url %s and header %s", url, mHeader)
 	}
 	return body, nil
+}
+
+func (registry *RegistryClient) GetImageConfig(repository string, digest string) (map[string]interface{}, error) {
+	var result map[string]interface{}
+
+	data, err := registry.getRegistryBlob(repository, digest)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(data, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (registry *RegistryClient) GetImageInfo(repository string, tag string) (*runtime.ImageInfo, error) {
@@ -131,6 +148,7 @@ func (registry *RegistryClient) GetImageInfo(repository string, tag string) (*ru
 		Labels:                   v1Image.Config.Labels,
 		Enviroment:               envMap,
 		CompleteBaseImageVersion: baseImageVersion,
+		Digest:                   manifestMeta.Config.Digest,
 	}, nil
 }
 

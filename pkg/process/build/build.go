@@ -9,6 +9,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/tagger"
+	"github.com/skatteetaten/architect/pkg/trace"
 )
 
 type Builder interface {
@@ -18,7 +19,23 @@ type Builder interface {
 	Pull(ctx context.Context, image runtime.DockerImage) error
 }
 
+type metadata struct {
+	ImageType    string `json:"type,omitempty"`
+	Kind         string `json:"kind,omitempty"`
+	ImageName    string
+	ImageInfo    map[string]interface{}
+	Tags         map[string]string
+	NexusSHA1    string
+	Dependencies []nexus.Dependency
+}
+
 func Build(ctx context.Context, credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
+	sporingscontext := cfg.SporingsContext
+	if sporingscontext == "" {
+		logrus.Infof("Use Context %s from the build definition", cfg.OwnerReferenceUid)
+		sporingscontext = cfg.OwnerReferenceUid
+	}
+	tracer := trace.NewTracer(cfg.Sporingstjeneste, sporingscontext)
 
 	logrus.Debugf("Download deliverable for GAV %-v", cfg.ApplicationSpec)
 	deliverable, err := downloader.DownloadArtifact(&cfg.ApplicationSpec.MavenGav, &cfg.NexusAccess)
@@ -32,6 +49,19 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 		application.BaseImageSpec.BaseVersion)
 	if err != nil {
 		return errors.Wrap(err, "Unable to get the complete build version")
+	}
+
+	baseImageConfig, err := provider.GetImageConfig(application.BaseImageSpec.BaseImage, imageInfo.Digest)
+	if err == nil {
+		baseImageConfig["type"] = "image"
+		baseImageConfig["kind"] = "baseImage"
+		baseImageConfig["name"] = application.BaseImageSpec.BaseImage
+		baseImageConfig["version"] = application.BaseImageSpec.BaseVersion
+		logrus.Debugf("Pushing trace data %v", baseImageConfig)
+		tracer.AddImageMetadata(baseImageConfig)
+	} else {
+		logrus.Warnf("Unable to find information about %s:%s. Got error: %s", application.BaseImageSpec.BaseImage,
+			application.BaseImageSpec.BaseVersion, err)
 	}
 
 	completeBaseImageVersion := imageInfo.CompleteBaseImageVersion
@@ -84,6 +114,8 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 		logrus.Info("Docker context ", buildConfig.BuildFolder)
 
+		dependencyMetadata, _ := nexus.ExtractDependecyMetadata(buildConfig.BuildFolder)
+
 		imageid, err := builder.Build(ctx, buildConfig.BuildFolder)
 
 		if err != nil {
@@ -110,19 +142,49 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 		tags, err := tagResolver.ResolveTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
 		logrus.Debugf("Tag image %s with %s", imageid, tags)
-
-		for _, tag := range tags {
+		t, _ := tagResolver.ResolveShortTag(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
+		metaTags := make(map[string]string)
+		for i, tag := range tags {
 			logrus.Infof("Tag: %s", tag)
 			err = builder.Tag(ctx, imageid, tag)
 			if err != nil {
 				return errors.Wrapf(err, "Image tag failed")
 			}
+			metaTags[t[i]] = tag
 		}
 
 		if !cfg.NoPush {
-			return builder.Push(ctx, imageid, tags, credentials)
+			err = builder.Push(ctx, imageid, tags, credentials)
+
+			imageInfo, err := provider.GetImageInfo(buildConfig.DockerRepository, t[0])
+			if err == nil {
+				imageConfig, err := provider.GetImageConfig(buildConfig.DockerRepository, imageInfo.Digest)
+				if err == nil {
+					imageConfig["type"] = "image"
+				}
+				//Nexus uses sha1 digests on artifacts
+				if err == nil {
+					payload := metadata{
+						ImageType:    "deployableImage",
+						Kind:         "deployableImage",
+						ImageName:    buildConfig.DockerRepository,
+						Tags:         metaTags,
+						ImageInfo:    imageConfig,
+						NexusSHA1:    deliverable.SHA1,
+						Dependencies: dependencyMetadata,
+					}
+					tracer.AddImageMetadata(payload)
+				} else {
+					logrus.Warnf("Unable to find information about %s:%s. Got error: %s",
+						buildConfig.DockerRepository, imageInfo.Digest, err)
+				}
+			} else {
+				logrus.Warnf("Unable to find information about %s:%s. Got error: %s",
+					buildConfig.DockerRepository, t[0], err)
+			}
 		}
 
+		return err
 	}
 	return nil
 }
