@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"crypto/sha256"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -78,7 +79,18 @@ func (registry *RegistryClient) getRegistryBlob(repository string, digestID stri
 func (registry *RegistryClient) GetImageConfig(repository string, digest string) (map[string]interface{}, error) {
 	var result map[string]interface{}
 
-	data, err := registry.getRegistryBlob(repository, digest)
+	manifest, err := registry.getRegistryManifest(repository, digest)
+	if err != nil {
+		return nil, err
+	}
+
+	manifestStruct := &Manifest{}
+	err = json.Unmarshal(manifest, &manifestStruct)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := registry.getRegistryBlob(repository, manifestStruct.Config.Digest)
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +109,8 @@ func (registry *RegistryClient) GetImageInfo(repository string, tag string) (*ru
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to read manifest for repository %s, tag %s from Docker registry %s", repository, tag, registry.address)
 	}
+
+	manifestDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(body))
 
 	manifestMeta := &Manifest{}
 	err = json.Unmarshal(body, &manifestMeta)
@@ -148,7 +162,7 @@ func (registry *RegistryClient) GetImageInfo(repository string, tag string) (*ru
 		Labels:                   v1Image.Config.Labels,
 		Enviroment:               envMap,
 		CompleteBaseImageVersion: baseImageVersion,
-		Digest:                   manifestMeta.Config.Digest,
+		Digest:                   manifestDigest,
 	}, nil
 }
 
