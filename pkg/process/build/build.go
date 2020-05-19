@@ -148,14 +148,13 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 		if !cfg.NoPush {
 			err = builder.Push(ctx, imageid, tags, credentials)
-
 			manifest, err := provider.GetImageInfo(buildConfig.DockerRepository, t[0])
 			if err == nil {
 				imageConfig, err := provider.GetImageConfig(buildConfig.DockerRepository, manifest.Digest)
 				if err == nil {
 					payload := trace.DeployableImage{
 						Type:         "deployableImage",
-						Digest:       imageInfo.Digest,
+						Digest:       manifest.Digest,
 						Name:         buildConfig.DockerRepository,
 						Tags:         metaTags,
 						ImageConfig:  imageConfig,
