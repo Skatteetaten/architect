@@ -84,6 +84,10 @@ func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 	pushRegistry := m.Cmd.Flag("push-registry").Value.String()
 	pullRegistry := m.Cmd.Flag("pull-registry").Value.String()
 
+	if !strings.Contains(pullRegistry, "http") {
+		pullRegistry = fmt.Sprintf("https://%s:443", pullRegistry)
+	}
+
 	return &Config{
 		NoPush:          m.NoPush,
 		BinaryBuild:     true,
@@ -100,10 +104,11 @@ func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 			},
 		},
 		DockerSpec: DockerSpec{
-			InternalPullRegistry: fmt.Sprintf("https://%s:443", pullRegistry),
-			OutputRegistry:       pushRegistry,
-			OutputRepository:     output[0],
-			TagWith:              output[1],
+			ExternalDockerRegistry: pushRegistry,
+			InternalPullRegistry:   pullRegistry,
+			OutputRegistry:         pushRegistry,
+			OutputRepository:       output[0],
+			TagWith:                output[1],
 		},
 		BuildTimeout: 900,
 	}, nil

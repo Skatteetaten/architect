@@ -53,6 +53,10 @@ var Build = &cobra.Command{
 		// Read build config
 		var configReader = config.NewCmdConfigReader(cmd, args, noPush)
 		c, err := configReader.ReadConfig()
+
+		//TODO: Used for manuell testing
+
+		c.BuildStrategy = "Layer"
 		if err != nil {
 			logrus.Fatalf("Could not read configuration: %s", err)
 		}

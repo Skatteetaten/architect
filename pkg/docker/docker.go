@@ -31,6 +31,10 @@ type DockerBuildConfig struct {
 	DockerRepository string ///TODO: Refactor? We need to have to different for nodejs
 	BuildFolder      string
 	Baseimage        runtime.DockerImage //We need to pull the newest image...
+	OutputRegistry   string
+	Env              map[string]string
+	Labels           map[string]string
+	Cmd              []string
 }
 
 type DockerClient struct {

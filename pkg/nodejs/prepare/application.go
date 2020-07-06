@@ -39,6 +39,10 @@ func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
 		baseImage runtime.BaseImage) ([]docker.DockerBuildConfig, error) {
 
+		if strings.ToLower(cfg.BuildStrategy) == config.Layer {
+			return nil, errors.New("Nodejs layer build not supported")
+		}
+
 		preparedImages, err := prepare(*cfg, auroraVersion, deliverable, baseImage)
 		if err != nil {
 			return nil, err

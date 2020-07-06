@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"os"
 	"os/exec"
@@ -15,7 +14,7 @@ type BuildahCmd struct {
 	TlsVerify bool
 }
 
-func (b *BuildahCmd) Build(ctx context.Context, buildFolder string) (string, error) {
+func (b *BuildahCmd) Build(ctx context.Context, buildConfig docker.DockerBuildConfig) (*BuildOutput, error) {
 
 	type responseAndError struct {
 		uuid string
@@ -24,14 +23,14 @@ func (b *BuildahCmd) Build(ctx context.Context, buildFolder string) (string, err
 	result := make(chan responseAndError, 1)
 
 	go func() {
-		buildContext := buildFolder + "/Dockerfile"
+		buildContext := buildConfig.BuildFolder + "/Dockerfile"
 		ruuid, err := uuid.NewUUID()
 		if err != nil {
 			result <- responseAndError{"", errors.Wrap(err, "UUID generation failed")}
 		}
 		build := exec.Command("buildah", "--storage-driver", "vfs", "bud", "--quiet",
 			"--tls-verify="+strconv.FormatBool(b.TlsVerify), "--isolation", "chroot", "-t", ruuid.String(),
-			"-f", buildContext, buildFolder)
+			"-f", buildContext, buildConfig.BuildFolder)
 
 		build.Stdout = os.Stdout
 		build.Stderr = os.Stderr
@@ -41,18 +40,19 @@ func (b *BuildahCmd) Build(ctx context.Context, buildFolder string) (string, err
 	select {
 	case <-ctx.Done():
 		<-result //Wait for function
-		return "", errors.Wrap(ctx.Err(), "Buildah push operation timed out")
+		return nil, errors.Wrap(ctx.Err(), "Buildah push operation timed out")
 	case r := <-result:
-		return r.uuid, r.err
+		return &BuildOutput{ImageId: r.uuid}, r.err
 	}
 }
 
-func (b *BuildahCmd) Pull(ctx context.Context, image runtime.DockerImage) error {
+func (b *BuildahCmd) Pull(ctx context.Context, buildConfig docker.DockerBuildConfig) error {
 	//Buildah dont require this method as long as we don't cache
 	return nil
 }
 
-func (b *BuildahCmd) Push(ctx context.Context, ruuid string, tags []string, credentials *docker.RegistryCredentials) error {
+func (b *BuildahCmd) Push(ctx context.Context, buildOutput *BuildOutput, tags []string, credentials *docker.RegistryCredentials) error {
+	imageid := buildOutput.ImageId
 	c := make(chan error)
 	go func() {
 		var err error
@@ -64,10 +64,10 @@ func (b *BuildahCmd) Push(ctx context.Context, ruuid string, tags []string, cred
 			var cmd *exec.Cmd
 			if credentials != nil {
 				cmd = exec.Command("buildah", "--storage-driver", "vfs", "push", "--quiet",
-					"--tls-verify="+strconv.FormatBool(b.TlsVerify), creds, ruuid, tag)
+					"--tls-verify="+strconv.FormatBool(b.TlsVerify), creds, imageid, tag)
 			} else {
 				cmd = exec.Command("buildah", "--storage-driver", "vfs", "push", "--quiet",
-					"--tls-verify="+strconv.FormatBool(b.TlsVerify), ruuid, tag)
+					"--tls-verify="+strconv.FormatBool(b.TlsVerify), imageid, tag)
 			}
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
@@ -83,14 +83,13 @@ func (b *BuildahCmd) Push(ctx context.Context, ruuid string, tags []string, cred
 	case err := <-c:
 		return err
 	}
-
 }
 
-func (b *BuildahCmd) Tag(ctx context.Context, ruuid string, tag string) error {
+func (b *BuildahCmd) Tag(ctx context.Context, buildOutput *BuildOutput, tag string) error {
 	c := make(chan error, 1)
-
+	imageid := buildOutput.ImageId
 	go func() {
-		cmd := exec.Command("buildah", "--storage-driver", "vfs", "tag", ruuid, tag)
+		cmd := exec.Command("buildah", "--storage-driver", "vfs", "tag", imageid, tag)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		c <- cmd.Run()

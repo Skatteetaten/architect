@@ -12,6 +12,7 @@ import (
 
 const repository = "aurora/flange"
 const tag = "8"
+const digest = "sha256:b6a7c668428ff9347ef5c4f8736e8b7f38696dc6acc74409627d360752017fcc"
 
 func TestGetManifestEnvSchemaV1(t *testing.T) {
 	expectedVersion := "1.7.0"
@@ -20,7 +21,7 @@ func TestGetManifestEnvSchemaV1(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL)
+	target := NewRegistryClient(server.URL, server.URL, nil)
 	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
 
@@ -35,7 +36,7 @@ func TestGetCompleteBaseImageVersionSchemaV1(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL)
+	target := NewRegistryClient(server.URL, server.URL, nil)
 	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, imageInfo.CompleteBaseImageVersion)
@@ -48,7 +49,7 @@ func TestGetManifestEnvMapSchemaV1(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL)
+	target := NewRegistryClient(server.URL, server.URL, nil)
 	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
 
@@ -63,7 +64,7 @@ func TestGetManifestEnvSchemaV2(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL)
+	target := NewRegistryClient(server.URL, server.URL, nil)
 	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
 
@@ -78,10 +79,32 @@ func TestGetCompleteBaseImageVersionSchemaV2(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL)
+	target := NewRegistryClient(server.URL, server.URL, nil)
 	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, imageInfo.CompleteBaseImageVersion)
+}
+
+func TestGetManifestV2(t *testing.T) {
+	server, err := startMockRegistryServer("testdata/aurora_flange_manifest_v2.json")
+	defer server.Close()
+	assert.NoError(t, err)
+
+	target := NewRegistryClient(server.URL, server.URL, nil)
+	manifest, err := target.GetManifest(repository, tag)
+	assert.NoError(t, err)
+	assert.Equal(t, "sha256:b6a7c668428ff9347ef5c4f8736e8b7f38696dc6acc74409627d360752017fcc", manifest.Config.Digest)
+}
+
+func TestGetContainerConfig(t *testing.T) {
+	server, err := startMockRegistryServer("testdata/aurora_wingnut11_container_config.json")
+	defer server.Close()
+	assert.NoError(t, err)
+
+	target := NewRegistryClient(server.URL, server.URL, nil)
+	config, err := target.GetContainerConfig(repository, tag)
+	assert.NoError(t, err)
+	assert.Equal(t, "amd64", config.Architecture)
 }
 
 func TestGetManifestEnvMapSchemaV2(t *testing.T) {
@@ -91,7 +114,7 @@ func TestGetManifestEnvMapSchemaV2(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL)
+	target := NewRegistryClient(server.URL, server.URL, nil)
 	imageInfo, err := target.GetImageInfo(repository, tag)
 	assert.NoError(t, err)
 
@@ -108,7 +131,7 @@ func TestGetTags(t *testing.T) {
 		"develop-SNAPSHOT-9be2b9ca43a024415947a6c262e183406dbb090b",
 		"2.0.0", "1.3.0", "1.2.1", "1.1.2", "1.1", "1.2", "1.3", "2.0", "2", "1"}
 
-	target := NewRegistryClient(server.URL)
+	target := NewRegistryClient(server.URL, server.URL, nil)
 	tags, err := target.GetTags("aurora/oracle8")
 	assert.NoError(t, err)
 	verifyTagListContent(tags.Tags, expectedTags, t)
@@ -123,7 +146,7 @@ func TestGetTagsWithMeta(t *testing.T) {
 		"develop-SNAPSHOT-9be2b9ca43a024415947a6c262e183406dbb090b",
 		"2.0.0+somemeta2", "1.3.0+somemeta1", "1.2.1", "1.1.2", "1.1", "1.2", "1.3+somemeta1", "2.0+somemeta2", "2+somemeta2", "1+somemeta1"}
 
-	target := NewRegistryClient(server.URL)
+	target := NewRegistryClient(server.URL, server.URL, nil)
 	tags, err := target.GetTags("aurora/oracle8")
 	assert.NoError(t, err)
 	verifyTagListContent(tags.Tags, expectedTags, t)

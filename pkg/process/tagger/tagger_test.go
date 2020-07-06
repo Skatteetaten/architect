@@ -143,7 +143,7 @@ type NormalTagResolver struct {
 	Registry   string
 	Repository string
 	Overwrite  bool
-	Provider   docker.ImageInfoProvider
+	Provider   docker.Registry
 }
 */
 
@@ -285,6 +285,48 @@ func (m repositoryTester) testTagFilteringAppend(appversion string, completevers
 
 func (registry *RegistryMock) GetTags(repository string) (*docker.TagsAPIResponse, error) {
 	return &docker.TagsAPIResponse{Name: "jalla", Tags: registry.tagsFromRegistry}, nil
+}
+
+func (registry *RegistryMock) GetManifest(repository string, digest string) (*docker.ManifestV2, error) {
+	return nil, nil
+}
+
+func (registry *RegistryMock) LayerExists(repository string, layerDigest string) (bool, error) {
+	return false, nil
+}
+func (registry *RegistryMock) MountLayer(srcRepository string, dstRepository string, layerDigest string) error {
+	return nil
+}
+func (registry *RegistryMock) PushLayer(file string, dstRepository string, layerDigest string) error {
+	return nil
+}
+func (registry *RegistryMock) PushManifest(file string, repository string, tag string) error {
+	return nil
+}
+
+func (registry *RegistryMockAppend) GetManifest(repository string, digest string) (*docker.ManifestV2, error) {
+	return nil, nil
+}
+
+func (registry *RegistryMockAppend) LayerExists(repository string, layerDigest string) (bool, error) {
+	return false, nil
+}
+func (registry *RegistryMockAppend) MountLayer(srcRepository string, dstRepository string, layerDigest string) error {
+	return nil
+}
+func (registry *RegistryMockAppend) PushLayer(file string, dstRepository string, layerDigest string) error {
+	return nil
+}
+func (registry *RegistryMockAppend) PushManifest(file string, repository string, tag string) error {
+	return nil
+}
+
+func (registry *RegistryMock) GetContainerConfig(repository string, digest string) (*docker.ContainerConfig, error) {
+	return nil, nil
+}
+
+func (registry *RegistryMockAppend) GetContainerConfig(repository string, digest string) (*docker.ContainerConfig, error) {
+	return nil, nil
 }
 
 func (registry *RegistryMockAppend) GetTags(repository string) (*docker.TagsAPIResponse, error) {

@@ -15,10 +15,38 @@ const (
 	// Where in the build folder the application is put
 	DockerfileApplicationFolder = "app"
 	ApplicationFolder           = "application"
+	LayerFolder                 = "layer"
 	// The directory where the application is prepared
 	ApplicationBuildFolder = DockerfileApplicationFolder + "/" + ApplicationFolder
+	ApplicationLayerFolder = DockerBasedir + "/" + ApplicationFolder
 	DeliveryMetadataPath   = "metadata/openshift.json"
 )
+
+func ExtractAndCreateJavaApplicationLayer(dockerBuildFolder string, deliverablePath string) error {
+	applicationRoot := filepath.Join(dockerBuildFolder+"/"+ApplicationBuildFolder, DockerBasedir)
+	renamedApplicationFolder := filepath.Join(dockerBuildFolder, ApplicationLayerFolder)
+	if err := os.MkdirAll(dockerBuildFolder, 0755); err != nil {
+		return errors.Wrap(err, "Failed to create application directory in Docker context")
+	}
+
+	if err := os.MkdirAll(dockerBuildFolder+"/"+""+DockerBasedir, 0755); err != nil {
+		return errors.Wrap(err, "Failed to create layer structure")
+	}
+
+	if err := os.MkdirAll(dockerBuildFolder+"/"+DockerBasedir+"/logs", 0777); err != nil {
+		return errors.Wrap(err, "Failed to create log folder")
+	}
+
+	if err := ExtractDeliverable(deliverablePath, applicationRoot); err != nil {
+		return errors.Wrapf(err, "Failed to extract application archive")
+	}
+
+	if err := RenameSingleFolderInDirectory(applicationRoot, renamedApplicationFolder); err != nil {
+		return errors.Wrap(err, "Failed to rename application directory in Docker context")
+	}
+
+	return nil
+}
 
 func ExtractAndRenameDeliverable(dockerBuildFolder string, deliverablePath string) error {
 
@@ -28,18 +56,18 @@ func ExtractAndRenameDeliverable(dockerBuildFolder string, deliverablePath strin
 		return errors.Wrap(err, "Failed to create application directory in Docker context")
 	}
 
-	if err := extractDeliverable(deliverablePath, applicationRoot); err != nil {
+	if err := ExtractDeliverable(deliverablePath, applicationRoot); err != nil {
 		return errors.Wrapf(err, "Failed to extract application archive")
 	}
 
-	if err := renameSingleFolderInDirectory(applicationRoot, renamedApplicationFolder); err != nil {
+	if err := RenameSingleFolderInDirectory(applicationRoot, renamedApplicationFolder); err != nil {
 		return errors.Wrap(err, "Failed to rename application directory in Docker context")
 	} else {
 		return nil
 	}
 }
 
-func extractDeliverable(archivePath string, extractedDirPath string) error {
+func ExtractDeliverable(archivePath string, extractedDirPath string) error {
 
 	zipReader, err := zip.OpenReader(archivePath)
 
@@ -127,7 +155,7 @@ func fillPathGap(path string) error {
 
 // When we unzip the delivery, it will have an additional level.
 // eg. app/myapplication-LEVERANSEPAKKE-SNAPSHOT -> app/application
-func renameSingleFolderInDirectory(base string, newName string) error {
+func RenameSingleFolderInDirectory(base string, newName string) error {
 	list, err := ioutil.ReadDir(base)
 
 	if err != nil {

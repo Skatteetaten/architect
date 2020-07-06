@@ -11,7 +11,7 @@ def config = [
     iqOrganizationName       : 'Team AOT',
     openShiftBaseImage       : 'builder',
     openShiftBaseImageVersion: 'latest',
-    goVersion                : 'go-1.13',
+    goVersion                : '1.14',
     artifactPath             : 'bin/amd64/',
     credentialsId: "github",
     versionStrategy          : [

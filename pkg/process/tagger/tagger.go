@@ -37,7 +37,7 @@ type NormalTagResolver struct {
 	Registry   string
 	Repository string
 	Overwrite  bool
-	Provider   docker.ImageInfoProvider
+	Provider   docker.Registry
 }
 
 func (m *NormalTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
@@ -58,7 +58,7 @@ func (m *NormalTagResolver) ResolveShortTag(appVersion *runtime.AuroraVersion, p
 }
 
 func findCandidateTags(appVersion *runtime.AuroraVersion, tagOverwrite bool, outputRepository string,
-	pushExtraTags config.PushExtraTags, provider docker.ImageInfoProvider) ([]string, error) {
+	pushExtraTags config.PushExtraTags, provider docker.Registry) ([]string, error) {
 	var repositoryTags []string
 	logrus.Debugf("Version is:%s, meta is:%s", appVersion.GetCompleteVersion(), util.GetVersionMetadata(string(appVersion.GetAppVersion())))
 	if !tagOverwrite {

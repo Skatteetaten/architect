@@ -14,11 +14,11 @@ import (
 type retagger struct {
 	Config      *config.Config
 	Credentials *docker.RegistryCredentials
-	Provider    docker.ImageInfoProvider
+	Provider    docker.Registry
 	Builder     process.Builder
 }
 
-func newRetagger(cfg *config.Config, credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, builder process.Builder) *retagger {
+func newRetagger(cfg *config.Config, credentials *docker.RegistryCredentials, provider docker.Registry, builder process.Builder) *retagger {
 	return &retagger{
 		Config:      cfg,
 		Credentials: credentials,
@@ -27,7 +27,7 @@ func newRetagger(cfg *config.Config, credentials *docker.RegistryCredentials, pr
 	}
 }
 
-func Retag(ctx context.Context, cfg *config.Config, credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, builder process.Builder) error {
+func Retag(ctx context.Context, cfg *config.Config, credentials *docker.RegistryCredentials, provider docker.Registry, builder process.Builder) error {
 	r := newRetagger(cfg, credentials, provider, builder)
 	return r.Retag(ctx)
 }
@@ -77,7 +77,7 @@ func (m *retagger) Retag(ctx context.Context) error {
 	t := tagger.NormalTagResolver{
 		Repository: m.Config.DockerSpec.OutputRepository,
 		Registry:   m.Config.DockerSpec.OutputRegistry,
-		Provider:   docker.NewRegistryClient(m.Config.DockerSpec.ExternalDockerRegistry),
+		Provider:   docker.NewRegistryClient(m.Config.DockerSpec.ExternalDockerRegistry, m.Config.DockerSpec.ExternalDockerRegistry, m.Credentials),
 		Overwrite:  m.Config.DockerSpec.TagOverwrite,
 	}
 	logrus.Debugf("Extract tag info, auroraVersion=%v, appVersion=%v, extraTags=%s", auroraVersion, appVersion, extratags)
@@ -110,7 +110,7 @@ func (m *retagger) Retag(ctx context.Context) error {
 
 	//We need to pull to make sure we push the newest image.. We should probably do this directly
 	//on the registry when we get v2 registry!:)
-	err = m.Builder.Pull(ctx, pull)
+	err = m.Builder.Pull(ctx, docker.DockerBuildConfig{Baseimage: pull})
 	if err != nil {
 		return errors.Wrapf(err, "Failed to pull image: %v", pull)
 	}
@@ -118,13 +118,13 @@ func (m *retagger) Retag(ctx context.Context) error {
 	logrus.Debugf("Retagging temporary image, versionTags=%-v", tagsToPush)
 	for _, tag := range tagsToPush {
 		logrus.Infof("Tag image %s with alias %s", sourceTag, tag)
-		err := m.Builder.Tag(ctx, sourceTag, tag)
+		err := m.Builder.Tag(ctx, &process.BuildOutput{ImageId: sourceTag}, tag)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to tag image %s with tag %s", push, tag)
 		}
 	}
 
-	err = m.Builder.Push(ctx, sourceTag, tagsToPush, m.Credentials)
+	err = m.Builder.Push(ctx, &process.BuildOutput{ImageId: sourceTag}, tagsToPush, m.Credentials)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to push tag %s", tag)
 	}

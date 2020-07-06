@@ -41,6 +41,8 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 		return "", errors.Wrap(err, "Failed to extract application archive")
 	}
 
+	logrus.Infof("Metadata path %s", applicationFolder)
+
 	// Load metadata
 	metadatafolder := filepath.Join(applicationFolder, DeliveryMetadataPath)
 	logrus.Debugf("metadatafolder: %v", metadatafolder)

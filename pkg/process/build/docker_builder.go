@@ -3,7 +3,6 @@ package process
 import (
 	"context"
 	"github.com/pkg/errors"
-	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 )
 
@@ -22,19 +21,21 @@ type DockerCmd struct {
 	client *docker.DockerClient
 }
 
-func (d *DockerCmd) Build(ctx context.Context, buildfolder string) (string, error) {
-	return d.client.BuildImage(ctx, buildfolder)
+func (d *DockerCmd) Build(ctx context.Context, buildConfig docker.DockerBuildConfig) (*BuildOutput, error) {
+	imageid, err := d.client.BuildImage(ctx, buildConfig.BuildFolder)
+	return &BuildOutput{ImageId: imageid}, err
 }
 
-func (d *DockerCmd) Pull(ctx context.Context, image runtime.DockerImage) error {
+func (d *DockerCmd) Pull(ctx context.Context, buildConfig docker.DockerBuildConfig) error {
 	//Buildah dont require this method. better way ?
-	return d.client.PullImage(ctx, image)
+	return d.client.PullImage(ctx, buildConfig.Baseimage)
 }
 
-func (d *DockerCmd) Tag(ctx context.Context, imageid string, tag string) error {
+func (d *DockerCmd) Tag(ctx context.Context, buildOutput *BuildOutput, tag string) error {
+	imageid := buildOutput.ImageId
 	return d.client.TagImage(ctx, imageid, tag)
 }
 
-func (d *DockerCmd) Push(ctx context.Context, imageid string, tags []string, credentials *docker.RegistryCredentials) error {
+func (d *DockerCmd) Push(ctx context.Context, buildOutput *BuildOutput, tags []string, credentials *docker.RegistryCredentials) error {
 	return d.client.PushImages(ctx, tags, credentials)
 }

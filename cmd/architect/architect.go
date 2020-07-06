@@ -17,7 +17,6 @@ import (
 	"time"
 )
 
-var localRepo bool
 var verbose bool
 
 type RunConfiguration struct {
@@ -39,6 +38,8 @@ func RunArchitect(configuration RunConfiguration) {
 		logrus.Fatalf("Could not parse registry credentials %s", err)
 	}
 
+	provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry, c.DockerSpec.ExternalDockerRegistry, registryCredentials)
+
 	var builder process.Builder
 
 	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Buildah) {
@@ -46,7 +47,9 @@ func RunArchitect(configuration RunConfiguration) {
 		builder = &process.BuildahCmd{
 			TlsVerify: c.TlsVerify,
 		}
-
+	} else if strings.Contains(strings.ToLower(c.BuildStrategy), config.Layer) {
+		logrus.Info("ALPHA FEATURE: Running layer build")
+		builder = process.NewLayerBuilder(c, provider)
 	} else {
 		if !strings.Contains(strings.ToLower(c.BuildStrategy), config.Docker) {
 			logrus.Warnf("Unsupported build strategy: %s. Defaulting to docker", c.BuildStrategy)
@@ -59,13 +62,11 @@ func RunArchitect(configuration RunConfiguration) {
 	}
 
 	if c.DockerSpec.RetagWith != "" {
-		provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry)
 		logrus.Info("Perform retag")
 		if err := retag.Retag(ctx, c, registryCredentials, provider, builder); err != nil {
 			logrus.Fatalf("Failed to retag temporary image %s", err)
 		}
 	} else {
-		provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry)
 		err := performBuild(ctx, &configuration, c, registryCredentials, provider, builder)
 
 		if err != nil {
@@ -87,7 +88,7 @@ func RunArchitect(configuration RunConfiguration) {
 	}
 	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
 }
-func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, r *docker.RegistryCredentials, provider docker.ImageInfoProvider, builder process.Builder) error {
+func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, r *docker.RegistryCredentials, provider docker.Registry, builder process.Builder) error {
 	var prepper process.Prepper
 	if c.ApplicationType == config.JavaLeveransepakke {
 		logrus.Info("Perform Java build")
@@ -104,29 +105,10 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 		if c.BinaryBuild && !c.ApplicationSpec.MavenGav.IsSnapshot() {
 			logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
 		}
-
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
 	defer cancel()
-	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Buildah) {
-		logrus.Info("ALPHA FEATURE: Running buildah builds")
-		buildah := &process.BuildahCmd{
-			TlsVerify: c.TlsVerify,
-		}
-		return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, buildah)
 
-	} else {
-		if !strings.Contains(c.BuildStrategy, config.Docker) {
-			logrus.Warnf("Unsupported build strategy: %s. Defaulting to docker", c.BuildStrategy)
-		}
-
-		dockerClient, err := process.NewDockerBuilder()
-		if err != nil {
-			return err
-		}
-
-		logrus.Info("Running docker build")
-		return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, dockerClient)
-	}
+	return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, builder)
 }

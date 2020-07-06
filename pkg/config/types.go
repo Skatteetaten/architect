@@ -33,6 +33,7 @@ const (
 const (
 	Docker  = "docker"
 	Buildah = "buildah"
+	Layer   = "layer"
 )
 
 type Config struct {

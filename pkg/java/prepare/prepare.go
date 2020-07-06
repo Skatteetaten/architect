@@ -21,8 +21,14 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (string, error) {
+type BuildConfiguration struct {
+	BuildContext string
+	Env          map[string]string
+	Labels       map[string]string
+	Cmd          []string
+}
 
+func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (string, error) {
 	// Create docker build folder
 	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
 
@@ -73,6 +79,62 @@ func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion
 	}
 
 	return dockerBuildPath, nil
+}
+
+func PrepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (*BuildConfiguration, error) {
+	buildPath, err := ioutil.TempDir("", "deliverable")
+
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create root folder of Docker context")
+	}
+
+	if err := os.MkdirAll(buildPath+"/layer/u01", 0755); err != nil {
+		return nil, errors.Wrap(err, "Failed to create layer structure")
+	}
+
+	if err := os.MkdirAll(buildPath+"/layer/u01/logs", 0777); err != nil {
+		return nil, errors.Wrap(err, "Failed to create log folder")
+	}
+
+	// Unzip deliverable
+	applicationRoot := filepath.Join(buildPath, util.DockerfileApplicationFolder)
+	renamedApplicationFolder := filepath.Join(buildPath, "/layer/u01/application")
+
+	if err := util.ExtractDeliverable(deliverable.Path, applicationRoot); err != nil {
+		return nil, errors.Wrapf(err, "Failed to extract application archive")
+	}
+
+	if err := util.RenameSingleFolderInDirectory(applicationRoot, renamedApplicationFolder); err != nil {
+		return nil, errors.Wrap(err, "Failed to rename application directory in build context")
+	}
+
+	// Load metadata
+	meta, err := loadDeliverableMetadata(filepath.Join(buildPath, "layer/u01/application/metadata/openshift.json"))
+
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to read application metadata")
+	}
+
+	fileWriter := util.NewFileWriter(buildPath + "/layer/u01")
+
+	if err := fileWriter(newRadishDescriptor(meta, filepath.Join(util.DockerBasedir, util.ApplicationFolder)), "radish.json"); err != nil {
+		return nil, errors.Wrap(err, "Unable to create radish descriptor")
+	}
+
+	//Create symlink
+	target := buildPath + "/layer/u01/logs/"
+	err = os.Symlink(target, buildPath+"/layer/u01/application/logs")
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to create symlink")
+	}
+
+	return &BuildConfiguration{
+		BuildContext: buildPath,
+		Env:          createEnv(*auroraVersions, dockerSpec.PushExtraTags, docker.GetUtcTimestamp()),
+		Labels:       createLabels(*meta),
+		Cmd:          nil,
+	}, nil
+
 }
 
 func loadDeliverableMetadata(metafile string) (*deliverable.DeliverableMetadata, error) {
