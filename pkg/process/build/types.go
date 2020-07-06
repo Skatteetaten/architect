@@ -13,4 +13,4 @@ type Prepper func(
 	cfg *config.Config,
 	auroraVersion *runtime.AuroraVersion,
 	deliverable nexus.Deliverable,
-	baseImage runtime.BaseImage) ([]docker.DockerBuildConfig, error)
+	baseImage runtime.BaseImage) ([]docker.BuildConfig, error)

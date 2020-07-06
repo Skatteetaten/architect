@@ -29,9 +29,9 @@ type DockerImage struct {
 func (m *DockerImage) GetCompleteDockerTagName() string {
 	if m.Registry == "" {
 		return m.Repository + ":" + m.Tag
-	} else {
-		return m.Registry + "/" + m.Repository + ":" + m.Tag
 	}
+
+	return m.Registry + "/" + m.Repository + ":" + m.Tag
 }
 
 //We only care of the version of architect image.. Refactor to a version variable?

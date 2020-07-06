@@ -1,14 +1,13 @@
 package prepare
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	deliverable "github.com/skatteetaten/architect/pkg/java/config"
 	"github.com/skatteetaten/architect/pkg/nexus"
+	process "github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
 	"io"
 	"io/ioutil"
@@ -21,66 +20,92 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (string, error) {
+type BuildConfiguration struct {
+	BuildContext string
+	Env          map[string]string
+	Labels       map[string]string
+	Cmd          []string
+}
 
-	// Create docker build folder
-	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
+func Prepper() process.Prepper {
+	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
+		baseImage runtime.BaseImage) ([]docker.BuildConfig, error) {
+		buildConfiguration, err := prepareLayers(cfg.DockerSpec, auroraVersion, deliverable)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error while preparing layers")
+		}
+		return []docker.BuildConfig{{
+			AuroraVersion:    auroraVersion,
+			DockerRepository: cfg.DockerSpec.OutputRepository,
+			BuildFolder:      buildConfiguration.BuildContext,
+			Image:            baseImage.DockerImage,
+			Env:              buildConfiguration.Env,
+			Labels:           buildConfiguration.Labels,
+			Cmd:              buildConfiguration.Cmd,
+		}}, nil
+	}
+}
+
+//TODO: Vurder om vi kan trekke ut prepare layer, slik at den kan gjenbrukes på tvers av byggene våre. Metoden er veldig lik doozer sin
+func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable) (*BuildConfiguration, error) {
+	buildPath, err := ioutil.TempDir("", "deliverable")
 
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to create root folder of Docker context")
+		return nil, errors.Wrap(err, "Failed to create root folder of Docker context")
+	}
+
+	if err := os.MkdirAll(buildPath+"/layer/u01", 0755); err != nil {
+		return nil, errors.Wrap(err, "Failed to create layer structure")
+	}
+
+	if err := os.MkdirAll(buildPath+"/layer/u01/logs", 0777); err != nil {
+		return nil, errors.Wrap(err, "Failed to create log folder")
 	}
 
 	// Unzip deliverable
-	applicationFolder := filepath.Join(dockerBuildPath, util.ApplicationBuildFolder)
-	err = util.ExtractAndRenameDeliverable(dockerBuildPath, deliverable.Path)
+	applicationRoot := filepath.Join(buildPath, util.DockerfileApplicationFolder)
+	renamedApplicationFolder := filepath.Join(buildPath, "/layer/u01/application")
 
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to extract application archive")
+	if err := util.ExtractDeliverable(deliverable.Path, applicationRoot); err != nil {
+		return nil, errors.Wrapf(err, "Failed to extract application archive")
+	}
+
+	if err := util.RenameSingleFolderInDirectory(applicationRoot, renamedApplicationFolder); err != nil {
+		return nil, errors.Wrap(err, "Failed to rename application directory in build context")
 	}
 
 	// Load metadata
-	meta, err := loadDeliverableMetadata(filepath.Join(applicationFolder, util.DeliveryMetadataPath))
+	meta, err := loadDeliverableMetadata(filepath.Join(buildPath, "layer/u01/application/metadata/openshift.json"))
 
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to read application metadata")
+		return nil, errors.Wrap(err, "Failed to read application metadata")
 	}
 
-	fileWriter := util.NewFileWriter(dockerBuildPath)
+	fileWriter := util.NewFileWriter(buildPath + "/layer/u01")
 
-	if architecture, exists := baseImage.ImageInfo.Labels["www.skatteetaten.no-imageArchitecture"]; exists && architecture == "java" {
-
-		logrus.Info("Running radish build")
-		if err := fileWriter(newRadishDescriptor(meta, filepath.Join(util.DockerBasedir, util.ApplicationFolder)), "radish.json"); err != nil {
-			return "", errors.Wrap(err, "Unable to create radish descriptor")
-		}
-		if err = fileWriter(NewRadishDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
-			"Dockerfile"); err != nil {
-			return "", errors.Wrap(err, "Failed to create Dockerfile")
-		}
-		//TODO: Hack. Remove code later
-	} else if architecture, exists := baseImage.ImageInfo.Labels["www.skatteetaten.no-imageArchitecture"]; exists && architecture == "java-test" {
-		logrus.Info("Running test image build")
-
-		if err := fileWriter(newRadishDescriptor(meta, filepath.Join(util.DockerBasedir, util.ApplicationFolder)), "radish.json"); err != nil {
-			return "", errors.Wrap(err, "Unable to create radish descriptor")
-		}
-		if err = fileWriter(NewRadishTestImageDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp()),
-			"Dockerfile"); err != nil {
-			return "", errors.Wrap(err, "Failed to create Dockerfile")
-		}
-	} else {
-		return "", fmt.Errorf("The base image provided does not support radish. Make sure you use the latest version")
+	if err := fileWriter(newRadishDescriptor(meta, filepath.Join(util.DockerBasedir, util.ApplicationFolder)), "radish.json"); err != nil {
+		return nil, errors.Wrap(err, "Unable to create radish descriptor")
 	}
 
-	return dockerBuildPath, nil
+	//Create symlink
+	target := buildPath + "/layer/u01/logs/"
+	err = os.Symlink(target, buildPath+"/layer/u01/application/logs")
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to create symlink")
+	}
+
+	return &BuildConfiguration{
+		BuildContext: buildPath,
+		Env:          createEnv(*auroraVersions, dockerSpec.PushExtraTags, docker.GetUtcTimestamp()),
+		Labels:       createLabels(*meta),
+		Cmd:          nil,
+	}, nil
 }
 
 func loadDeliverableMetadata(metafile string) (*deliverable.DeliverableMetadata, error) {
-	fileExists, err := util.Exists(metafile)
+	fileExists := util.Exists(metafile)
 
-	if err != nil {
-		return nil, errors.Wrapf(err, "Could not find %s in deliverable", path.Base(metafile))
-	} else if !fileExists {
+	if !fileExists {
 		return nil, errors.Errorf("Could not find %s in deliverable", path.Base(metafile))
 	}
 

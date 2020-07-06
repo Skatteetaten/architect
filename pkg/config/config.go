@@ -84,12 +84,15 @@ func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 	pushRegistry := m.Cmd.Flag("push-registry").Value.String()
 	pullRegistry := m.Cmd.Flag("pull-registry").Value.String()
 
+	if !strings.Contains(pullRegistry, "http") {
+		pullRegistry = fmt.Sprintf("https://%s", pullRegistry)
+	}
+
 	return &Config{
 		NoPush:          m.NoPush,
 		BinaryBuild:     true,
 		LocalBuild:      true,
 		ApplicationType: applicationType,
-		BuildStrategy:   Docker,
 		ApplicationSpec: ApplicationSpec{
 			MavenGav: MavenGav{
 				Version: output[1],
@@ -100,14 +103,45 @@ func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 			},
 		},
 		DockerSpec: DockerSpec{
-			InternalPullRegistry: fmt.Sprintf("https://%s:443", pullRegistry),
-			OutputRegistry:       pushRegistry,
-			OutputRepository:     output[0],
-			TagWith:              output[1],
+			ExternalDockerRegistry: pushRegistry,
+			InternalPullRegistry:   pullRegistry,
+			OutputRegistry:         pushRegistry,
+			OutputRepository:       output[0],
+			TagWith:                output[1],
 		},
 		BuildTimeout: 900,
 	}, nil
 
+}
+
+func ReadNexusConfigFromFileSystem() (*NexusAccess, error) {
+	nexusAccess := NexusAccess{}
+	secretPath := "/u01/nexus/nexus.json"
+	jsonFile, err := ioutil.ReadFile(secretPath)
+	if err == nil {
+		var data map[string]interface{}
+		err := json.Unmarshal(jsonFile, &data)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Could not parse %s. Must be correct json when specified.", secretPath)
+		}
+		nexusAccess.NexusURL = data["nexusUrl"].(string)
+		nexusAccess.Username = data["username"].(string)
+		nexusAccess.Password = data["password"].(string)
+	} else {
+		return nil, errors.Errorf("Could not read nexus config at %s, error: %s", secretPath, err)
+	}
+	return &nexusAccess, nil
+}
+
+func ReadNexusAccessFromEnvVars() (*NexusAccess, error) {
+	nexusAccess := NexusAccess{}
+	nexusAccess.Username, _ = os.LookupEnv("NEXUS_USERNAME")
+	nexusAccess.Password, _ = os.LookupEnv("NEXUS_PASSWORD")
+	nexusAccess.NexusURL, _ = os.LookupEnv("NEXUS_URL")
+	if nexusAccess.IsValid() {
+		return &nexusAccess, nil
+	}
+	return nil, errors.Errorf("Could not read Nexus credentials from environment")
 }
 
 func (m *FileConfigReader) ReadConfig() (*Config, error) {
@@ -131,7 +165,6 @@ func (m *InClusterConfigReader) ReadConfig() (*Config, error) {
 
 func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, error) {
 	build := buildv1.Build{}
-
 	err := json.Unmarshal(buildConfig, &build)
 	if err != nil {
 		return nil, err
@@ -140,6 +173,8 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	if customStrategy == nil {
 		return nil, errors.New("Expected strategy to be custom strategy. Thats the only one supported.")
 	}
+
+	binaryBuild := build.Spec.Source.Type == buildv1.BuildSourceBinary
 
 	env := make(map[string]string)
 	for _, e := range customStrategy.Env {
@@ -155,15 +190,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
-	var buildStrategy = Docker
-	if value, err := findEnv(env, "BUILD_STRATEGY"); err == nil {
-		if strings.Contains(strings.ToLower(value), Buildah) {
-			buildStrategy = Buildah
-		} else {
-			buildStrategy = value
-		}
-	}
-
 	var sporingscontext = ""
 	if value, err := findEnv(env, "SPORINGSCONTEXT"); err == nil {
 		logrus.Debugf("Sporingscontext: %s", value)
@@ -176,40 +202,11 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		sporingstjeneste = value
 	}
 
-	//Default to docker format
-	if _, err := findEnv(env, "BUILDAH_FORMAT"); err != nil {
-		err = os.Setenv("BUILDAH_FORMAT", "docker")
-		if err != nil && buildStrategy == Buildah {
-			logrus.Fatal("Failed to set BUILDAH_FORMAT", err)
-		}
-		logrus.Info("BUILDAH_FORMAT defaulting to docker")
-	}
-
 	var tlsVerify = true
 	if value, err := findEnv(env, "TLS_VERIFY"); err == nil {
 		if strings.Contains(strings.ToLower(value), "false") {
 			tlsVerify = false
 		}
-	}
-
-	// TODO: Remove when Nexus 2 server is no more
-	nexusAccess := NexusAccess{
-		NexusUrl: "https://aurora/nexus/service/local/artifact/maven/content",
-	}
-
-	secretPath := "/u01/nexus/nexus.json"
-	jsonFile, err := ioutil.ReadFile(secretPath)
-	if err == nil {
-		var data map[string]interface{}
-		err := json.Unmarshal(jsonFile, &data)
-		if err != nil {
-			return nil, errors.Wrapf(err, "Could not parse %s. Must be correct json when specified.", secretPath)
-		}
-		nexusAccess.NexusUrl = data["nexusUrl"].(string)
-		nexusAccess.Username = data["username"].(string)
-		nexusAccess.Password = data["password"].(string)
-	} else {
-		logrus.Warnf("Could not read nexus config at %s, error: %s", secretPath, err)
 	}
 
 	var buildTimeout time.Duration = 900
@@ -221,13 +218,13 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 
 	applicationSpec := ApplicationSpec{}
-	if artifactId, err := findEnv(env, "ARTIFACT_ID"); err == nil {
-		applicationSpec.MavenGav.ArtifactId = artifactId
+	if artifactID, err := findEnv(env, "ARTIFACT_ID"); err == nil {
+		applicationSpec.MavenGav.ArtifactId = artifactID
 	} else {
 		return nil, err
 	}
-	if groupId, err := findEnv(env, "GROUP_ID"); err == nil {
-		applicationSpec.MavenGav.GroupId = groupId
+	if groupID, err := findEnv(env, "GROUP_ID"); err == nil {
+		applicationSpec.MavenGav.GroupId = groupID
 	} else {
 		return nil, err
 	}
@@ -273,12 +270,12 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			dockerSpec.ExternalDockerRegistry = "https://" + externalRegistry
 		}
 	} else if strings.ToLower(build.Spec.CommonSpec.Output.To.Kind) == "dockerimage" {
-		registryUrl, err := url.Parse("https://" + build.Spec.CommonSpec.Output.To.Name)
+		registryURL, err := url.Parse("https://" + build.Spec.CommonSpec.Output.To.Name)
 		if err != nil {
 			dockerSpec.ExternalDockerRegistry = FallbackDockerRegistry
 			logrus.Warnf("Failed to parse dockerimage-url from BC for ExternalDockerRegistry. Using %s", FallbackDockerRegistry)
 		} else {
-			base := registryUrl.Host
+			base := registryURL.Host
 			if err := checkURL(client, "https://", base, "/v2/"); err == nil {
 				dockerSpec.ExternalDockerRegistry = "https://" + base
 				logrus.Debugf("Using https: %s", dockerSpec.ExternalDockerRegistry)
@@ -383,12 +380,12 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			logrus.Error("Expected OUTPUT_IMAGE environment variable when outputKind is ImageStreamTag")
 			return nil, errors.New("No output image")
 		}
-		dockerUrl := dockerSpec.OutputRegistry + "/" + outputImage
-		dockerSpec.TagWith, err = findOutputTag(dockerUrl)
+		dockerURL := dockerSpec.OutputRegistry + "/" + outputImage
+		dockerSpec.TagWith, err = findOutputTag(dockerURL)
 		if err != nil {
 			return nil, err
 		}
-		dockerSpec.OutputRepository, err = findOutputRepository(dockerUrl)
+		dockerSpec.OutputRepository, err = findOutputRepository(dockerURL)
 		if err != nil {
 			return nil, err
 		}
@@ -402,10 +399,8 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		ApplicationSpec:   applicationSpec,
 		DockerSpec:        dockerSpec,
 		BuilderSpec:       builderSpec,
-		NexusAccess:       nexusAccess,
-		BinaryBuild:       build.Spec.Source.Type == buildv1.BuildSourceBinary,
-		BuildStrategy:     buildStrategy,
-		TlsVerify:         tlsVerify,
+		BinaryBuild:       binaryBuild,
+		TLSVerify:         tlsVerify,
 		BuildTimeout:      buildTimeout,
 		SporingsContext:   sporingscontext,
 		Sporingstjeneste:  sporingstjeneste,
