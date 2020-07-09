@@ -14,11 +14,12 @@ import (
 
 type Builder interface {
 	Build(ctx context.Context, buildConfig docker.DockerBuildConfig) (*BuildOutput, error)
-	Push(ctx context.Context, buildOutput *BuildOutput, tag []string, credentials *docker.RegistryCredentials) error
-	Tag(ctx context.Context, buildOutput *BuildOutput, tag string) error
+	Push(ctx context.Context, buildResult *BuildOutput, tag []string, credentials *docker.RegistryCredentials) error
+	Tag(ctx context.Context, buildResult *BuildOutput, tag string) error
 	Pull(ctx context.Context, buildConfig docker.DockerBuildConfig) error
 }
 
+//TODO: Lowercase + better naming
 type BuildOutput struct {
 	ImageId               string
 	BuildFolder           string
@@ -26,6 +27,7 @@ type BuildOutput struct {
 	Layers                []Layer
 }
 
+//TODO: Lowercase
 type Layer struct {
 	Name          string
 	Digest        string
@@ -123,12 +125,9 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 		dependencyMetadata, _ := nexus.ExtractDependecyMetadata(buildConfig.BuildFolder)
 
-		output, err := builder.Build(ctx, buildConfig)
-
+		buildResult, err := builder.Build(ctx, buildConfig)
 		if err != nil {
 			return errors.Wrap(err, "There was an error with the build operation.")
-		} else {
-			logrus.Infof("Done building. Imageid: %s", output.ImageId)
 		}
 
 		var tagResolver tagger.TagResolver
@@ -148,12 +147,12 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 		}
 
 		tags, err := tagResolver.ResolveTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
-		logrus.Debugf("Tag image %s with %s", output.ImageId, tags)
+		logrus.Debugf("Tag image %s with %s", buildResult.ImageId, tags)
 		t, _ := tagResolver.ResolveShortTag(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
 		metaTags := make(map[string]string)
 		for i, tag := range tags {
 			logrus.Infof("Tag: %s", tag)
-			err = builder.Tag(ctx, output, tag)
+			err = builder.Tag(ctx, buildResult, tag)
 			if err != nil {
 				return errors.Wrapf(err, "Image tag failed")
 			}
@@ -161,7 +160,7 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 		}
 
 		if !cfg.NoPush {
-			err = builder.Push(ctx, output, tags, credentials)
+			err = builder.Push(ctx, buildResult, tags, credentials)
 			manifest, err := provider.GetImageInfo(ctx, buildConfig.DockerRepository, t[0])
 			if err == nil {
 				imageConfig, err := provider.GetImageConfig(ctx, buildConfig.DockerRepository, manifest.Digest)
@@ -185,7 +184,6 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 					buildConfig.DockerRepository, t[0], err)
 			}
 		}
-
 		return err
 	}
 	return nil

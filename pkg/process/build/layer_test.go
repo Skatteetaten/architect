@@ -12,7 +12,7 @@ import (
 
 func TestDigestCalculations(t *testing.T) {
 
-	outputPath := "resources"
+	outputPath := "testdata"
 
 	t.Run("Checksum tar.gz layer", func(t *testing.T) {
 		hasher := sha256.New()

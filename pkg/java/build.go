@@ -2,7 +2,6 @@ package java
 
 import (
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
@@ -15,8 +14,6 @@ import (
 func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
 		baseImage runtime.BaseImage) ([]docker.DockerBuildConfig, error) {
-
-		logrus.Debug("Pull output image")
 
 		if strings.ToLower(cfg.BuildStrategy) == config.Layer {
 			buildConfiguration, err := prepare.PrepareLayers(cfg.DockerSpec, auroraVersion, deliverable, baseImage)

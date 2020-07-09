@@ -38,6 +38,7 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.DockerBuildC
 	}
 	logrus.Infof("Fetched manifest: %s/%s:%s", baseImage.Registry, baseImage.Repository, baseImage.Tag)
 
+	//TODO: Move to push ?
 	for _, layer := range manifest.Layers {
 		ok, _ := l.provider.LayerExists(ctx, l.config.DockerSpec.OutputRepository, layer.Digest)
 		if !ok {
@@ -123,6 +124,7 @@ func (l *LayerBuilder) Build(ctx context.Context, buildConfig docker.DockerBuild
 	//Removes unnecessary data
 	manifest = manifest.CleanCopy()
 
+	//Removes unnecessary data
 	containerConfig = containerConfig.CleanCopy()
 
 	//Add layers to the container configuration
@@ -174,12 +176,12 @@ func (l *LayerBuilder) Build(ctx context.Context, buildConfig docker.DockerBuild
 	}, nil
 }
 
-func (l *LayerBuilder) Push(ctx context.Context, buildOutput *BuildOutput, tag []string, credentials *docker.RegistryCredentials) error {
+func (l *LayerBuilder) Push(ctx context.Context, buildResult *BuildOutput, tag []string, credentials *docker.RegistryCredentials) error {
 
-	buildFolder := buildOutput.BuildFolder
-	for _, layer := range buildOutput.Layers {
+	buildFolder := buildResult.BuildFolder
+	for _, layer := range buildResult.Layers {
 		logrus.Infof("Push: %s", layer.Digest)
-		layerLocation := buildOutput.BuildFolder + "/" + layer.Name
+		layerLocation := buildResult.BuildFolder + "/" + layer.Name
 		//Push
 		err := l.provider.PushLayer(ctx, layerLocation, l.config.DockerSpec.OutputRepository, layer.Digest)
 		if err != nil {
@@ -187,8 +189,8 @@ func (l *LayerBuilder) Push(ctx context.Context, buildOutput *BuildOutput, tag [
 		}
 	}
 
-	logrus.Infof("Push config: %s", buildOutput.ContainerConfigDigest)
-	err := l.provider.PushLayer(ctx, buildFolder+"/"+containerConfigFileName, l.config.DockerSpec.OutputRepository, buildOutput.ContainerConfigDigest)
+	logrus.Infof("Push config: %s", buildResult.ContainerConfigDigest)
+	err := l.provider.PushLayer(ctx, buildFolder+"/"+containerConfigFileName, l.config.DockerSpec.OutputRepository, buildResult.ContainerConfigDigest)
 	if err != nil {
 		return errors.New("Failed to push the container configuration")
 	}

@@ -31,11 +31,11 @@ func (d *DockerCmd) Pull(ctx context.Context, buildConfig docker.DockerBuildConf
 	return d.client.PullImage(ctx, buildConfig.Baseimage)
 }
 
-func (d *DockerCmd) Tag(ctx context.Context, buildOutput *BuildOutput, tag string) error {
-	imageid := buildOutput.ImageId
+func (d *DockerCmd) Tag(ctx context.Context, buildResult *BuildOutput, tag string) error {
+	imageid := buildResult.ImageId
 	return d.client.TagImage(ctx, imageid, tag)
 }
 
-func (d *DockerCmd) Push(ctx context.Context, buildOutput *BuildOutput, tags []string, credentials *docker.RegistryCredentials) error {
+func (d *DockerCmd) Push(ctx context.Context, buildResult *BuildOutput, tags []string, credentials *docker.RegistryCredentials) error {
 	return d.client.PushImages(ctx, tags, credentials)
 }

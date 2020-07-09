@@ -51,8 +51,8 @@ func (b *BuildahCmd) Pull(ctx context.Context, buildConfig docker.DockerBuildCon
 	return nil
 }
 
-func (b *BuildahCmd) Push(ctx context.Context, buildOutput *BuildOutput, tags []string, credentials *docker.RegistryCredentials) error {
-	imageid := buildOutput.ImageId
+func (b *BuildahCmd) Push(ctx context.Context, buildResult *BuildOutput, tags []string, credentials *docker.RegistryCredentials) error {
+	imageid := buildResult.ImageId
 	c := make(chan error)
 	go func() {
 		var err error
@@ -85,9 +85,9 @@ func (b *BuildahCmd) Push(ctx context.Context, buildOutput *BuildOutput, tags []
 	}
 }
 
-func (b *BuildahCmd) Tag(ctx context.Context, buildOutput *BuildOutput, tag string) error {
+func (b *BuildahCmd) Tag(ctx context.Context, buildResult *BuildOutput, tag string) error {
 	c := make(chan error, 1)
-	imageid := buildOutput.ImageId
+	imageid := buildResult.ImageId
 	go func() {
 		cmd := exec.Command("buildah", "--storage-driver", "vfs", "tag", imageid, tag)
 		cmd.Stdout = os.Stdout
