@@ -2,6 +2,7 @@ package docker
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/json"
@@ -17,17 +18,16 @@ import (
 	"strings"
 )
 
-//TODO: Add context
 type Registry interface {
-	GetImageInfo(repository string, tag string) (*runtime.ImageInfo, error)
-	GetTags(repository string) (*TagsAPIResponse, error)
-	GetImageConfig(repository string, digest string) (map[string]interface{}, error)
-	GetManifest(repository string, digest string) (*ManifestV2, error)
-	GetContainerConfig(repository string, digest string) (*ContainerConfig, error)
-	LayerExists(repository string, layerDigest string) (bool, error)
-	MountLayer(srcRepository string, dstRepository string, layerDigest string) error
-	PushLayer(file string, dstRepository string, layerDigest string) error
-	PushManifest(file string, repository string, tag string) error
+	GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error)
+	GetTags(ctx context.Context, repository string) (*TagsAPIResponse, error)
+	GetImageConfig(ctx context.Context, repository string, digest string) (map[string]interface{}, error)
+	GetManifest(ctx context.Context, repository string, digest string) (*ManifestV2, error)
+	GetContainerConfig(ctx context.Context, repository string, digest string) (*ContainerConfig, error)
+	LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error)
+	MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error
+	PushLayer(ctx context.Context, file string, dstRepository string, layerDigest string) error
+	PushManifest(ctx context.Context, file string, repository string, tag string) error
 }
 
 type Manifest struct {
@@ -63,21 +63,21 @@ const (
 	httpHeaderContainerImageV1 = "application/vnd.docker.container.image.v1+json"
 )
 
-func (registry *RegistryClient) getRegistryManifest(repository string, tag string) ([]byte, error) {
+func (registry *RegistryClient) getRegistryManifest(ctx context.Context, repository string, tag string) ([]byte, error) {
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderManifestSchemaV2
 	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.pullRegistry, repository, tag)
 	logrus.Debugf("Retrieving registry manifest from URL %s", url)
-	body, err := GetHTTPRequest(mHeader, url)
+	body, err := GetHTTPRequest(ctx, mHeader, url)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed in getRegistryManifest for request url %s and header %s", url, mHeader)
 	}
 	return body, nil
 }
 
-func (registry *RegistryClient) GetManifest(repository string, tag string) (*ManifestV2, error) {
+func (registry *RegistryClient) GetManifest(ctx context.Context, repository string, tag string) (*ManifestV2, error) {
 
-	data, err := registry.getRegistryManifest(repository, tag)
+	data, err := registry.getRegistryManifest(ctx, repository, tag)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to fetch image manifest for image %s:%s", repository, tag)
 	}
@@ -91,8 +91,8 @@ func (registry *RegistryClient) GetManifest(repository string, tag string) (*Man
 	return &manifest, nil
 }
 
-func (registry *RegistryClient) GetContainerConfig(repository string, digest string) (*ContainerConfig, error) {
-	data, err := registry.getRegistryBlob(repository, digest)
+func (registry *RegistryClient) GetContainerConfig(ctx context.Context, repository string, digest string) (*ContainerConfig, error) {
+	data, err := registry.getRegistryBlob(ctx, repository, digest)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to fetch container config blog for image %s", repository)
 	}
@@ -106,22 +106,22 @@ func (registry *RegistryClient) GetContainerConfig(repository string, digest str
 	return &config, nil
 }
 
-func (registry *RegistryClient) getRegistryBlob(repository string, digestID string) ([]byte, error) {
+func (registry *RegistryClient) getRegistryBlob(ctx context.Context, repository string, digestID string) ([]byte, error) {
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderContainerImageV1
 	url := fmt.Sprintf("%s/v2/%s/blobs/%s", registry.pullRegistry, repository, digestID)
 	logrus.Debugf("Retrieving registry blob from URL %s", url)
-	body, err := GetHTTPRequest(mHeader, url)
+	body, err := GetHTTPRequest(ctx, mHeader, url)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed in getRegistryBlob for request url %s and header %s", url, mHeader)
 	}
 	return body, nil
 }
 
-func (registry *RegistryClient) GetImageConfig(repository string, digest string) (map[string]interface{}, error) {
+func (registry *RegistryClient) GetImageConfig(ctx context.Context, repository string, digest string) (map[string]interface{}, error) {
 	var result map[string]interface{}
 
-	manifest, err := registry.getRegistryManifest(repository, digest)
+	manifest, err := registry.getRegistryManifest(ctx, repository, digest)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (registry *RegistryClient) GetImageConfig(repository string, digest string)
 		return nil, err
 	}
 
-	data, err := registry.getRegistryBlob(repository, manifestStruct.Config.Digest)
+	data, err := registry.getRegistryBlob(ctx, repository, manifestStruct.Config.Digest)
 	if err != nil {
 		return nil, err
 	}
@@ -145,8 +145,8 @@ func (registry *RegistryClient) GetImageConfig(repository string, digest string)
 	return result, nil
 }
 
-func (registry *RegistryClient) GetImageInfo(repository string, tag string) (*runtime.ImageInfo, error) {
-	body, err := registry.getRegistryManifest(repository, tag)
+func (registry *RegistryClient) GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error) {
+	body, err := registry.getRegistryManifest(ctx, repository, tag)
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to read manifest for repository %s, tag %s from Docker registry %s", repository, tag, registry.pullRegistry)
@@ -171,7 +171,7 @@ func (registry *RegistryClient) GetImageInfo(repository string, tag string) (*ru
 	} else if manifestMeta.Config.Digest != "" {
 		digestID := manifestMeta.Config.Digest
 
-		body, err = registry.getRegistryBlob(repository, digestID)
+		body, err = registry.getRegistryBlob(ctx, repository, digestID)
 
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to read image meta from blob in repository %s, digestID %s from Docker registry %s", repository, digestID, registry.pullRegistry)
@@ -208,7 +208,7 @@ func (registry *RegistryClient) GetImageInfo(repository string, tag string) (*ru
 	}, nil
 }
 
-func (registry *RegistryClient) LayerExists(repository string, layerDigest string) (bool, error) {
+func (registry *RegistryClient) LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error) {
 	//HEAD /v2/<repository>/blobs/<digest>
 	url := fmt.Sprintf("%s/v2/%s/blobs/%s", registry.pushRegistry, repository, layerDigest)
 	tr := &http.Transport{
@@ -216,7 +216,7 @@ func (registry *RegistryClient) LayerExists(repository string, layerDigest strin
 	}
 	client := &http.Client{Transport: tr}
 
-	req, err := http.NewRequest("HEAD", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "HEAD", url, nil)
 	if err != nil {
 		return false, errors.Wrap(err, "LayerExists: Could not create request")
 	}
@@ -233,7 +233,7 @@ func (registry *RegistryClient) LayerExists(repository string, layerDigest strin
 	return false, nil
 }
 
-func (registry *RegistryClient) MountLayer(srcRepository string, dstRepository string, layerDigest string) error {
+func (registry *RegistryClient) MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error {
 	//"https://<address>/v2/<srcRepository>/blobs/uploads/?mount=<digest>&from=<dstRepository>"
 	url := fmt.Sprintf(fmt.Sprintf("%s/v2/%s/blobs/uploads/?mount=%s&from=%s", registry.pushRegistry, dstRepository, layerDigest, srcRepository))
 	tr := &http.Transport{
@@ -241,7 +241,7 @@ func (registry *RegistryClient) MountLayer(srcRepository string, dstRepository s
 	}
 	client := &http.Client{Transport: tr}
 
-	req, err := http.NewRequest("POST", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
 		return errors.Wrap(err, "Could not create the mount request")
 	}
@@ -265,7 +265,7 @@ func (registry *RegistryClient) MountLayer(srcRepository string, dstRepository s
 	return nil
 }
 
-func (registry *RegistryClient) PushLayer(file string, repository string, layerDigest string) error {
+func (registry *RegistryClient) PushLayer(ctx context.Context, file string, repository string, layerDigest string) error {
 
 	layer, err := os.Open(file)
 	if err != nil {
@@ -280,7 +280,7 @@ func (registry *RegistryClient) PushLayer(file string, repository string, layerD
 	client := &http.Client{Transport: tr}
 
 	//Start the transaction
-	req, err := http.NewRequest("POST", url, bytes.NewBufferString(""))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBufferString(""))
 	if err != nil {
 		return errors.Wrap(err, "Request creation failed")
 	}
@@ -308,7 +308,7 @@ func (registry *RegistryClient) PushLayer(file string, repository string, layerD
 		location = fmt.Sprintf("%s%s", registry.pushRegistry, location)
 	}
 
-	req, err = http.NewRequest("PATCH", location, layer)
+	req, err = http.NewRequestWithContext(ctx, "PATCH", location, layer)
 	if err != nil {
 		return errors.Wrap(err, "Upload request creation failed")
 	}
@@ -335,7 +335,7 @@ func (registry *RegistryClient) PushLayer(file string, repository string, layerD
 		location = fmt.Sprintf("%s%s", registry.pushRegistry, location)
 	}
 
-	req, err = http.NewRequest("PUT", location, nil)
+	req, err = http.NewRequestWithContext(ctx, "PUT", location, nil)
 	if err != nil {
 		return errors.Wrap(err, "Commit request creation failed")
 	}
@@ -364,7 +364,7 @@ func (registry *RegistryClient) PushLayer(file string, repository string, layerD
 	return nil
 }
 
-func (registry *RegistryClient) PushManifest(file string, repository string, tag string) error {
+func (registry *RegistryClient) PushManifest(ctx context.Context, file string, repository string, tag string) error {
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -379,7 +379,7 @@ func (registry *RegistryClient) PushManifest(file string, repository string, tag
 	//PUT /v2/<repository>/manifests/<tag>
 	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.pushRegistry, repository, tag)
 
-	req, err := http.NewRequest("PUT", url, manifest)
+	req, err := http.NewRequestWithContext(ctx, "PUT", url, manifest)
 	if err != nil {
 		return errors.Wrap(err, "PushManifest: request creation failed")
 	}
@@ -405,7 +405,7 @@ func (registry *RegistryClient) PushManifest(file string, repository string, tag
 	return nil
 }
 
-func (registry *RegistryClient) GetTags(repository string) (*TagsAPIResponse, error) {
+func (registry *RegistryClient) GetTags(ctx context.Context, repository string) (*TagsAPIResponse, error) {
 	url := fmt.Sprintf("%s/v2/%s/tags/list", registry.pullRegistry, repository)
 	var tagsList TagsAPIResponse
 
@@ -414,7 +414,12 @@ func (registry *RegistryClient) GetTags(repository string) (*TagsAPIResponse, er
 	}
 	client := &http.Client{Transport: tr}
 
-	res, err := client.Get(url)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "GetTags: Failed to create request")
+	}
+
+	res, err := client.Do(req)
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to download tags for repository %s from Docker registry %s", repository, url)

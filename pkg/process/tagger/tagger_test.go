@@ -2,6 +2,7 @@ package tagger
 
 import (
 	"bufio"
+	"context"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
@@ -283,69 +284,69 @@ func (m repositoryTester) testTagFilteringAppend(appversion string, completevers
 	return tagsOnly
 }
 
-func (registry *RegistryMock) GetTags(repository string) (*docker.TagsAPIResponse, error) {
+func (registry *RegistryMock) GetTags(ctx context.Context, repository string) (*docker.TagsAPIResponse, error) {
 	return &docker.TagsAPIResponse{Name: "jalla", Tags: registry.tagsFromRegistry}, nil
 }
 
-func (registry *RegistryMock) GetManifest(repository string, digest string) (*docker.ManifestV2, error) {
+func (registry *RegistryMock) GetManifest(ctx context.Context, repository string, digest string) (*docker.ManifestV2, error) {
 	return nil, nil
 }
 
-func (registry *RegistryMock) LayerExists(repository string, layerDigest string) (bool, error) {
+func (registry *RegistryMock) LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error) {
 	return false, nil
 }
-func (registry *RegistryMock) MountLayer(srcRepository string, dstRepository string, layerDigest string) error {
+func (registry *RegistryMock) MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error {
 	return nil
 }
-func (registry *RegistryMock) PushLayer(file string, dstRepository string, layerDigest string) error {
+func (registry *RegistryMock) PushLayer(ctx context.Context, file string, dstRepository string, layerDigest string) error {
 	return nil
 }
-func (registry *RegistryMock) PushManifest(file string, repository string, tag string) error {
+func (registry *RegistryMock) PushManifest(ctx context.Context, file string, repository string, tag string) error {
 	return nil
 }
 
-func (registry *RegistryMockAppend) GetManifest(repository string, digest string) (*docker.ManifestV2, error) {
+func (registry *RegistryMockAppend) GetManifest(ctx context.Context, repository string, digest string) (*docker.ManifestV2, error) {
 	return nil, nil
 }
 
-func (registry *RegistryMockAppend) LayerExists(repository string, layerDigest string) (bool, error) {
+func (registry *RegistryMockAppend) LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error) {
 	return false, nil
 }
-func (registry *RegistryMockAppend) MountLayer(srcRepository string, dstRepository string, layerDigest string) error {
+func (registry *RegistryMockAppend) MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error {
 	return nil
 }
-func (registry *RegistryMockAppend) PushLayer(file string, dstRepository string, layerDigest string) error {
+func (registry *RegistryMockAppend) PushLayer(ctx context.Context, file string, dstRepository string, layerDigest string) error {
 	return nil
 }
-func (registry *RegistryMockAppend) PushManifest(file string, repository string, tag string) error {
+func (registry *RegistryMockAppend) PushManifest(ctx context.Context, file string, repository string, tag string) error {
 	return nil
 }
 
-func (registry *RegistryMock) GetContainerConfig(repository string, digest string) (*docker.ContainerConfig, error) {
+func (registry *RegistryMock) GetContainerConfig(ctx context.Context, repository string, digest string) (*docker.ContainerConfig, error) {
 	return nil, nil
 }
 
-func (registry *RegistryMockAppend) GetContainerConfig(repository string, digest string) (*docker.ContainerConfig, error) {
+func (registry *RegistryMockAppend) GetContainerConfig(ctx context.Context, repository string, digest string) (*docker.ContainerConfig, error) {
 	return nil, nil
 }
 
-func (registry *RegistryMockAppend) GetTags(repository string) (*docker.TagsAPIResponse, error) {
+func (registry *RegistryMockAppend) GetTags(ctx context.Context, repository string) (*docker.TagsAPIResponse, error) {
 	return &docker.TagsAPIResponse{Name: "jalla", Tags: docker.ConvertRepositoryTagsToTags(tagsAppend)}, nil
 }
 
-func (registry *RegistryMock) GetImageInfo(repository string, tag string) (*runtime.ImageInfo, error) {
+func (registry *RegistryMock) GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error) {
 	return &runtime.ImageInfo{}, nil
 }
 
-func (registry *RegistryMockAppend) GetImageInfo(repository string, tag string) (*runtime.ImageInfo, error) {
+func (registry *RegistryMockAppend) GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error) {
 	return &runtime.ImageInfo{}, nil
 }
 
-func (registry *RegistryMock) GetImageConfig(repository string, digest string) (map[string]interface{}, error) {
+func (registry *RegistryMock) GetImageConfig(ctx context.Context, repository string, digest string) (map[string]interface{}, error) {
 	return nil, nil
 }
 
-func (registry *RegistryMockAppend) GetImageConfig(repository string, digest string) (map[string]interface{}, error) {
+func (registry *RegistryMockAppend) GetImageConfig(ctx context.Context, repository string, digest string) (map[string]interface{}, error) {
 	return nil, nil
 }
 

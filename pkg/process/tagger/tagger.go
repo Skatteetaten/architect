@@ -1,6 +1,7 @@
 package tagger
 
 import (
+	"context"
 	"fmt"
 	extVersion "github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
@@ -63,7 +64,7 @@ func findCandidateTags(appVersion *runtime.AuroraVersion, tagOverwrite bool, out
 	logrus.Debugf("Version is:%s, meta is:%s", appVersion.GetCompleteVersion(), util.GetVersionMetadata(string(appVersion.GetAppVersion())))
 	if !tagOverwrite {
 
-		tagsInRepo, err := provider.GetTags(outputRepository)
+		tagsInRepo, err := provider.GetTags(context.Background(), outputRepository)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error in ResolveShortTag, repository=%s", outputRepository)
 		}

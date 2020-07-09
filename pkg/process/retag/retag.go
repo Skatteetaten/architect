@@ -38,7 +38,7 @@ func (m *retagger) Retag(ctx context.Context) error {
 
 	logrus.Debug("Get ENV from image manifest")
 
-	imageInfo, err := m.Provider.GetImageInfo(repository, tag)
+	imageInfo, err := m.Provider.GetImageInfo(ctx, repository, tag)
 
 	if err != nil {
 		return errors.Wrap(err, "Failed to retag image")

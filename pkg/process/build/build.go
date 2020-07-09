@@ -49,13 +49,13 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 	application := cfg.ApplicationSpec
 	logrus.Debug("Extract build info")
 
-	imageInfo, err := provider.GetImageInfo(application.BaseImageSpec.BaseImage,
+	imageInfo, err := provider.GetImageInfo(ctx, application.BaseImageSpec.BaseImage,
 		application.BaseImageSpec.BaseVersion)
 	if err != nil {
 		return errors.Wrap(err, "Unable to get the complete build version")
 	}
 
-	baseImageConfig, err := provider.GetImageConfig(application.BaseImageSpec.BaseImage, imageInfo.Digest)
+	baseImageConfig, err := provider.GetImageConfig(ctx, application.BaseImageSpec.BaseImage, imageInfo.Digest)
 	if err == nil {
 		payload := trace.BaseImage{
 			Type:        "baseImage",
@@ -98,7 +98,7 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 	if !cfg.DockerSpec.TagOverwrite {
 		for _, buildConfig := range dockerBuildConfig {
 			if !buildConfig.AuroraVersion.Snapshot {
-				tags, err := provider.GetTags(cfg.DockerSpec.OutputRepository)
+				tags, err := provider.GetTags(ctx, cfg.DockerSpec.OutputRepository)
 				if err != nil {
 					return err
 				}
@@ -162,9 +162,9 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 		if !cfg.NoPush {
 			err = builder.Push(ctx, output, tags, credentials)
-			manifest, err := provider.GetImageInfo(buildConfig.DockerRepository, t[0])
+			manifest, err := provider.GetImageInfo(ctx, buildConfig.DockerRepository, t[0])
 			if err == nil {
-				imageConfig, err := provider.GetImageConfig(buildConfig.DockerRepository, manifest.Digest)
+				imageConfig, err := provider.GetImageConfig(ctx, buildConfig.DockerRepository, manifest.Digest)
 				if err == nil {
 					payload := trace.DeployableImage{
 						Type:         "deployableImage",

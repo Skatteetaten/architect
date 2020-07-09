@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"crypto/tls"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
@@ -53,12 +54,12 @@ func GetUtcTimestamp() string {
 
 }
 
-func GetHTTPRequest(headers map[string]string, url string) ([]byte, error) {
+func GetHTTPRequest(ctx context.Context, headers map[string]string, url string) ([]byte, error) {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	req, _ := http.NewRequest("GET", url, nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
 	for key, value := range headers {
 		req.Header.Add(key, value)
 	}

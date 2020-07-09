@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -22,7 +23,7 @@ func TestGetManifestEnvSchemaV1(t *testing.T) {
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL, server.URL, nil)
-	imageInfo, err := target.GetImageInfo(repository, tag)
+	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 
 	actualVersion := imageInfo.Enviroment["BASE_IMAGE_VERSION"]
@@ -37,7 +38,7 @@ func TestGetCompleteBaseImageVersionSchemaV1(t *testing.T) {
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL, server.URL, nil)
-	imageInfo, err := target.GetImageInfo(repository, tag)
+	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, imageInfo.CompleteBaseImageVersion)
 }
@@ -50,7 +51,7 @@ func TestGetManifestEnvMapSchemaV1(t *testing.T) {
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL, server.URL, nil)
-	imageInfo, err := target.GetImageInfo(repository, tag)
+	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 
 	actualLength := len(imageInfo.Enviroment)
@@ -65,7 +66,7 @@ func TestGetManifestEnvSchemaV2(t *testing.T) {
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL, server.URL, nil)
-	imageInfo, err := target.GetImageInfo(repository, tag)
+	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 
 	actualVersion := imageInfo.Enviroment["BASE_IMAGE_VERSION"]
@@ -80,7 +81,7 @@ func TestGetCompleteBaseImageVersionSchemaV2(t *testing.T) {
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL, server.URL, nil)
-	imageInfo, err := target.GetImageInfo(repository, tag)
+	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, imageInfo.CompleteBaseImageVersion)
 }
@@ -91,7 +92,7 @@ func TestGetManifestV2(t *testing.T) {
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL, server.URL, nil)
-	manifest, err := target.GetManifest(repository, tag)
+	manifest, err := target.GetManifest(context.Background(), repository, tag)
 	assert.NoError(t, err)
 	assert.Equal(t, "sha256:b6a7c668428ff9347ef5c4f8736e8b7f38696dc6acc74409627d360752017fcc", manifest.Config.Digest)
 }
@@ -102,7 +103,7 @@ func TestGetContainerConfig(t *testing.T) {
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL, server.URL, nil)
-	config, err := target.GetContainerConfig(repository, tag)
+	config, err := target.GetContainerConfig(context.Background(), repository, tag)
 	assert.NoError(t, err)
 	assert.Equal(t, "amd64", config.Architecture)
 }
@@ -115,7 +116,7 @@ func TestGetManifestEnvMapSchemaV2(t *testing.T) {
 	assert.NoError(t, err)
 
 	target := NewRegistryClient(server.URL, server.URL, nil)
-	imageInfo, err := target.GetImageInfo(repository, tag)
+	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 
 	actualLength := len(imageInfo.Enviroment)
@@ -132,7 +133,7 @@ func TestGetTags(t *testing.T) {
 		"2.0.0", "1.3.0", "1.2.1", "1.1.2", "1.1", "1.2", "1.3", "2.0", "2", "1"}
 
 	target := NewRegistryClient(server.URL, server.URL, nil)
-	tags, err := target.GetTags("aurora/oracle8")
+	tags, err := target.GetTags(context.Background(), "aurora/oracle8")
 	assert.NoError(t, err)
 	verifyTagListContent(tags.Tags, expectedTags, t)
 }
@@ -147,7 +148,7 @@ func TestGetTagsWithMeta(t *testing.T) {
 		"2.0.0+somemeta2", "1.3.0+somemeta1", "1.2.1", "1.1.2", "1.1", "1.2", "1.3+somemeta1", "2.0+somemeta2", "2+somemeta2", "1+somemeta1"}
 
 	target := NewRegistryClient(server.URL, server.URL, nil)
-	tags, err := target.GetTags("aurora/oracle8")
+	tags, err := target.GetTags(context.Background(), "aurora/oracle8")
 	assert.NoError(t, err)
 	verifyTagListContent(tags.Tags, expectedTags, t)
 }

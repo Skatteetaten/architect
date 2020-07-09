@@ -32,16 +32,16 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.DockerBuildC
 	baseImage := buildConfig.Baseimage
 
 	logrus.Infof("%s:%s", baseImage.Repository, baseImage.Tag)
-	manifest, err := l.provider.GetManifest(baseImage.Repository, baseImage.Tag)
+	manifest, err := l.provider.GetManifest(ctx, baseImage.Repository, baseImage.Tag)
 	if err != nil {
 		return errors.Wrap(err, "Failed to fetch manifest")
 	}
 	logrus.Infof("Fetched manifest: %s/%s:%s", baseImage.Registry, baseImage.Repository, baseImage.Tag)
 
 	for _, layer := range manifest.Layers {
-		ok, _ := l.provider.LayerExists(l.config.DockerSpec.OutputRepository, layer.Digest)
+		ok, _ := l.provider.LayerExists(ctx, l.config.DockerSpec.OutputRepository, layer.Digest)
 		if !ok {
-			err := l.provider.MountLayer(baseImage.Repository, l.config.DockerSpec.OutputRepository, layer.Digest)
+			err := l.provider.MountLayer(ctx, baseImage.Repository, l.config.DockerSpec.OutputRepository, layer.Digest)
 			if err != nil {
 				return errors.Wrap(err, "Layer mount failed")
 			}
@@ -49,7 +49,7 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.DockerBuildC
 		}
 	}
 
-	containerConfig, err := l.provider.GetContainerConfig(baseImage.Repository, manifest.Config.Digest)
+	containerConfig, err := l.provider.GetContainerConfig(ctx, baseImage.Repository, manifest.Config.Digest)
 	if err != nil {
 		return errors.Wrap(err, "Failed to fetch the container config")
 	}
@@ -181,14 +181,14 @@ func (l *LayerBuilder) Push(ctx context.Context, buildOutput *BuildOutput, tag [
 		logrus.Infof("Push: %s", layer.Digest)
 		layerLocation := buildOutput.BuildFolder + "/" + layer.Name
 		//Push
-		err := l.provider.PushLayer(layerLocation, l.config.DockerSpec.OutputRepository, layer.Digest)
+		err := l.provider.PushLayer(ctx, layerLocation, l.config.DockerSpec.OutputRepository, layer.Digest)
 		if err != nil {
 			return errors.Errorf("Failed to push layer %v", err)
 		}
 	}
 
 	logrus.Infof("Push config: %s", buildOutput.ContainerConfigDigest)
-	err := l.provider.PushLayer(buildFolder+"/"+containerConfigFileName, l.config.DockerSpec.OutputRepository, buildOutput.ContainerConfigDigest)
+	err := l.provider.PushLayer(ctx, buildFolder+"/"+containerConfigFileName, l.config.DockerSpec.OutputRepository, buildOutput.ContainerConfigDigest)
 	if err != nil {
 		return errors.New("Failed to push the container configuration")
 	}
@@ -200,7 +200,7 @@ func (l *LayerBuilder) Push(ctx context.Context, buildOutput *BuildOutput, tag [
 		}
 
 		logrus.Infof("Push tag: %s", t)
-		err = l.provider.PushManifest(buildFolder+"/"+manifestFileName, l.config.DockerSpec.OutputRepository, shortTag)
+		err = l.provider.PushManifest(ctx, buildFolder+"/"+manifestFileName, l.config.DockerSpec.OutputRepository, shortTag)
 		if err != nil {
 			return errors.Errorf("Failed to push manifest: %v", err)
 		}
