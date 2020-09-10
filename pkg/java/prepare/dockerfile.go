@@ -51,4 +51,3 @@ func verifyMetadata(meta config.DeliverableMetadata) error {
 
 	return nil
 }
-

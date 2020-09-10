@@ -79,7 +79,6 @@ func PrepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 		Labels:       createLabels(*meta),
 		Cmd:          nil,
 	}, nil
-
 }
 
 func loadDeliverableMetadata(metafile string) (*deliverable.DeliverableMetadata, error) {

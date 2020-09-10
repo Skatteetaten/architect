@@ -1,5 +1,7 @@
 package prepare
 
+//TODO: Refactor
+
 type DockerfileData struct {
 	Main             string
 	Maintainer       string
@@ -10,28 +12,6 @@ type DockerfileData struct {
 	Labels           map[string]string
 	Env              map[string]string
 }
-
-const WRENCH_RADISH_DOCKER_FILE string = `FROM {{.Baseimage}}
-
-LABEL{{range $key, $value := .Labels}} {{$key}}="{{$value}}"{{end}}
-
-COPY ./{{.PackageDirectory}} /u01/application
-
-COPY ./overrides /u01/bin/
-
-COPY nginx-radish.json $HOME/
-
-COPY ./{{.PackageDirectory}}/{{.Static}} /u01/static{{.Path}}
-
-RUN chmod 666 /etc/nginx/nginx.conf && \
-    chmod 777 /etc/nginx && \
-    chmod 755 /u01/bin/*
-
-ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
-
-WORKDIR "/u01/"
-
-CMD ["/u01/bin/run_nginx"]`
 
 //We copy this over the script in wrench if we don't have a nodejs app
 const BLOCKING_RUN_NODEJS string = `#!/bin/sh

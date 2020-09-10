@@ -1,6 +1,7 @@
 package prepare
 
 import (
+	"os"
 	"regexp"
 	"strings"
 
@@ -10,16 +11,20 @@ import (
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/nexus"
-	process "github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
 )
 
-/*
+type BuildConfiguration struct {
+	BuildContext string
+	Env          map[string]string
+	Labels       map[string]string
+	Cmd          []string
+}
 
+/*
 We sanitize the input.... Don't want to large inputs.
 
 For example; Accepting very large client_max_body_size would make a DOS attack very easy to implement...
-
 */
 var allowedNginxOverrides = map[string]func(string) error{
 	"client_max_body_size": func(s string) error {
@@ -35,95 +40,82 @@ var allowedNginxOverrides = map[string]func(string) error{
 	},
 }
 
-func Prepper() process.Prepper {
-	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
-		baseImage runtime.BaseImage) ([]docker.DockerBuildConfig, error) {
-
-		if strings.ToLower(cfg.BuildStrategy) == config.Layer {
-			return nil, errors.New("Nodejs layer build not supported")
-		}
-
-		preparedImages, err := prepare(*cfg, auroraVersion, deliverable, baseImage)
-		if err != nil {
-			return nil, err
-		}
-
-		buildConfigs := make([]docker.DockerBuildConfig, 0, 2)
-		for _, preparedImage := range preparedImages {
-			buildConfigs = append(buildConfigs, docker.DockerBuildConfig{
-				BuildFolder:      preparedImage.Path,
-				DockerRepository: cfg.DockerSpec.OutputRepository,
-				AuroraVersion:    auroraVersion,
-				Baseimage:        preparedImage.baseImage,
-			})
-		}
-		return buildConfigs, nil
-	}
-}
-
-/*
-func prepare(dockerSpec config.DockerSpec, c config.ApplicationSpec, auroraVersion *runtime.AuroraVersion,
-	deliverable nexus.Deliverable, baseImage runtime.DockerImage) ([]PreparedImage, error) {*/
-func prepare(cfg config.Config, auroraVersion *runtime.AuroraVersion,
-	deliverable nexus.Deliverable, baseImage runtime.BaseImage) ([]PreparedImage, error) {
-	logrus.Debugf("Building %s", cfg.ApplicationSpec.MavenGav.Name())
+func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (*BuildConfiguration, error) {
 
 	openshiftJson, err := findOpenshiftJsonInTarball(deliverable.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	pathToApplication, err := extractTarball(deliverable.Path)
+	buildPath, err := extractTarball(deliverable.Path)
 	if err != nil {
 		return nil, err
+	}
+
+	writer := util.NewFileWriter(buildPath)
+
+	if err := os.MkdirAll(buildPath+"/layer/u01", 0755); err != nil {
+		return nil, errors.Wrap(err, "Failed to create base layer structure")
+	}
+
+	if err := os.MkdirAll(buildPath+"/layer/u01/logs", 0777); err != nil {
+		return nil, errors.Wrap(err, "Failed to create log folder")
 	}
 
 	imageBuildTime := docker.GetUtcTimestamp()
-	err = prepareImage(cfg.DockerSpec, openshiftJson, baseImage, auroraVersion, util.NewFileWriter(pathToApplication), imageBuildTime)
-	if err != nil {
-		return nil, err
-	}
-	logrus.Infof("Image build prepared in %s", pathToApplication)
-	return []PreparedImage{{
-		baseImage: baseImage.DockerImage,
-		Path:      pathToApplication,
-	}}, nil
-}
-
-func prepareImage(dockerSpec config.DockerSpec, v *openshiftJson, baseImage runtime.BaseImage, auroraVersion *runtime.AuroraVersion, writer util.FileWriter,
-	imageBuildTime string) error {
 	completeDockerName := baseImage.GetCompleteDockerTagName()
-	nginxData, dockerData, err := mapOpenShiftJsonToTemplateInput(dockerSpec, v, completeDockerName, imageBuildTime, auroraVersion)
-
+	nginxData, dockerData, err := mapOpenShiftJsonToTemplateInput(dockerSpec, openshiftJson, completeDockerName, imageBuildTime, auroraVersion)
 	if err != nil {
-		return errors.Wrap(err, "Error processing AuroraConfig")
+		return nil, errors.Wrap(err, "Failed while parsing openshift.json")
 	}
 
-	if architecture, exists := baseImage.ImageInfo.Labels["www.skatteetaten.no-imageArchitecture"]; exists && architecture == "nodejs" {
-
-		logrus.Info("Running radish nodejs build")
-
-		if err := writer(newRadishNginxConfig(dockerData, nginxData), "nginx-radish.json"); err != nil {
-			return errors.Wrap(err, "Unable to create radish-nginx configuration")
-		}
-
-		err = writer(util.NewTemplateWriter(dockerData, "NodejsDockerfile", WRENCH_RADISH_DOCKER_FILE), "Dockerfile")
-		if err != nil {
-			return errors.Wrap(err, "Error creating Dockerfile")
-		}
-
+	if err := writer(newRadishNginxConfig(dockerData, nginxData), "nginx-radish.json"); err != nil {
+		return nil, errors.Wrap(err, "Unable to create radish-nginx configuration")
 	}
+
 	err = addProbes(nginxData.HasNodeJSApplication, writer)
 	if err != nil {
-		return err
+		return nil, errors.Wrap(err, "Unable to write health check probes")
 	}
+
 	if !nginxData.HasNodeJSApplication {
 		err = writer(util.NewByteWriter([]byte(BLOCKING_RUN_NODEJS)), "overrides", "run_node")
 		if err != nil {
-			return errors.Wrap(err, "Failed creating nodejs override script")
+			return nil, errors.Wrap(err, "Failed creating nodejs override script")
 		}
 	}
-	return err
+
+	//TODO: Det er egentlig bare innhold jeg ønsker å kopiere. Denne må endres litt srcFolder == folder => Ikke opprett mappe
+	//COPY ./{{.PackageDirectory}} /u01/application
+	err = CopyDirectory(buildPath+"/"+dockerData.PackageDirectory, buildPath+"layer/u01/application")
+	if err != nil {
+		return nil, errors.Wrap(err, "Could not create application layer")
+	}
+
+	//COPY ./overrides /u01/bin/
+	err = CopyDirectory(buildPath+"/overrides", buildPath+"/layers/u01/bin")
+	if err != nil {
+		return nil, errors.Wrap(err, "Could not copy overrides")
+	}
+
+	//	COPY nginx-radish.json $HOME/
+	err = Copy(buildPath+"/nginx-radish.json", buildPath+"/layers/u01/")
+	if err != nil {
+		return nil, errors.Wrap(err, "Could not copy nginx-radish.json")
+	}
+	//	COPY ./{{.PackageDirectory}}/{{.Static}} /u01/static{{.Path}}
+	err = CopyDirectory(buildPath+"/"+dockerData.PackageDirectory+"/"+dockerData.Static, "/layers/u01/static"+dockerData.Path)
+	if err != nil {
+		return nil, errors.Wrap(err, "Could not copy static files")
+	}
+
+	return &BuildConfiguration{
+		BuildContext: buildPath,
+		Env:          dockerData.Env,
+		Labels:       dockerData.Labels,
+		Cmd:          []string{"/u01/bin/run_nginx"},
+	}, nil
+
 }
 
 func addProbes(hasNodejsApplication bool, writer util.FileWriter) error {
@@ -156,13 +148,6 @@ func addProbes(hasNodejsApplication bool, writer util.FileWriter) error {
 		return err
 	}
 	return nil
-}
-
-func findMaintainer(dockerMetadata dockerMetadata) string {
-	if len(dockerMetadata.Maintainer) == 0 {
-		return "No Maintainer set!"
-	}
-	return dockerMetadata.Maintainer
 }
 
 func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJson, completeDockerName string, imageBuildTime string, auroraVersion *runtime.AuroraVersion) (*NginxfileData, *DockerfileData, error) {
@@ -260,6 +245,13 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 		}, nil
 }
 
+func findMaintainer(dockerMetadata dockerMetadata) string {
+	if len(dockerMetadata.Maintainer) == 0 {
+		return "No Maintainer set!"
+	}
+	return dockerMetadata.Maintainer
+}
+
 func buildNginxLocations(locations map[string]interface{}) nginxLocations {
 	if locations == nil || len(locations) == 0 {
 		return nil
@@ -277,7 +269,6 @@ func buildNginxLocations(locations map[string]interface{}) nginxLocations {
 			if val, ok := gzipMap["use_static"]; ok {
 				gZip.UseStatic = val.(string)
 			}
-
 		}
 
 		headersMap := make(map[string]string)

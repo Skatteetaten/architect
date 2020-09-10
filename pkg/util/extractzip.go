@@ -22,32 +22,6 @@ const (
 	DeliveryMetadataPath   = "metadata/openshift.json"
 )
 
-func ExtractAndCreateJavaApplicationLayer(dockerBuildFolder string, deliverablePath string) error {
-	applicationRoot := filepath.Join(dockerBuildFolder+"/"+ApplicationBuildFolder, DockerBasedir)
-	renamedApplicationFolder := filepath.Join(dockerBuildFolder, ApplicationLayerFolder)
-	if err := os.MkdirAll(dockerBuildFolder, 0755); err != nil {
-		return errors.Wrap(err, "Failed to create application directory in Docker context")
-	}
-
-	if err := os.MkdirAll(dockerBuildFolder+"/"+""+DockerBasedir, 0755); err != nil {
-		return errors.Wrap(err, "Failed to create layer structure")
-	}
-
-	if err := os.MkdirAll(dockerBuildFolder+"/"+DockerBasedir+"/logs", 0777); err != nil {
-		return errors.Wrap(err, "Failed to create log folder")
-	}
-
-	if err := ExtractDeliverable(deliverablePath, applicationRoot); err != nil {
-		return errors.Wrapf(err, "Failed to extract application archive")
-	}
-
-	if err := RenameSingleFolderInDirectory(applicationRoot, renamedApplicationFolder); err != nil {
-		return errors.Wrap(err, "Failed to rename application directory in Docker context")
-	}
-
-	return nil
-}
-
 func ExtractAndRenameDeliverable(dockerBuildFolder string, deliverablePath string) error {
 
 	applicationRoot := filepath.Join(dockerBuildFolder, DockerfileApplicationFolder)
@@ -91,7 +65,6 @@ func ExtractDeliverable(archivePath string, extractedDirPath string) error {
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -182,6 +155,5 @@ func Exists(path string) (bool, error) {
 
 		return false, errors.Wrap(err, "Failed to stat file")
 	}
-
 	return true, nil
 }

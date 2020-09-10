@@ -31,8 +31,8 @@ const (
 )
 
 const (
-	Docker  = "docker"
-	Layer   = "layer"
+	Docker = "docker"
+	Layer  = "layer"
 )
 
 type Config struct {
