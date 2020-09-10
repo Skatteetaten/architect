@@ -43,11 +43,9 @@ func (m *ManifestV2) Save(dstFolder string, name string) error {
 	return nil
 }
 
-//TODO: Shallow
 func (m *ManifestV2) CleanCopy() *ManifestV2 {
-	var layers []Layer
+	layers := make([]Layer, len(m.Layers))
 	copy(layers, m.Layers)
-
 	return &ManifestV2{
 		SchemaVersion: m.SchemaVersion,
 		MediaType:     m.MediaType,

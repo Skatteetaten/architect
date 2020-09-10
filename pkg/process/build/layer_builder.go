@@ -57,6 +57,8 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.DockerBuildC
 
 	logrus.Infof("Fetched container config: %s", manifest.Config.Digest)
 
+	logrus.Infof("Numbers of layers in pull: %d", len(manifest.Layers))
+
 	err = manifest.Save(buildConfig.BuildFolder, manifestFileName)
 	if err != nil {
 		return errors.Wrap(err, "Manifest save: failed")

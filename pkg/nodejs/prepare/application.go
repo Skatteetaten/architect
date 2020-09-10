@@ -52,6 +52,8 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 		return nil, err
 	}
 
+	logrus.Infof("Using build context: %s", buildPath)
+
 	writer := util.NewFileWriter(buildPath)
 
 	if err := os.MkdirAll(buildPath+"/layer/u01", 0755); err != nil {
@@ -87,24 +89,36 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 
 	//TODO: Det er egentlig bare innhold jeg ønsker å kopiere. Denne må endres litt srcFolder == folder => Ikke opprett mappe
 	//COPY ./{{.PackageDirectory}} /u01/application
-	err = CopyDirectory(buildPath+"/"+dockerData.PackageDirectory, buildPath+"layer/u01/application")
+	if err := os.MkdirAll(buildPath+"/layer/u01/application", 0755); err != nil {
+		return nil, errors.Wrap(err, "Failed to create application folder")
+	}
+
+	err = CopyDirectory(buildPath+"/"+dockerData.PackageDirectory, buildPath+"/layer/u01/application")
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not create application layer")
 	}
 
 	//COPY ./overrides /u01/bin/
-	err = CopyDirectory(buildPath+"/overrides", buildPath+"/layers/u01/bin")
+	if err := os.MkdirAll(buildPath+"/layer/u01/bin", 0755); err != nil {
+		return nil, errors.Wrap(err, "Failed to create bin folder")
+	}
+	err = CopyDirectory(buildPath+"/overrides", buildPath+"/layer/u01/bin")
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not copy overrides")
 	}
 
 	//	COPY nginx-radish.json $HOME/
-	err = Copy(buildPath+"/nginx-radish.json", buildPath+"/layers/u01/")
+	err = Copy(buildPath+"/nginx-radish.json", buildPath+"/layer/u01/nginx-radish.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not copy nginx-radish.json")
 	}
 	//	COPY ./{{.PackageDirectory}}/{{.Static}} /u01/static{{.Path}}
-	err = CopyDirectory(buildPath+"/"+dockerData.PackageDirectory+"/"+dockerData.Static, "/layers/u01/static"+dockerData.Path)
+	
+	if err := os.MkdirAll(buildPath+"/layer/u01/static"+dockerData.Path, 0755); err != nil {
+		return nil, errors.Wrap(err, "Failed to create static folder")
+	}
+
+	err = CopyDirectory(buildPath+"/"+dockerData.PackageDirectory+"/"+dockerData.Static, buildPath+"/layer/u01/static"+dockerData.Path)
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not copy static files")
 	}

@@ -51,6 +51,8 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 	application := cfg.ApplicationSpec
 	logrus.Debug("Extract build info")
 
+	logrus.Infof("Fetching image info %s:%s",application.BaseImageSpec.BaseImage, application.BaseImageSpec.BaseVersion)
+
 	imageInfo, err := provider.GetImageInfo(ctx, application.BaseImageSpec.BaseImage,
 		application.BaseImageSpec.BaseVersion)
 	if err != nil {
