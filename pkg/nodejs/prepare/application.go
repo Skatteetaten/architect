@@ -112,17 +112,6 @@ func prepareImage(dockerSpec config.DockerSpec, v *openshiftJson, baseImage runt
 			return errors.Wrap(err, "Error creating Dockerfile")
 		}
 
-	} else {
-		logrus.Info("Running nodejs legacy build...")
-
-		err = writer(util.NewTemplateWriter(nginxData, "NgnixConfiguration", NGINX_CONFIG_TEMPLATE), "nginx.conf")
-		if err != nil {
-			return errors.Wrap(err, "Error creating nginxData configuration")
-		}
-		err = writer(util.NewTemplateWriter(dockerData, "NodejsDockerfile", WRENCH_DOCKER_FILE), "Dockerfile")
-		if err != nil {
-			return errors.Wrap(err, "Error creating Dockerfile")
-		}
 	}
 	err = addProbes(nginxData.HasNodeJSApplication, writer)
 	if err != nil {
