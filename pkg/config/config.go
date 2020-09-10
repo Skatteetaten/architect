@@ -161,13 +161,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 
 	var buildStrategy = Docker
-	if value, err := findEnv(env, "BUILD_STRATEGY"); err == nil {
-		if strings.Contains(strings.ToLower(value), Buildah) {
-			buildStrategy = Buildah
-		} else {
-			buildStrategy = value
-		}
-	}
 
 	var sporingscontext = ""
 	if value, err := findEnv(env, "SPORINGSCONTEXT"); err == nil {
@@ -179,15 +172,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	if value, err := findEnv(env, "SPORINGSTJENESTE"); err == nil && value != "" {
 		logrus.Debugf("Sporingstjeneste: %s", value)
 		sporingstjeneste = value
-	}
-
-	//Default to docker format
-	if _, err := findEnv(env, "BUILDAH_FORMAT"); err != nil {
-		err = os.Setenv("BUILDAH_FORMAT", "docker")
-		if err != nil && buildStrategy == Buildah {
-			logrus.Fatal("Failed to set BUILDAH_FORMAT", err)
-		}
-		logrus.Info("BUILDAH_FORMAT defaulting to docker")
 	}
 
 	var tlsVerify = true

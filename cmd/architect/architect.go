@@ -42,12 +42,7 @@ func RunArchitect(configuration RunConfiguration) {
 
 	var builder process.Builder
 
-	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Buildah) {
-		logrus.Info("ALPHA FEATURE: Running buildah builds")
-		builder = &process.BuildahCmd{
-			TlsVerify: c.TlsVerify,
-		}
-	} else if strings.Contains(strings.ToLower(c.BuildStrategy), config.Layer) {
+	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Layer) {
 		logrus.Info("ALPHA FEATURE: Running layer build")
 		builder = process.NewLayerBuilder(c, provider)
 	} else {
