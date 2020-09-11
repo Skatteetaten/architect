@@ -18,6 +18,7 @@ import (
 	"strings"
 )
 
+//TODO: Moby må fjernes helt. github.com/docker/docker/image
 type Registry interface {
 	GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error)
 	GetTags(ctx context.Context, repository string) (*TagsAPIResponse, error)

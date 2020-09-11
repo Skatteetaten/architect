@@ -8,16 +8,14 @@ import (
 	"github.com/skatteetaten/architect/pkg/docker"
 	deliverable "github.com/skatteetaten/architect/pkg/doozer/config"
 	"github.com/skatteetaten/architect/pkg/nexus"
+	process "github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/util"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
-)
-
-const (
-	DeliveryMetadataPath = "metadata/openshift.json"
+	"strings"
 )
 
 type FileGenerator interface {
@@ -31,6 +29,35 @@ type BuildConfiguration struct {
 	Cmd          []string
 }
 
+func Prepper() process.Prepper {
+	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
+		baseImage runtime.BaseImage) ([]docker.DockerBuildConfig, error) {
+
+		if strings.ToLower(cfg.BuildStrategy) == config.Layer {
+			return nil, errors.New("Doozer layer build not supported")
+		}
+
+		logrus.Debug("Pull output image")
+		buildContext, err := PrepareLayers(cfg.DockerSpec, auroraVersion, deliverable, baseImage)
+
+		if err != nil {
+			return nil, errors.Wrap(err, "Error prepare artifact")
+		}
+
+		buildConf := docker.DockerBuildConfig{
+			AuroraVersion:    auroraVersion,
+			BuildFolder:      buildContext.BuildContext,
+			DockerRepository: cfg.DockerSpec.OutputRepository,
+			Baseimage:        baseImage.DockerImage,
+			Env:              buildContext.Env,
+			Labels:           buildContext.Labels,
+			Cmd:              buildContext.Cmd,
+		}
+		return []docker.DockerBuildConfig{buildConf}, nil
+	}
+}
+
+//TODO: Lag testdata til denne og skriv en test
 func PrepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (*BuildConfiguration, error) {
 	//Create build context
 	buildContext, err := ioutil.TempDir("", "deliverable")

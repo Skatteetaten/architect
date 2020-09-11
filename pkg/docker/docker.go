@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/docker/docker/api/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
@@ -116,15 +115,6 @@ func readRegistryCredentials(outputRegistry string, dockerConfigPath string) (*R
 	}
 
 	return &registryCredentials, nil
-}
-
-func createImagePushOptions(credentials string) types.ImagePushOptions {
-
-	if credentials == "" {
-		return types.ImagePushOptions{RegistryAuth: "aurora"}
-	}
-
-	return types.ImagePushOptions{RegistryAuth: credentials}
 }
 
 func createContextTarStreamToTarWriter(dockerBase string, writer io.Writer) error {

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 )
 
+//TODO: Kan vi bruke den fra utils ?
 func extractTarball(pathToTarball string) (string, error) {
 	tmpdir, err := ioutil.TempDir("", "nodejs-architect")
 	tarball, err := os.Open(pathToTarball)

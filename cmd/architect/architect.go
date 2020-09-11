@@ -6,10 +6,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/doozer"
-	"github.com/skatteetaten/architect/pkg/java"
+	doozer "github.com/skatteetaten/architect/pkg/doozer/prepare"
+	java "github.com/skatteetaten/architect/pkg/java/prepare"
 	"github.com/skatteetaten/architect/pkg/nexus"
-	"github.com/skatteetaten/architect/pkg/nodejs/prepare"
+	nodejs "github.com/skatteetaten/architect/pkg/nodejs/prepare"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/retag"
 	"os"
@@ -77,7 +77,7 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 		prepper = java.Prepper()
 	} else if c.ApplicationType == config.NodeJsLeveransepakke {
 		logrus.Info("Perform Webleveranse build")
-		prepper = prepare.Prepper()
+		prepper = nodejs.Prepper()
 	} else if c.ApplicationType == config.DoozerLeveranse {
 		logrus.Info("Perform Doozerleveranse build")
 		prepper = doozer.Prepper()
