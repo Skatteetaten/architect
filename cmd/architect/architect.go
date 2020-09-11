@@ -41,20 +41,7 @@ func RunArchitect(configuration RunConfiguration) {
 	provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry, c.DockerSpec.ExternalDockerRegistry, registryCredentials)
 
 	var builder process.Builder
-
-	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Layer) {
-		logrus.Info("ALPHA FEATURE: Running layer build")
-		builder = process.NewLayerBuilder(c, provider)
-	} else {
-		if !strings.Contains(strings.ToLower(c.BuildStrategy), config.Docker) {
-			logrus.Warnf("Unsupported build strategy: %s. Defaulting to docker", c.BuildStrategy)
-		}
-
-		builder, err = process.NewDockerBuilder()
-		if err != nil {
-			logrus.Fatal("err", err)
-		}
-	}
+	builder = process.NewLayerBuilder(c, provider)
 
 	if c.DockerSpec.RetagWith != "" {
 		logrus.Info("Perform retag")

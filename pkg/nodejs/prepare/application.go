@@ -113,7 +113,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 		return nil, errors.Wrap(err, "Could not copy nginx-radish.json")
 	}
 	//	COPY ./{{.PackageDirectory}}/{{.Static}} /u01/static{{.Path}}
-	
+
 	if err := os.MkdirAll(buildPath+"/layer/u01/static"+dockerData.Path, 0755); err != nil {
 		return nil, errors.Wrap(err, "Failed to create static folder")
 	}

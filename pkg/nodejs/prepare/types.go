@@ -59,17 +59,3 @@ type nginxLocation struct {
 type nginxGzip struct {
 	UseStatic string `json:"use_static"`
 }
-
-type templateInput struct {
-	Baseimage            string
-	HasNodeJSApplication bool
-	NginxOverrides       map[string]string
-	ConfigurableProxy    bool
-	Static               string
-	SPA                  bool
-	ExtraStaticHeaders   map[string]string
-	Path                 string
-	Labels               map[string]string
-	Env                  map[string]string
-	PackageDirectory     string
-}

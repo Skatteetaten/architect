@@ -2,12 +2,9 @@ package docker
 
 import (
 	"archive/tar"
-	"bufio"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
@@ -16,7 +13,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 //TODO: Fix context!!!
@@ -35,146 +31,6 @@ type DockerBuildConfig struct {
 	Env              map[string]string
 	Labels           map[string]string
 	Cmd              []string
-}
-
-type DockerClient struct {
-	Client DockerClientAPI
-}
-
-func NewDockerClient() (*DockerClient, error) {
-	cli, err := client.NewClient(client.DefaultDockerHost, "1.23", nil, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &DockerClient{Client: DockerClientProxy{*cli}}, nil
-}
-
-//THIS IS BUGGY!
-func (d *DockerClient) PullImage(ctx context.Context, baseimage runtime.DockerImage) error {
-	startTimer := time.Now()
-	logrus.Infof("Pulling %s", baseimage.GetCompleteDockerTagName())
-	output, err := d.Client.ImagePull(ctx, baseimage.GetCompleteDockerTagName(), types.ImagePullOptions{})
-
-	if err != nil {
-		logrus.Warn("Failed pulling image: ", err)
-		return err
-	}
-
-	// ImageBuild will not return error message if build fails.
-	var bodyLine string = ""
-	scanner := bufio.NewScanner(output)
-	for scanner.Scan() {
-		bodyLine = scanner.Text()
-		logrus.Debug(bodyLine)
-	}
-	logrus.Infof("Timer stage=PullImage timetaken=%.3fs", time.Since(startTimer).Seconds())
-	return err
-}
-
-func (d *DockerClient) BuildImage(ctx context.Context, buildFolder string) (string, error) {
-	startTimer := time.Now()
-	dockerOpt := types.ImageBuildOptions{
-		SuppressOutput: false,
-		Remove:         true,
-		ForceRemove:    true,
-	}
-	tarReader := createContextTarStreamReader(buildFolder)
-	build, err := d.Client.ImageBuild(ctx, tarReader, dockerOpt)
-	if err != nil {
-		return "", errors.Wrap(err, "Error building image")
-	}
-	// ImageBuild will not return error message if build fails, parsing build to detect
-	var bodyLine string = ""
-	scanner := bufio.NewScanner(build.Body)
-	for scanner.Scan() {
-		bodyLine = scanner.Text()
-		logrus.Debug(bodyLine)
-		if strings.Contains(bodyLine, "errorDetail") {
-			msg, err := JsonMapToString(bodyLine, "error")
-			if err != nil {
-				return "", errors.Wrap(err, "Error mapping JSON error message. Error in build.")
-			}
-			if strings.Contains(msg, "lstat") && strings.Contains(msg, "no such file or directory") {
-				msg += ", check that the specified folders in metadata/openshift.json match the file structure of the build"
-			}
-			return "", errors.New(msg)
-		}
-	}
-	// Get image id.
-	msg, err := JsonMapToString(bodyLine, "stream")
-	logrus.Infof("Timer stage=BuildImage timetaken=%.3fs", time.Since(startTimer).Seconds())
-
-	return strings.TrimSpace(strings.TrimPrefix(msg, "Successfully built ")), nil
-}
-
-func (d *DockerClient) TagImage(ctx context.Context, imageId string, tag string) error {
-	if err := d.Client.ImageTag(ctx, imageId, tag); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *DockerClient) PushImage(ctx context.Context, tag string, credentials *RegistryCredentials) error {
-	logrus.Infof("Pushing image %s", tag)
-
-	var encodedCredentials string
-	if credentials == nil {
-		encodedCredentials = ""
-	} else {
-		c, err := credentials.Encode()
-		if err != nil {
-			return errors.Wrap(err, "Unable to create credentials")
-		}
-		encodedCredentials = c
-	}
-	pushOptions := createImagePushOptions(encodedCredentials)
-
-	push, err := d.Client.ImagePush(ctx, tag, pushOptions)
-
-	if err != nil {
-		return err
-	}
-
-	defer push.Close()
-
-	// ImageBuild will not return error message if build fails.
-	scanner := bufio.NewScanner(push)
-	for scanner.Scan() {
-		bodyLine := scanner.Text()
-		logrus.Debug(bodyLine)
-		if strings.Contains(bodyLine, "errorDetail") {
-			msg, err := JsonMapToString(bodyLine, "error")
-			if err != nil {
-				return errors.Wrap(err, "Error mapping JSON error message. Unknown error")
-			}
-			return errors.New(msg)
-		}
-	}
-	return nil
-}
-
-func (d *DockerClient) PushImages(ctx context.Context, tags []string, credentials *RegistryCredentials) error {
-	startTimer := time.Now()
-	for _, tag := range tags {
-		err := d.PushImage(ctx, tag, credentials)
-		if err != nil {
-			return errors.Wrapf(err, "Failed to push %s", tag)
-		}
-	}
-	logrus.Infof("Timer stage=PushImages numtags=%d timetaken=%.3fs", len(tags), time.Since(startTimer).Seconds())
-
-	return nil
-}
-
-func JsonMapToString(jsonStr string, key string) (string, error) {
-	var f interface{}
-	if err := json.Unmarshal([]byte(jsonStr), &f); err != nil {
-		return "", err
-	}
-	errorMap := f.(map[string]interface{})
-	return errorMap[key].(string), nil
 }
 
 func (rc RegistryCredentials) Encode() (string, error) {
