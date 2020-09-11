@@ -1,4 +1,4 @@
-package prepare
+package util
 
 import (
 	"fmt"

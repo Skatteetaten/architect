@@ -8,7 +8,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/java/config"
 )
 
-type DockerfileData struct {
+type ImageMetaData struct {
 	BaseImage  string
 	Maintainer string
 	Labels     map[string]string

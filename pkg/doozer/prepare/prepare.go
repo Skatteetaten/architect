@@ -24,55 +24,97 @@ type FileGenerator interface {
 	Write(writer io.Writer) error
 }
 
-func Prepare(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (string, error) {
+type BuildConfiguration struct {
+	BuildContext string
+	Env          map[string]string
+	Labels       map[string]string
+	Cmd          []string
+}
 
-	// Create docker build folder
-	dockerBuildPath, err := ioutil.TempDir("", "deliverable")
+func PrepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (*BuildConfiguration, error) {
+	//Create build context
+	buildContext, err := ioutil.TempDir("", "deliverable")
+	fileWriter := util.NewFileWriter(buildContext)
 
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to create root folder of Docker context")
+		return nil, errors.Wrap(err, "Failed to create root folder for build context")
 	}
 
-	// Unzip deliverable
-	applicationFolder := filepath.Join(dockerBuildPath, util.ApplicationBuildFolder)
-	err = util.ExtractAndRenameDeliverable(dockerBuildPath, deliverable.Path)
+	if err := os.MkdirAll(buildContext+"/layer/u01", 0755); err != nil {
+		return nil, errors.Wrap(err, "Failed to create layer structure")
+	}
 
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to extract application archive")
+	if err := os.MkdirAll(buildContext+"/layer/u01/logs", 0777); err != nil {
+		return nil, errors.Wrap(err, "Failed to create log folder")
 	}
 
 	// Load metadata
-	metadatafolder := filepath.Join(applicationFolder, DeliveryMetadataPath)
-	logrus.Debugf("metadatafolder: %v", metadatafolder)
-	meta, err := loadDeliverableMetadata(metadatafolder)
-	logrus.Debugf("meta: %v", meta)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to read application metadata")
-	}
-
-	fileWriter := util.NewFileWriter(dockerBuildPath)
+	deliverableMetadata, err := loadDeliverableMetadata(filepath.Join(buildContext, "layer/u01/application/metadata/openshift.json"))
 
 	logrus.Info("Running radish build (doozer)")
-	if err := fileWriter(newRadishDescriptor(meta, filepath.Join(util.DockerBasedir, util.ApplicationFolder)), "radish.json"); err != nil {
-		return "", errors.Wrap(err, "Unable to create radish descriptor")
+	if err := fileWriter(newRadishDescriptor(deliverableMetadata, buildContext+"/layer/u01/radish.json")); err != nil {
+		return nil, errors.Wrap(err, "Unable to create radish descriptor")
 	}
 
 	destinationPath := baseImage.ImageInfo.Labels["www.skatteetaten.no-destinationPath"]
 
-	if err = fileWriter(NewDockerFile(dockerSpec, *auroraVersions, *meta, baseImage.DockerImage, docker.GetUtcTimestamp(), destinationPath),
-		"Dockerfile"); err != nil {
-		return "", errors.Wrap(err, "Failed to create Dockerfile")
+	imageMetadata, err := ReadMetadata(dockerSpec, *auroraVersions, *deliverableMetadata, baseImage.DockerImage, docker.GetUtcTimestamp(), destinationPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Could not read image metadata")
 	}
 
-	return dockerBuildPath, nil
+	// Unzip deliverable
+	applicationRoot := filepath.Join(buildContext, util.DockerfileApplicationFolder)
+
+	if err := util.ExtractDeliverable(deliverable.Path, applicationRoot); err != nil {
+		return nil, errors.Wrapf(err, "Failed to extract application archive")
+	}
+
+	fileinfo, err := os.Stat(buildContext + "/" + imageMetadata.SrcPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Could not get fileinfo of file %s", imageMetadata.SrcPath)
+	}
+
+	if fileinfo.IsDir() {
+		src := filepath.Join(buildContext, imageMetadata.SrcPath)
+		dst := filepath.Join(buildContext, imageMetadata.DestPath)
+		if err := util.CopyDirectory(src, dst); err != nil {
+			return nil, errors.Wrapf(err, "Could not copy directory from src=%s to dst=%s", src, dst)
+		}
+	} else {
+		srcFile := filepath.Join(buildContext, imageMetadata.SrcPath)
+		dstFile := filepath.Join(buildContext, imageMetadata.DestPath, imageMetadata.FileName)
+		if err := util.Copy(srcFile, dstFile); err != nil {
+			return nil, errors.Wrapf(err, "Could not copy file %s to dst=%s", imageMetadata.FileName, imageMetadata.DestPath)
+		}
+	}
+
+	//Create symlink
+	target := buildContext + "/layer/u01/logs/"
+	err = os.Symlink(target, buildContext+"/layer/u01/application/logs")
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to create symlink")
+	}
+
+	var cmd []string
+	if imageMetadata.CmdScript == "" {
+		cmd = nil
+	} else {
+		cmd = []string{imageMetadata.CmdScript}
+	}
+
+	return &BuildConfiguration{
+		BuildContext: buildContext,
+		Env:          imageMetadata.Env,
+		Labels:       imageMetadata.Labels,
+		Cmd:          cmd,
+	}, nil
 }
 
 func loadDeliverableMetadata(metafile string) (*deliverable.DeliverableMetadata, error) {
-	fileExists, err := util.Exists(metafile)
+	fileExists := util.Exists(metafile)
 
-	if err != nil {
-		return nil, errors.Wrapf(err, "Could not find %s in deliverable", path.Base(metafile))
-	} else if !fileExists {
+	if !fileExists {
 		return nil, errors.Errorf("Could not find %s in deliverable", path.Base(metafile))
 	}
 

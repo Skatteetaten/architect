@@ -63,6 +63,8 @@ const (
 	httpHeaderContainerImageV1 = "application/vnd.docker.container.image.v1+json"
 )
 
+//TODO: Improve error handling
+
 func (registry *RegistryClient) getRegistryManifest(ctx context.Context, repository string, tag string) ([]byte, error) {
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderManifestSchemaV2

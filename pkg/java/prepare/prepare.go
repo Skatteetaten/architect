@@ -82,11 +82,9 @@ func PrepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 }
 
 func loadDeliverableMetadata(metafile string) (*deliverable.DeliverableMetadata, error) {
-	fileExists, err := util.Exists(metafile)
+	fileExists := util.Exists(metafile)
 
-	if err != nil {
-		return nil, errors.Wrapf(err, "Could not find %s in deliverable", path.Base(metafile))
-	} else if !fileExists {
+	if !fileExists {
 		return nil, errors.Errorf("Could not find %s in deliverable", path.Base(metafile))
 	}
 

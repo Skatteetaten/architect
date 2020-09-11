@@ -93,7 +93,7 @@ func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 		BinaryBuild:     true,
 		LocalBuild:      true,
 		ApplicationType: applicationType,
-		BuildStrategy:   Docker,
+		BuildStrategy:   Layer,
 		ApplicationSpec: ApplicationSpec{
 			MavenGav: MavenGav{
 				Version: output[1],
@@ -160,7 +160,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
-	var buildStrategy = Docker
+	var buildStrategy = Layer
 
 	var sporingscontext = ""
 	if value, err := findEnv(env, "SPORINGSCONTEXT"); err == nil {

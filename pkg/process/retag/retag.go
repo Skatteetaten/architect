@@ -104,10 +104,6 @@ func (m *retagger) Retag(ctx context.Context) error {
 		return err
 	}
 
-	if err != nil {
-		return errors.Wrap(err, "Error initializing Docker")
-	}
-
 	//We need to pull to make sure we push the newest image.. We should probably do this directly
 	//on the registry when we get v2 registry!:)
 	err = m.Builder.Pull(ctx, docker.DockerBuildConfig{Baseimage: pull})

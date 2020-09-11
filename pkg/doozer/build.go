@@ -21,7 +21,7 @@ func Prepper() process.Prepper {
 		}
 
 		logrus.Debug("Pull output image")
-		buildPath, err := prepare.Prepare(cfg.DockerSpec, auroraVersion, deliverable, baseImage)
+		buildContext, err := prepare.PrepareLayers(cfg.DockerSpec, auroraVersion, deliverable, baseImage)
 
 		if err != nil {
 			return nil, errors.Wrap(err, "Error prepare artifact")
@@ -29,9 +29,12 @@ func Prepper() process.Prepper {
 
 		buildConf := docker.DockerBuildConfig{
 			AuroraVersion:    auroraVersion,
-			BuildFolder:      buildPath,
+			BuildFolder:      buildContext.BuildContext,
 			DockerRepository: cfg.DockerSpec.OutputRepository,
 			Baseimage:        baseImage.DockerImage,
+			Env:              buildContext.Env,
+			Labels:           buildContext.Labels,
+			Cmd:              buildContext.Cmd,
 		}
 		return []docker.DockerBuildConfig{buildConf}, nil
 	}

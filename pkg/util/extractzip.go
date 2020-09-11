@@ -144,16 +144,3 @@ func RenameSingleFolderInDirectory(base string, newName string) error {
 		return nil
 	}
 }
-
-func Exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-
-		return false, errors.Wrap(err, "Failed to stat file")
-	}
-	return true, nil
-}
