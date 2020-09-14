@@ -18,6 +18,8 @@ import (
 	"strings"
 )
 
+//TODO: Trenger tester på disse (Kan vi mocke registry ? )
+
 //TODO: Moby må fjernes helt. github.com/docker/docker/image
 type Registry interface {
 	GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error)

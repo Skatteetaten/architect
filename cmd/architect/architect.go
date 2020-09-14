@@ -49,7 +49,7 @@ func RunArchitect(configuration RunConfiguration) {
 			logrus.Fatalf("Failed to retag temporary image %s", err)
 		}
 	} else {
-		err := performBuild(ctx, &configuration, c, registryCredentials, provider, builder)
+		err := performBuild(ctx, &configuration, c, provider, builder)
 
 		if err != nil {
 			var errorMessage string
@@ -70,7 +70,7 @@ func RunArchitect(configuration RunConfiguration) {
 	}
 	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
 }
-func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, r *docker.RegistryCredentials, provider docker.Registry, builder process.Builder) error {
+func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, provider docker.Registry, builder process.Builder) error {
 	var prepper process.Prepper
 	if c.ApplicationType == config.JavaLeveransepakke {
 		logrus.Info("Perform Java build")
@@ -92,5 +92,5 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 	ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
 	defer cancel()
 
-	return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, builder)
+	return process.Build(ctx, provider, c, configuration.NexusDownloader, prepper, builder)
 }

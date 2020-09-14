@@ -82,16 +82,6 @@ func (m *retagger) Retag(ctx context.Context) error {
 	}
 	logrus.Debugf("Extract tag info, auroraVersion=%v, appVersion=%v, extraTags=%s", auroraVersion, appVersion, extratags)
 
-	if err != nil {
-		return errors.Wrap(err, "Unable to get version tags")
-	}
-
-	push := runtime.DockerImage{
-		Registry:   m.Config.DockerSpec.OutputRegistry,
-		Repository: m.Config.DockerSpec.OutputRepository,
-		Tag:        m.Config.DockerSpec.RetagWith,
-	}
-
 	pull := runtime.DockerImage{
 		Registry:   m.Config.DockerSpec.GetInternalPullRegistryWithoutProtocol(),
 		Repository: m.Config.DockerSpec.OutputRepository,
@@ -114,13 +104,9 @@ func (m *retagger) Retag(ctx context.Context) error {
 	logrus.Debugf("Retagging temporary image, versionTags=%-v", tagsToPush)
 	for _, tag := range tagsToPush {
 		logrus.Infof("Tag image %s with alias %s", sourceTag, tag)
-		err := m.Builder.Tag(ctx, &process.BuildOutput{ImageId: sourceTag}, tag)
-		if err != nil {
-			return errors.Wrapf(err, "Failed to tag image %s with tag %s", push, tag)
-		}
 	}
 
-	err = m.Builder.Push(ctx, &process.BuildOutput{ImageId: sourceTag}, tagsToPush, m.Credentials)
+	err = m.Builder.Push(ctx, &process.BuildOutput{ImageId: sourceTag}, tagsToPush)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to push tag %s", tag)
 	}

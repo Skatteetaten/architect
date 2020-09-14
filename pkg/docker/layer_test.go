@@ -7,7 +7,6 @@ import (
 func TestMounting(t *testing.T) {
 
 	/*
-
 		client := NewRegistryClient("http://localhost:5000", nil)
 
 		manifest, err := client.GetManifest("aurora/wingnut11", "latest")
@@ -30,9 +29,7 @@ func TestMounting(t *testing.T) {
 				}
 			}
 		}
-
 	*/
-
 }
 
 func TestManipulateDockerRegistry(t *testing.T) {

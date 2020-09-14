@@ -1,17 +1,14 @@
 package docker
 
 import (
-	"archive/tar"
 	"encoding/base64"
 	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
-	"io"
 	"os"
 	"os/user"
 	"path/filepath"
-	"strings"
 )
 
 //TODO: Fix context!!!
@@ -110,65 +107,7 @@ func readRegistryCredentials(outputRegistry string, dockerConfigPath string) (*R
 		outputRegistry,
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
 	return &registryCredentials, nil
 }
 
-func createContextTarStreamToTarWriter(dockerBase string, writer io.Writer) error {
-	baseDir := "./"
 
-	dockerTarWriter := tar.NewWriter(writer)
-	defer dockerTarWriter.Close()
-
-	err := filepath.Walk(dockerBase,
-		func(path string, info os.FileInfo, errfunc error) error {
-
-			var link string
-			if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-				var err error
-				if link, err = os.Readlink(path); err != nil {
-					return err
-				}
-			}
-
-			header, err := tar.FileInfoHeader(info, link)
-			if err != nil {
-				return err
-			}
-
-			header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, dockerBase))
-
-			if err := dockerTarWriter.WriteHeader(header); err != nil {
-				return err
-			}
-
-			if !info.Mode().IsRegular() {
-				//nothing more to do for non-regular
-				return nil
-			}
-
-			file, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-			defer file.Close()
-			_, err = io.Copy(dockerTarWriter, file)
-			return err
-		})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createContextTarStreamReader(dockerBase string) io.ReadCloser {
-	r, w := io.Pipe()
-	go func() {
-		w.CloseWithError(createContextTarStreamToTarWriter(dockerBase, w))
-	}()
-	return r
-}

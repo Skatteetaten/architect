@@ -38,7 +38,6 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.DockerBuildC
 	}
 	logrus.Infof("Fetched manifest: %s/%s:%s", baseImage.Registry, baseImage.Repository, baseImage.Tag)
 
-	//TODO: Move to push ?
 	for _, layer := range manifest.Layers {
 		ok, _ := l.provider.LayerExists(ctx, l.config.DockerSpec.OutputRepository, layer.Digest)
 		if !ok {
@@ -55,9 +54,9 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.DockerBuildC
 		return errors.Wrap(err, "Failed to fetch the container config")
 	}
 
-	logrus.Infof("Fetched container config: %s", manifest.Config.Digest)
+	logrus.Debugf("Fetched container config: %s", manifest.Config.Digest)
 
-	logrus.Infof("Numbers of layers in pull: %d", len(manifest.Layers))
+	logrus.Debugf("Numbers of layers in pull: %d", len(manifest.Layers))
 
 	err = manifest.Save(buildConfig.BuildFolder, manifestFileName)
 	if err != nil {
@@ -71,7 +70,7 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.DockerBuildC
 	return nil
 }
 
-func (l *LayerBuilder) Build(ctx context.Context, buildConfig docker.DockerBuildConfig) (*BuildOutput, error) {
+func (l *LayerBuilder) Build(buildConfig docker.DockerBuildConfig) (*BuildOutput, error) {
 	buildFolder := buildConfig.BuildFolder
 
 	files, err := ioutil.ReadDir(buildConfig.BuildFolder + "/" + util.LayerFolder)
@@ -178,7 +177,7 @@ func (l *LayerBuilder) Build(ctx context.Context, buildConfig docker.DockerBuild
 	}, nil
 }
 
-func (l *LayerBuilder) Push(ctx context.Context, buildResult *BuildOutput, tag []string, credentials *docker.RegistryCredentials) error {
+func (l *LayerBuilder) Push(ctx context.Context, buildResult *BuildOutput, tag []string) error {
 
 	buildFolder := buildResult.BuildFolder
 	for _, layer := range buildResult.Layers {
@@ -209,11 +208,6 @@ func (l *LayerBuilder) Push(ctx context.Context, buildResult *BuildOutput, tag [
 			return errors.Errorf("Failed to push manifest: %v", err)
 		}
 	}
-	return nil
-}
-
-//Not needed
-func (l *LayerBuilder) Tag(ctx context.Context, buildOutput *BuildOutput, tag string) error {
 	return nil
 }
 

@@ -13,10 +13,9 @@ import (
 )
 
 type Builder interface {
-	Build(ctx context.Context, buildConfig docker.DockerBuildConfig) (*BuildOutput, error)
-	Push(ctx context.Context, buildResult *BuildOutput, tag []string, credentials *docker.RegistryCredentials) error
-	Tag(ctx context.Context, buildResult *BuildOutput, tag string) error
+	Build(buildConfig docker.DockerBuildConfig) (*BuildOutput, error)
 	Pull(ctx context.Context, buildConfig docker.DockerBuildConfig) error
+	Push(ctx context.Context, buildResult *BuildOutput, tag []string) error
 }
 
 //TODO: Lowercase + better naming
@@ -35,7 +34,7 @@ type Layer struct {
 	ContentDigest string
 }
 
-func Build(ctx context.Context, credentials *docker.RegistryCredentials, provider docker.Registry, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
+func Build(ctx context.Context, provider docker.Registry, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
 	sporingscontext := cfg.SporingsContext
 	if sporingscontext == "" {
 		logrus.Infof("Use Context %s from the build definition", cfg.OwnerReferenceUid)
@@ -127,7 +126,7 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 		dependencyMetadata, _ := nexus.ExtractDependecyMetadata(buildConfig.BuildFolder)
 
-		buildResult, err := builder.Build(ctx, buildConfig)
+		buildResult, err := builder.Build(buildConfig)
 		if err != nil {
 			return errors.Wrap(err, "There was an error with the build operation.")
 		}
@@ -153,8 +152,7 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 		t, _ := tagResolver.ResolveShortTag(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
 		metaTags := make(map[string]string)
 		for i, tag := range tags {
-			logrus.Infof("Tag: %s", tag)
-			err = builder.Tag(ctx, buildResult, tag)
+			logrus.Infof("Add Tag: %s", tag)
 			if err != nil {
 				return errors.Wrapf(err, "Image tag failed")
 			}
@@ -162,7 +160,7 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 		}
 
 		if !cfg.NoPush {
-			err = builder.Push(ctx, buildResult, tags, credentials)
+			err = builder.Push(ctx, buildResult, tags)
 			manifest, err := provider.GetImageInfo(ctx, buildConfig.DockerRepository, t[0])
 			if err == nil {
 				imageConfig, err := provider.GetImageConfig(ctx, buildConfig.DockerRepository, manifest.Digest)
