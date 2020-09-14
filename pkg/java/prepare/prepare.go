@@ -5,7 +5,6 @@ import (
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/doozer/prepare"
 	deliverable "github.com/skatteetaten/architect/pkg/java/config"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	process "github.com/skatteetaten/architect/pkg/process/build"
@@ -31,7 +30,7 @@ type BuildConfiguration struct {
 func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
 		baseImage runtime.BaseImage) ([]docker.DockerBuildConfig, error) {
-		buildConfiguration, err := prepare.PrepareLayers(cfg.DockerSpec, auroraVersion, deliverable, baseImage)
+		buildConfiguration, err := prepareLayers(cfg.DockerSpec, auroraVersion, deliverable)
 		if err != nil {
 			return nil, errors.Wrap(err, "Error while preparing layers")
 		}
@@ -47,7 +46,7 @@ func Prepper() process.Prepper {
 	}
 }
 
-func PrepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (*BuildConfiguration, error) {
+func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable) (*BuildConfiguration, error) {
 	buildPath, err := ioutil.TempDir("", "deliverable")
 
 	if err != nil {
@@ -82,6 +81,7 @@ func PrepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 	}
 
 	fileWriter := util.NewFileWriter(buildPath + "/layer/u01")
+
 
 	if err := fileWriter(newRadishDescriptor(meta, filepath.Join(util.DockerBasedir, util.ApplicationFolder)), "radish.json"); err != nil {
 		return nil, errors.Wrap(err, "Unable to create radish descriptor")

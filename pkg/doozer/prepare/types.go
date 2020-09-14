@@ -80,10 +80,6 @@ func ReadMetadata(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVers
 		destPath = destinationPath
 	}
 
-	if meta.Doozer.FileName != "" {
-		destPath += meta.Doozer.FileName
-	}
-
 	return &ImageMetaData{
 		BaseImage:  baseImage.GetCompleteDockerTagName(),
 		Maintainer: meta.Docker.Maintainer,

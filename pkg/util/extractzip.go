@@ -22,6 +22,7 @@ const (
 	DeliveryMetadataPath   = "metadata/openshift.json"
 )
 
+
 func ExtractAndRenameDeliverable(dockerBuildFolder string, deliverablePath string) error {
 
 	applicationRoot := filepath.Join(dockerBuildFolder, DockerfileApplicationFolder)
