@@ -22,16 +22,16 @@ type ImageMetaData struct {
 
 func createEnv(auroraVersion runtime.AuroraVersion, pushextratags global.PushExtraTags, imageBuildTime string) map[string]string {
 	env := make(map[string]string)
-	env[docker.ENV_APP_VERSION] = string(auroraVersion.GetAppVersion())
-	env[docker.ENV_AURORA_VERSION] = auroraVersion.GetCompleteVersion()
-	env[docker.ENV_PUSH_EXTRA_TAGS] = pushextratags.ToStringValue()
+	env[docker.EnvAppVersion] = string(auroraVersion.GetAppVersion())
+	env[docker.EnvAuroraVersion] = auroraVersion.GetCompleteVersion()
+	env[docker.EnvPushExtraTags] = pushextratags.ToStringValue()
 	env[docker.TZ] = "Europe/Oslo"
-	env[docker.IMAGE_BUILD_TIME] = imageBuildTime
+	env[docker.ImageBuildTime] = imageBuildTime
 	env["LANG"] = "en_US.UTF-8"
 	env["HOME"] = "/u01"
 
 	if auroraVersion.Snapshot {
-		env[docker.ENV_SNAPSHOT_TAG] = auroraVersion.GetGivenVersion()
+		env[docker.EnvSnapshotVersion] = auroraVersion.GetGivenVersion()
 	}
 
 	return env

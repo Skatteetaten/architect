@@ -9,6 +9,7 @@ import (
 	"syscall"
 )
 
+//CopyDirectory copy content from srcDir to dest
 func CopyDirectory(scrDir, dest string) error {
 	entries, err := ioutil.ReadDir(scrDir)
 	if err != nil {
@@ -30,14 +31,14 @@ func CopyDirectory(scrDir, dest string) error {
 
 		switch fileInfo.Mode() & os.ModeType {
 		case os.ModeDir:
-			if err := CreateIfNotExists(destPath, 0755); err != nil {
+			if err := createIfNotExists(destPath, 0755); err != nil {
 				return err
 			}
 			if err := CopyDirectory(sourcePath, destPath); err != nil {
 				return err
 			}
 		case os.ModeSymlink:
-			if err := CopySymLink(sourcePath, destPath); err != nil {
+			if err := copySymlink(sourcePath, destPath); err != nil {
 				return err
 			}
 		default:
@@ -60,6 +61,7 @@ func CopyDirectory(scrDir, dest string) error {
 	return nil
 }
 
+//Copy srcFile to dstFile
 func Copy(srcFile, dstFile string) error {
 	out, err := os.Create(dstFile)
 	if err != nil {
@@ -82,6 +84,7 @@ func Copy(srcFile, dstFile string) error {
 	return nil
 }
 
+//Exists check if file exists
 func Exists(filePath string) bool {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return false
@@ -90,7 +93,7 @@ func Exists(filePath string) bool {
 	return true
 }
 
-func CreateIfNotExists(dir string, perm os.FileMode) error {
+func createIfNotExists(dir string, perm os.FileMode) error {
 	if Exists(dir) {
 		return nil
 	}
@@ -102,7 +105,7 @@ func CreateIfNotExists(dir string, perm os.FileMode) error {
 	return nil
 }
 
-func CopySymLink(source, dest string) error {
+func copySymlink(source, dest string) error {
 	link, err := os.Readlink(source)
 	if err != nil {
 		return err

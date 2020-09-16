@@ -47,19 +47,19 @@ func (m *retagger) Retag(ctx context.Context) error {
 	envMap := imageInfo.Enviroment
 
 	// Get AURORA_VERSION
-	auroraVersion, ok := envMap[docker.ENV_AURORA_VERSION]
+	auroraVersion, ok := envMap[docker.EnvAuroraVersion]
 
 	if !ok {
-		return errors.Errorf("Failed to extract ENV variable %s from temporary image manifest", docker.ENV_AURORA_VERSION)
+		return errors.Errorf("Failed to extract ENV variable %s from temporary image manifest", docker.EnvAuroraVersion)
 	}
 
-	appVersionString, ok := envMap[docker.ENV_APP_VERSION]
+	appVersionString, ok := envMap[docker.EnvAppVersion]
 
 	if !ok {
-		return errors.Errorf("Failed to extract ENV variable %s from temporary image manifest", docker.ENV_APP_VERSION)
+		return errors.Errorf("Failed to extract ENV variable %s from temporary image manifest", docker.EnvAppVersion)
 	}
 
-	givenVersionString, snapshot := envMap[docker.ENV_SNAPSHOT_TAG]
+	givenVersionString, snapshot := envMap[docker.EnvSnapshotVersion]
 
 	if !snapshot {
 		givenVersionString = appVersionString
@@ -67,9 +67,9 @@ func (m *retagger) Retag(ctx context.Context) error {
 
 	appVersion := runtime.NewAuroraVersion(appVersionString, snapshot, givenVersionString, runtime.CompleteVersion(auroraVersion))
 
-	extratags, ok := envMap[docker.ENV_PUSH_EXTRA_TAGS]
+	extratags, ok := envMap[docker.EnvPushExtraTags]
 	if !ok {
-		return errors.Errorf("Failed to extract ENV variable %s from temporary image manifest", docker.ENV_PUSH_EXTRA_TAGS)
+		return errors.Errorf("Failed to extract ENV variable %s from temporary image manifest", docker.EnvPushExtraTags)
 	}
 
 	pushExtraTags := config.ParseExtraTags(extratags)

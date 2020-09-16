@@ -1,14 +1,14 @@
 package prepare
 
 import (
-	"github.com/pkg/errors"
 	global "github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/java/config"
 )
 
-type ImageMetaData struct {
+//ImageMetadata
+type ImageMetadata struct {
 	BaseImage  string
 	Maintainer string
 	Labels     map[string]string
@@ -17,14 +17,14 @@ type ImageMetaData struct {
 
 func createEnv(auroraVersion runtime.AuroraVersion, pushextratags global.PushExtraTags, imageBuildTime string) map[string]string {
 	env := make(map[string]string)
-	env[docker.ENV_APP_VERSION] = string(auroraVersion.GetAppVersion())
-	env[docker.ENV_AURORA_VERSION] = auroraVersion.GetCompleteVersion()
-	env[docker.ENV_PUSH_EXTRA_TAGS] = pushextratags.ToStringValue()
+	env[docker.EnvAppVersion] = string(auroraVersion.GetAppVersion())
+	env[docker.EnvAuroraVersion] = auroraVersion.GetCompleteVersion()
+	env[docker.EnvPushExtraTags] = pushextratags.ToStringValue()
 	env[docker.TZ] = "Europe/Oslo"
-	env[docker.IMAGE_BUILD_TIME] = imageBuildTime
+	env[docker.ImageBuildTime] = imageBuildTime
 
 	if auroraVersion.Snapshot {
-		env[docker.ENV_SNAPSHOT_TAG] = auroraVersion.GetGivenVersion()
+		env[docker.EnvSnapshotVersion] = auroraVersion.GetGivenVersion()
 	}
 
 	return env
@@ -38,16 +38,4 @@ func createLabels(meta config.DeliverableMetadata) map[string]string {
 	}
 
 	return labels
-}
-
-// TODO Consider moving this func
-//TODO: Use this function ?
-func verifyMetadata(meta config.DeliverableMetadata) error {
-	if meta.Docker == nil {
-		return errors.Errorf("Deliverable metadata does not contain \"Docker\" element")
-	} else if meta.Docker.Maintainer == "" {
-		return errors.Errorf("Deliverable metadata does not contain \"Docker.Maintainer\" element")
-	}
-
-	return nil
 }

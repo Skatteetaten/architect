@@ -87,7 +87,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 
 	imageBuildTime := docker.GetUtcTimestamp()
 	completeDockerName := baseImage.GetCompleteDockerTagName()
-	nginxData, dockerData, err := mapOpenShiftJsonToTemplateInput(dockerSpec, openshiftJson, completeDockerName, imageBuildTime, auroraVersion)
+	nginxData, dockerData, err := mapOpenShiftJSONToTemplateInput(dockerSpec, openshiftJson, completeDockerName, imageBuildTime, auroraVersion)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed while parsing openshift.json")
 	}
@@ -102,7 +102,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 	}
 
 	if !nginxData.HasNodeJSApplication {
-		err = writer(util.NewByteWriter([]byte(BLOCKING_RUN_NODEJS)), "overrides", "run_node")
+		err = writer(util.NewByteWriter([]byte(BlockingRunNodeJS)), "overrides", "run_node")
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed creating nodejs override script")
 		}
@@ -161,22 +161,22 @@ func addProbes(hasNodejsApplication bool, writer util.FileWriter) error {
 		Include: hasNodejsApplication,
 		Port:    9090,
 	}
-	err := writer(util.NewTemplateWriter(nodeProbe, "nodeliveness", READINESS_LIVENESS_SH),
+	err := writer(util.NewTemplateWriter(nodeProbe, "nodeliveness", ReadinessLivenessSH),
 		"overrides", "liveness_node.sh")
 	if err != nil {
 		return err
 	}
-	err = writer(util.NewTemplateWriter(nginxProbe, "nginxliveness", READINESS_LIVENESS_SH),
+	err = writer(util.NewTemplateWriter(nginxProbe, "nginxliveness", ReadinessLivenessSH),
 		"overrides", "liveness_nginx.sh")
 	if err != nil {
 		return err
 	}
-	err = writer(util.NewTemplateWriter(nodeProbe, "nodereadiness", READINESS_LIVENESS_SH),
+	err = writer(util.NewTemplateWriter(nodeProbe, "nodereadiness", ReadinessLivenessSH),
 		"overrides", "readiness_node.sh")
 	if err != nil {
 		return err
 	}
-	err = writer(util.NewTemplateWriter(nginxProbe, "nginxreadiness", READINESS_LIVENESS_SH),
+	err = writer(util.NewTemplateWriter(nginxProbe, "nginxreadiness", ReadinessLivenessSH),
 		"overrides", "readiness_nginx.sh")
 	if err != nil {
 		return err
@@ -184,7 +184,7 @@ func addProbes(hasNodejsApplication bool, writer util.FileWriter) error {
 	return nil
 }
 
-func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJson, completeDockerName string, imageBuildTime string, auroraVersion *runtime.AuroraVersion) (*NginxfileData, *ImageMetadata, error) {
+func mapOpenShiftJSONToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJSON, completeDockerName string, imageBuildTime string, auroraVersion *runtime.AuroraVersion) (*NginxfileData, *ImageMetadata, error) {
 	labels := make(map[string]string)
 	if v.DockerMetadata.Labels != nil {
 		for k, v := range v.DockerMetadata.Labels {
@@ -248,12 +248,12 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 	env["MAIN_JAVASCRIPT_FILE"] = "/u01/application/" + nodejsMainfile
 	env["PROXY_PASS_HOST"] = "localhost"
 	env["PROXY_PASS_PORT"] = "9090"
-	env[docker.IMAGE_BUILD_TIME] = imageBuildTime
-	env[docker.ENV_APP_VERSION] = string(auroraVersion.GetAppVersion())
-	env[docker.ENV_AURORA_VERSION] = string(auroraVersion.GetCompleteVersion())
-	env[docker.ENV_PUSH_EXTRA_TAGS] = dockerSpec.PushExtraTags.ToStringValue()
+	env[docker.ImageBuildTime] = imageBuildTime
+	env[docker.EnvAppVersion] = string(auroraVersion.GetAppVersion())
+	env[docker.EnvAuroraVersion] = string(auroraVersion.GetCompleteVersion())
+	env[docker.EnvPushExtraTags] = dockerSpec.PushExtraTags.ToStringValue()
 	if auroraVersion.Snapshot {
-		env[docker.ENV_SNAPSHOT_TAG] = auroraVersion.GetGivenVersion()
+		env[docker.EnvSnapshotVersion] = auroraVersion.GetGivenVersion()
 	}
 
 	return &NginxfileData{

@@ -9,6 +9,7 @@ import (
 	"os"
 )
 
+//CalculateDigestFromArchive calculates a sha256 hash
 func CalculateDigestFromArchive(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -26,6 +27,7 @@ func CalculateDigestFromArchive(path string) (string, error) {
 	return fmt.Sprintf("sha256:%s", digest), nil
 }
 
+//CalculateDigest of tar content
 func CalculateDigest(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -41,6 +43,7 @@ func CalculateDigest(path string) (string, error) {
 	return fmt.Sprintf("sha256:%s", digest), nil
 }
 
+//CalculateSize of file
 func CalculateSize(path string) (int, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -53,5 +56,4 @@ func CalculateSize(path string) (int, error) {
 	}
 
 	return int(info.Size()), nil
-
 }

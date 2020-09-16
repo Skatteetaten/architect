@@ -3,12 +3,12 @@ package prepare
 import "github.com/skatteetaten/architect/pkg/config/runtime"
 
 //We copy this over the script in wrench if we don't have a nodejs app
-const BLOCKING_RUN_NODEJS string = `#!/bin/sh
+const BlockingRunNodeJS string = `#!/bin/sh
 echo "Use of node.js was not configured in openshift.json. Blocking run script."
 while true; do sleep 100d; done;
 `
 
-const READINESS_LIVENESS_SH = `#!/bin/sh
+const ReadinessLivenessSH = `#!/bin/sh
 {{if .Include}}
 wget --spider localhost:{{.Port}} > /dev/null 2>&1
 {{end}}
@@ -41,7 +41,7 @@ type nodeJSApplication struct {
 	Overrides map[string]string `json:"overrides"`
 }
 
-type openshiftJson struct {
+type openshiftJSON struct {
 	Aurora         auroraApplication `json:"web"`
 	DockerMetadata dockerMetadata    `json:"docker"`
 }

@@ -19,12 +19,14 @@ import (
 
 var verbose bool
 
+//RunConfiguration runtime configuration
 type RunConfiguration struct {
 	NexusDownloader         nexus.Downloader
 	Config                  *config.Config
 	RegistryCredentialsFunc func(string) (*docker.RegistryCredentials, error)
 }
 
+//RunArchitect main
 func RunArchitect(configuration RunConfiguration) {
 	c := configuration.Config
 	ctx := context.Background()

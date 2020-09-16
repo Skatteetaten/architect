@@ -15,26 +15,26 @@ import (
 )
 
 const (
-	CFG_PUSH_EXTRA_TAGS = "major minor patch latest"
+	CfgPushExtraTags = "major minor patch latest"
 )
 
 const (
-	APP_VERSION    = "2.4.5"
-	AURORA_VERSION = "2.4.5-b1.11.0-oracle8-1.2.3"
+	AppVersion    = "2.4.5"
+	AuroraVersion = "2.4.5-b1.11.0-oracle8-1.2.3"
 )
 
 const (
-	TAG_MAJOR    = "2"
-	TAG_MINOR    = "2.4"
-	TAG_PATCH    = "2.4.5"
-	TAG_COMPLETE = "2.4.5-b1.11.0-oracle8-1.2.3"
+	TagMajor    = "2"
+	TagMinor    = "2.4"
+	TagPatch    = "2.4.5"
+	TagComplete = "2.4.5-b1.11.0-oracle8-1.2.3"
 )
 
 const (
-	SNAPSHOT_GIVEN_VERSION  = "branch_test-SNAPSHOT"
-	SNAPSHOT_APP_VERSION    = "branch_test-201703929219"
-	SNAPSHOT_AURORA_VERSION = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
-	SNAPSHOT_TAG_COMPLETE   = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
+	SnapshotGivenVersion  = "branch_test-SNAPSHOT"
+	SnapshotAppVersion    = "branch_test-201703929219"
+	SnapshotAuroraVersion = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
+	SnapshotTagComplete   = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
 )
 
 type RegistryMock struct {
@@ -78,25 +78,25 @@ var tagger = NormalTagResolver{
 }
 
 func TestTagInfoRelease(t *testing.T) {
-	appVersion := runtime.NewAuroraVersion(APP_VERSION, false, APP_VERSION, runtime.CompleteVersion(AURORA_VERSION))
-	tags, err := tagger.ResolveTags(appVersion, config.ParseExtraTags(CFG_PUSH_EXTRA_TAGS))
+	appVersion := runtime.NewAuroraVersion(AppVersion, false, AppVersion, runtime.CompleteVersion(AuroraVersion))
+	tags, err := tagger.ResolveTags(appVersion, config.ParseExtraTags(CfgPushExtraTags))
 	if err != nil {
 		t.Fatalf("Failed to create target VersionInfo %v", err)
 	}
 
 	//TODO: Add the test for complete tag, but it should not be a part of appversion
-	expectedTags := []string{"latest", TAG_MAJOR, TAG_MINOR, TAG_PATCH, TAG_COMPLETE}
+	expectedTags := []string{"latest", TagMajor, TagMinor, TagPatch, TagComplete}
 	verifyTagListContent(t, tags, expectedTags)
 }
 
 func TestTagInfoSnapshot(t *testing.T) {
-	appVersion := runtime.NewAuroraVersion(SNAPSHOT_APP_VERSION, true, SNAPSHOT_GIVEN_VERSION, runtime.CompleteVersion(SNAPSHOT_AURORA_VERSION))
-	tags, err := tagger.ResolveTags(appVersion, config.ParseExtraTags(CFG_PUSH_EXTRA_TAGS))
+	appVersion := runtime.NewAuroraVersion(SnapshotAppVersion, true, SnapshotGivenVersion, runtime.CompleteVersion(SnapshotAuroraVersion))
+	tags, err := tagger.ResolveTags(appVersion, config.ParseExtraTags(CfgPushExtraTags))
 	if err != nil {
 		t.Fatalf("Failed to create target VersionInfo %v", err)
 	}
 
-	verifyTagListContent(t, tags, []string{SNAPSHOT_GIVEN_VERSION, SNAPSHOT_TAG_COMPLETE})
+	verifyTagListContent(t, tags, []string{SnapshotGivenVersion, SnapshotTagComplete})
 }
 
 func TestFilterTags(t *testing.T) {

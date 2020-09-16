@@ -190,7 +190,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		if err != nil {
 			return nil, errors.Wrapf(err, "Could not parse %s. Must be correct json when specified.", secretPath)
 		}
-		nexusAccess.NexusUrl = data["nexusUrl"].(string)
+		nexusAccess.NexusURL = data["nexusUrl"].(string)
 		nexusAccess.Username = data["username"].(string)
 		nexusAccess.Password = data["password"].(string)
 	} else {
@@ -206,13 +206,13 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 
 	applicationSpec := ApplicationSpec{}
-	if artifactId, err := findEnv(env, "ARTIFACT_ID"); err == nil {
-		applicationSpec.MavenGav.ArtifactId = artifactId
+	if artifactID, err := findEnv(env, "ARTIFACT_ID"); err == nil {
+		applicationSpec.MavenGav.ArtifactId = artifactID
 	} else {
 		return nil, err
 	}
-	if groupId, err := findEnv(env, "GROUP_ID"); err == nil {
-		applicationSpec.MavenGav.GroupId = groupId
+	if groupID, err := findEnv(env, "GROUP_ID"); err == nil {
+		applicationSpec.MavenGav.GroupId = groupID
 	} else {
 		return nil, err
 	}
@@ -258,12 +258,12 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			dockerSpec.ExternalDockerRegistry = "https://" + externalRegistry
 		}
 	} else if strings.ToLower(build.Spec.CommonSpec.Output.To.Kind) == "dockerimage" {
-		registryUrl, err := url.Parse("https://" + build.Spec.CommonSpec.Output.To.Name)
+		registryURL, err := url.Parse("https://" + build.Spec.CommonSpec.Output.To.Name)
 		if err != nil {
 			dockerSpec.ExternalDockerRegistry = FallbackDockerRegistry
 			logrus.Warnf("Failed to parse dockerimage-url from BC for ExternalDockerRegistry. Using %s", FallbackDockerRegistry)
 		} else {
-			base := registryUrl.Host
+			base := registryURL.Host
 			if err := checkURL(client, "https://", base, "/v2/"); err == nil {
 				dockerSpec.ExternalDockerRegistry = "https://" + base
 				logrus.Debugf("Using https: %s", dockerSpec.ExternalDockerRegistry)
@@ -368,12 +368,12 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			logrus.Error("Expected OUTPUT_IMAGE environment variable when outputKind is ImageStreamTag")
 			return nil, errors.New("No output image")
 		}
-		dockerUrl := dockerSpec.OutputRegistry + "/" + outputImage
-		dockerSpec.TagWith, err = findOutputTag(dockerUrl)
+		dockerURL := dockerSpec.OutputRegistry + "/" + outputImage
+		dockerSpec.TagWith, err = findOutputTag(dockerURL)
 		if err != nil {
 			return nil, err
 		}
-		dockerSpec.OutputRepository, err = findOutputRepository(dockerUrl)
+		dockerSpec.OutputRepository, err = findOutputRepository(dockerURL)
 		if err != nil {
 			return nil, err
 		}
@@ -390,7 +390,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		NexusAccess:       nexusAccess,
 		BinaryBuild:       build.Spec.Source.Type == buildv1.BuildSourceBinary,
 		BuildStrategy:     buildStrategy,
-		TlsVerify:         tlsVerify,
+		TLSVerify:         tlsVerify,
 		BuildTimeout:      buildTimeout,
 		SporingsContext:   sporingscontext,
 		Sporingstjeneste:  sporingstjeneste,

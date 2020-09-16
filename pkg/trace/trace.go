@@ -9,11 +9,11 @@ import (
 	"time"
 )
 
-func NewTracer(sporingsUrl string, context string) *Tracer {
+func NewTracer(sporingsURL string, context string) *Tracer {
 	return &Tracer{
-		url:     sporingsUrl,
+		url:     sporingsURL,
 		context: context,
-		enabled: sporingsUrl != "" && context != "",
+		enabled: sporingsURL != "" && context != "",
 	}
 }
 

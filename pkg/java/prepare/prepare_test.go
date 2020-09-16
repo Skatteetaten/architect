@@ -87,7 +87,7 @@ func TestPrepareLayers(t *testing.T) {
 
 	t.Run("Check radish.json", func(t *testing.T) {
 		radishFile, _ := os.Open(path + "/layer/u01/radish.json")
-		var javaDescriptor JavaDescriptor
+		var javaDescriptor javaDescriptor
 		err = json.NewDecoder(radishFile).Decode(&javaDescriptor)
 		if err != nil {
 			t.Fatal("Could not read the radish config")

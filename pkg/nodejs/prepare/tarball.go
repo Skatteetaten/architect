@@ -88,7 +88,7 @@ func writeInternal(deferrerd func() (string, error)) (string, error) {
 	return deferrerd()
 }
 
-func findOpenshiftJsonInTarball(pathToTarball string) (*openshiftJson, error) {
+func findOpenshiftJsonInTarball(pathToTarball string) (*openshiftJSON, error) {
 	tarball, err := os.Open(pathToTarball)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error opening tarball")
@@ -115,7 +115,7 @@ func findOpenshiftJsonInTarball(pathToTarball string) (*openshiftJson, error) {
 		}
 
 		if header.Typeflag == tar.TypeReg && header.Name == "package/metadata/openshift.json" {
-			v := &openshiftJson{}
+			v := &openshiftJSON{}
 			err := json.NewDecoder(tarReader).Decode(v)
 			if err != nil {
 				return nil, errors.Wrap(err, "Error reading openshift.json")

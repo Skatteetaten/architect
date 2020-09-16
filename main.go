@@ -56,7 +56,7 @@ func initializeAndRunOnOpenShift() {
 		logrus.Fatalf("Error reading config: %s", err)
 	}
 
-	mavenRepo := c.NexusAccess.NexusUrl
+	mavenRepo := c.NexusAccess.NexusURL
 	logrus.Debugf("Using Maven repo on %s", mavenRepo)
 
 	var nexusDownloader nexus.Downloader

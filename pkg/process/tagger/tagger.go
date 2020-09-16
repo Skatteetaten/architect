@@ -212,17 +212,17 @@ func getSemanticVersionTags(version *runtime.AuroraVersion, extraTags config.Pus
 }
 
 func getMajor(version string, increment bool) (string, error) {
-	build_version, err := extVersion.NewVersion(version)
+	buildVersion, err := extVersion.NewVersion(version)
 
 	if err != nil {
 		return "", errors.Wrap(err, "Error in parsing major version: "+version)
 	}
-	versionMajor := build_version.Segments()[0]
+	versionMajor := buildVersion.Segments()[0]
 	if increment {
 		versionMajor++
 	}
-	if len(build_version.Metadata()) > 0 {
-		return fmt.Sprintf("%d+%s", versionMajor, build_version.Metadata()), nil
+	if len(buildVersion.Metadata()) > 0 {
+		return fmt.Sprintf("%d+%s", versionMajor, buildVersion.Metadata()), nil
 	}
 	return fmt.Sprintf("%d", versionMajor), nil
 }

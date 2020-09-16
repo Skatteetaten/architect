@@ -73,7 +73,7 @@ func TestDownloadFromNexus3Server(t *testing.T) {
 	na := config.NexusAccess{
 		Username: "username",
 		Password: "password1",
-		NexusUrl: ts.URL,
+		NexusURL: ts.URL,
 	}
 
 	r, err := n.DownloadArtifact(&m, &na)

@@ -24,6 +24,7 @@ func init() {
 
 }
 
+//Build command
 var Build = &cobra.Command{
 	Use:   "build",
 	Short: "build file --file <file> --from <baseimage:version> --output <repository:tag> --type [java | nodejs | doozer]",
@@ -78,7 +79,7 @@ var Build = &cobra.Command{
 		})
 	},
 }
-
+//bc buildconfig command
 var Bc = &cobra.Command{
 	Use:   "bc",
 	Short: "build bc --file <bc>.json",
@@ -108,7 +109,7 @@ var Bc = &cobra.Command{
 			logrus.Fatalf("Could not read configuration: %s", err)
 		}
 
-		nexusDownloader = nexus.NewNexusDownloader(c.NexusAccess.NexusUrl)
+		nexusDownloader = nexus.NewNexusDownloader(c.NexusAccess.NexusURL)
 
 		RunArchitect(RunConfiguration{
 			NexusDownloader:         nexusDownloader,

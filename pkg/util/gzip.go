@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+//CompressTarGz compress folder
 func CompressTarGz(src string, folder string, destination string) (string, error) {
 	name := folder + "-layer.tar.gz"
 	file, err := os.Create(destination + "/" + name)
@@ -93,6 +94,7 @@ func handleSymlink(path string) (string, error) {
 	return link, nil
 }
 
+//ExtractGZ stream
 func ExtractGz(gzipStream io.Reader) *gzip.Reader {
 	uncompressedStream, err := gzip.NewReader(gzipStream)
 	if err != nil {

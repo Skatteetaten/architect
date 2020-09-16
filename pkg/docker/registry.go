@@ -17,7 +17,6 @@ import (
 	"strings"
 )
 
-//TODO: Moby må fjernes helt. github.com/docker/docker/image
 type Registry interface {
 	GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error)
 	GetTags(ctx context.Context, repository string) (*TagsAPIResponse, error)
@@ -49,6 +48,7 @@ type RegistryClient struct {
 	credentials  *RegistryCredentials
 }
 
+//NewRegistryClient create new registry client
 func NewRegistryClient(pullRegistry string, pushRegistry string, credentials *RegistryCredentials) Registry {
 	return &RegistryClient{pullRegistry: pullRegistry, pushRegistry: pushRegistry, credentials: credentials}
 }
@@ -69,7 +69,7 @@ func (registry *RegistryClient) getRegistryManifest(ctx context.Context, reposit
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderManifestSchemaV2
 	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.pullRegistry, repository, tag)
-	logrus.Infof("Retrieving registry manifest from URL %s", url)
+	logrus.Debugf("Retrieving registry manifest from URL %s", url)
 	body, err := GetHTTPRequest(ctx, mHeader, url)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed in getRegistryManifest for request url %s and header %s", url, mHeader)
@@ -120,6 +120,7 @@ func (registry *RegistryClient) getRegistryBlob(ctx context.Context, repository 
 	return body, nil
 }
 
+//GetImageConfig get image config
 func (registry *RegistryClient) GetImageConfig(ctx context.Context, repository string, digest string) (map[string]interface{}, error) {
 	var result map[string]interface{}
 
@@ -147,6 +148,7 @@ func (registry *RegistryClient) GetImageConfig(ctx context.Context, repository s
 	return result, nil
 }
 
+//GetImageInfo get information about an image
 func (registry *RegistryClient) GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error) {
 	body, err := registry.getRegistryManifest(ctx, repository, tag)
 
@@ -210,6 +212,7 @@ func (registry *RegistryClient) GetImageInfo(ctx context.Context, repository str
 	}, nil
 }
 
+//LayerExists checks if layer exists in registry
 func (registry *RegistryClient) LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error) {
 	//HEAD /v2/<repository>/blobs/<digest>
 	url := fmt.Sprintf("%s/v2/%s/blobs/%s", registry.pushRegistry, repository, layerDigest)
@@ -235,6 +238,7 @@ func (registry *RegistryClient) LayerExists(ctx context.Context, repository stri
 	return false, nil
 }
 
+//MountLayer performs cross mounting
 func (registry *RegistryClient) MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error {
 	//"https://<address>/v2/<srcRepository>/blobs/uploads/?mount=<digest>&from=<dstRepository>"
 	url := fmt.Sprintf(fmt.Sprintf("%s/v2/%s/blobs/uploads/?mount=%s&from=%s", registry.pushRegistry, dstRepository, layerDigest, srcRepository))
@@ -267,6 +271,7 @@ func (registry *RegistryClient) MountLayer(ctx context.Context, srcRepository st
 	return nil
 }
 
+//PushLayer push layer
 func (registry *RegistryClient) PushLayer(ctx context.Context, file string, repository string, layerDigest string) error {
 
 	layer, err := os.Open(file)
@@ -366,6 +371,7 @@ func (registry *RegistryClient) PushLayer(ctx context.Context, file string, repo
 	return nil
 }
 
+//PushManifest push manifest
 func (registry *RegistryClient) PushManifest(ctx context.Context, file string, repository string, tag string) error {
 
 	tr := &http.Transport{

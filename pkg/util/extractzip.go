@@ -22,6 +22,7 @@ const (
 	DeliveryMetadataPath   = "metadata/openshift.json"
 )
 
+//ExtractAndRenameDeliverable extract and rename
 func ExtractAndRenameDeliverable(dockerBuildFolder string, deliverablePath string) error {
 
 	applicationRoot := filepath.Join(dockerBuildFolder, DockerfileApplicationFolder)
@@ -36,11 +37,12 @@ func ExtractAndRenameDeliverable(dockerBuildFolder string, deliverablePath strin
 
 	if err := RenameSingleFolderInDirectory(applicationRoot, renamedApplicationFolder); err != nil {
 		return errors.Wrap(err, "Failed to rename application directory in Docker context")
-	} else {
-		return nil
 	}
+	return nil
+
 }
 
+//ExtractDeliverable extract archive to dest
 func ExtractDeliverable(archivePath string, extractedDirPath string) error {
 
 	zipReader, err := zip.OpenReader(archivePath)
@@ -140,7 +142,6 @@ func RenameSingleFolderInDirectory(base string, newName string) error {
 	folderToBeRenamed := filepath.Join(base, list[0].Name())
 	if err = os.Rename(folderToBeRenamed, newName); err != nil {
 		return errors.Wrapf(err, "Rename from %s to %s failed", folderToBeRenamed, newName)
-	} else {
-		return nil
 	}
+	return nil
 }
