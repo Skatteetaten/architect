@@ -82,7 +82,7 @@ var Build = &cobra.Command{
 var Bc = &cobra.Command{
 	Use:   "bc",
 	Short: "build bc --file <bc>.json",
-	Long: "Build images from openshift build configurations",
+	Long:  "Build images from openshift build configurations",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		var nexusDownloader nexus.Downloader
@@ -100,7 +100,7 @@ var Bc = &cobra.Command{
 
 		c, err := configReader.ReadConfig()
 		if err != nil {
-			logrus.Fatalf("Could not read config: %s", )
+			logrus.Fatalf("Could not read config: %s", err)
 		}
 
 		c.BuildStrategy = "Layer"

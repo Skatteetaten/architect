@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/docker/docker/image"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
@@ -164,7 +163,7 @@ func (registry *RegistryClient) GetImageInfo(ctx context.Context, repository str
 		return nil, errors.Wrapf(err, "Failed to unmarshal manifest for repository %s, tag %s from Docker registry %s", repository, tag, registry.pullRegistry)
 	}
 
-	var v1Image image.V1Image
+	var v1Image V1Image
 	if manifestMeta.SchemaVersion == 1 {
 		if len(manifestMeta.History) > 0 {
 			if err := json.Unmarshal([]byte(manifestMeta.History[0].V1Compatibility), &v1Image); err != nil {

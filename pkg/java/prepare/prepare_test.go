@@ -37,14 +37,11 @@ func TestPrepareLayers(t *testing.T) {
 
 	path := buildConfiguration.BuildContext
 
-
 	t.Run("Check the application layer", func(t *testing.T) {
 
 		assert.Nil(t, buildConfiguration.Cmd, "Should be empty")
-		assert.DirExists(t, path + "/layer/u01", "layer does not exist")
-		assert.DirExists(t, path + "/layer/u01/application", "The application folder does not exist")
-
-		assert.True()
+		assert.DirExists(t, path+"/layer/u01", "layer does not exist")
+		assert.DirExists(t, path+"/layer/u01/application", "The application folder does not exist")
 
 		fileInfos, err := ioutil.ReadDir(path + "/layer/u01/application")
 		if err != nil {
@@ -56,8 +53,8 @@ func TestPrepareLayers(t *testing.T) {
 			appContent = append(appContent, info.Name())
 		}
 
-		assert.Equal(t, appContent, []string{"lib","logs", "metadata"}, )
-		assert.FileExists(t, path + "/layer/u01/application/metadata/openshift.json", "openshift.json is missing")
+		assert.Equal(t, appContent, []string{"lib", "logs", "metadata"})
+		assert.FileExists(t, path+"/layer/u01/application/metadata/openshift.json", "openshift.json is missing")
 
 		fileInfos, err = ioutil.ReadDir(path + "/layer/u01/bin")
 		if err != err {
@@ -77,7 +74,7 @@ func TestPrepareLayers(t *testing.T) {
 			libContent = append(libContent, info.Name())
 		}
 
-		assert.Equal(t, libContent, []string{"log4j-over-slf4j-1.7.6.jar","minarch-1.2.22.jar","slf4j-api-1.7.6.jar"}, "Wrong content in the classpath folder")
+		assert.Equal(t, libContent, []string{"log4j-over-slf4j-1.7.6.jar", "minarch-1.2.22.jar", "slf4j-api-1.7.6.jar"}, "Wrong content in the classpath folder")
 
 		fi, err := os.Lstat(path + "/layer/u01/application/logs")
 		if err != nil {

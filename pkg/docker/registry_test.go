@@ -155,10 +155,9 @@ func TestMountLayer(t *testing.T) {
 
 	target := NewRegistryClient(ts.URL, ts.URL, nil)
 
-	err := target.MountLayer(context.Background(), "aurora/wingnut", "test/architect" , "777")
+	err := target.MountLayer(context.Background(), "aurora/wingnut", "test/architect", "777")
 	assert.NoError(t, err)
 }
-
 
 func TestPushManifest(t *testing.T) {
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -182,13 +181,13 @@ func TestPushLayer(t *testing.T) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "/v2/test/architect/blobs/uploads/", r.RequestURI)
 
-		w.Header().Set("Location",  "/v2/start/transaction")
+		w.Header().Set("Location", "/v2/start/transaction")
 		w.WriteHeader(202)
 
 	})
 	mux.HandleFunc("/v2/start/transaction", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "PATCH", r.Method)
-		w.Header().Set("Location",  "/v2/your/upload/location",)
+		w.Header().Set("Location", "/v2/your/upload/location")
 		w.WriteHeader(202)
 	})
 
@@ -205,7 +204,7 @@ func TestPushLayer(t *testing.T) {
 
 	target := NewRegistryClient(ts.URL, ts.URL, nil)
 
-	err := target.PushLayer(context.Background(), "testdata/app-layer.tar.gz", "test/architect", "666" )
+	err := target.PushLayer(context.Background(), "testdata/app-layer.tar.gz", "test/architect", "666")
 	assert.NoError(t, err)
 
 }

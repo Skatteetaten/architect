@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 )
 
-//TODO: Fix context!!!
 type RegistryCredentials struct {
 	Username      string `json:"username,omitempty"`
 	Password      string `json:"password,omitempty"`
@@ -20,7 +19,7 @@ type RegistryCredentials struct {
 
 type DockerBuildConfig struct {
 	AuroraVersion    *runtime.AuroraVersion
-	DockerRepository string ///TODO: Refactor? We need to have to different for nodejs
+	DockerRepository string
 	BuildFolder      string
 	Baseimage        runtime.DockerImage //We need to pull the newest image...
 	OutputRegistry   string
@@ -109,5 +108,3 @@ func readRegistryCredentials(outputRegistry string, dockerConfigPath string) (*R
 
 	return &registryCredentials, nil
 }
-
-

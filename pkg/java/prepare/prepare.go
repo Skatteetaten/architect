@@ -82,7 +82,6 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 
 	fileWriter := util.NewFileWriter(buildPath + "/layer/u01")
 
-
 	if err := fileWriter(newRadishDescriptor(meta, filepath.Join(util.DockerBasedir, util.ApplicationFolder)), "radish.json"); err != nil {
 		return nil, errors.Wrap(err, "Unable to create radish descriptor")
 	}
