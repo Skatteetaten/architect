@@ -181,11 +181,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
-	// TODO: Remove when Nexus 2 server is no more
-	nexusAccess := NexusAccess{
-		NexusUrl: "https://aurora/nexus/service/local/artifact/maven/content",
-	}
-
+	nexusAccess := NexusAccess{}
 	secretPath := "/u01/nexus/nexus.json"
 	jsonFile, err := ioutil.ReadFile(secretPath)
 	if err == nil {

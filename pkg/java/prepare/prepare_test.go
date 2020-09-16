@@ -2,7 +2,7 @@ package prepare
 
 import (
 	"encoding/json"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/nexus"
@@ -43,6 +43,8 @@ func TestPrepareLayers(t *testing.T) {
 		assert.Nil(t, buildConfiguration.Cmd, "Should be empty")
 		assert.DirExists(t, path + "/layer/u01", "layer does not exist")
 		assert.DirExists(t, path + "/layer/u01/application", "The application folder does not exist")
+
+		assert.True()
 
 		fileInfos, err := ioutil.ReadDir(path + "/layer/u01/application")
 		if err != nil {

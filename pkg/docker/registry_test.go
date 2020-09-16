@@ -108,6 +108,108 @@ func TestGetContainerConfig(t *testing.T) {
 	assert.Equal(t, "amd64", config.Architecture)
 }
 
+func TestLayerExists(t *testing.T) {
+
+	t.Run("Layer exists", func(t *testing.T) {
+		ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "HEAD", r.Method)
+			assert.Equal(t, "/v2/aurora/flange/blobs/8", r.RequestURI)
+			w.WriteHeader(200)
+		}))
+		ts.StartTLS()
+		defer ts.Close()
+
+		target := NewRegistryClient(ts.URL, ts.URL, nil)
+
+		ok, err := target.LayerExists(context.Background(), repository, tag)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	})
+
+	t.Run("Layer does not exists", func(t *testing.T) {
+		ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "HEAD", r.Method)
+			assert.Equal(t, "/v2/aurora/flange/blobs/8", r.RequestURI)
+			w.WriteHeader(404)
+		}))
+		ts.StartTLS()
+		defer ts.Close()
+
+		target := NewRegistryClient(ts.URL, ts.URL, nil)
+
+		ok, err := target.LayerExists(context.Background(), repository, tag)
+		assert.NoError(t, err)
+		assert.False(t, ok)
+	})
+}
+
+func TestMountLayer(t *testing.T) {
+
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "/v2/test/architect/blobs/uploads/?mount=777&from=aurora/wingnut", r.RequestURI)
+		w.WriteHeader(201)
+	}))
+	ts.StartTLS()
+	defer ts.Close()
+
+	target := NewRegistryClient(ts.URL, ts.URL, nil)
+
+	err := target.MountLayer(context.Background(), "aurora/wingnut", "test/architect" , "777")
+	assert.NoError(t, err)
+}
+
+
+func TestPushManifest(t *testing.T) {
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "PUT", r.Method)
+		assert.Equal(t, "/v2/test/architect/manifests/latest", r.RequestURI)
+		w.WriteHeader(201)
+	}))
+	ts.StartTLS()
+	defer ts.Close()
+
+	target := NewRegistryClient(ts.URL, ts.URL, nil)
+
+	err := target.PushManifest(context.Background(), "testdata/aurora_flange_manifest_v2.json", "test/architect", "latest")
+	assert.NoError(t, err)
+}
+
+func TestPushLayer(t *testing.T) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/v2/test/architect/blobs/uploads/", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "/v2/test/architect/blobs/uploads/", r.RequestURI)
+
+		w.Header().Set("Location",  "/v2/start/transaction")
+		w.WriteHeader(202)
+
+	})
+	mux.HandleFunc("/v2/start/transaction", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "PATCH", r.Method)
+		w.Header().Set("Location",  "/v2/your/upload/location",)
+		w.WriteHeader(202)
+	})
+
+	mux.HandleFunc("/v2/your/upload/location", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "PUT", r.Method)
+		assert.Equal(t, "/v2/your/upload/location?digest=666", r.RequestURI)
+		assert.Equal(t, "application/octet-stream", r.Header.Get("Content-Type"))
+		w.WriteHeader(201)
+	})
+
+	ts := httptest.NewUnstartedServer(mux)
+	ts.StartTLS()
+	defer ts.Close()
+
+	target := NewRegistryClient(ts.URL, ts.URL, nil)
+
+	err := target.PushLayer(context.Background(), "testdata/app-layer.tar.gz", "test/architect", "666" )
+	assert.NoError(t, err)
+
+}
+
 func TestGetManifestEnvMapSchemaV2(t *testing.T) {
 	expectedLength := 13
 

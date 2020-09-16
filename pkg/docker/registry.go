@@ -18,8 +18,6 @@ import (
 	"strings"
 )
 
-//TODO: Trenger tester på disse (Kan vi mocke registry ? )
-
 //TODO: Moby må fjernes helt. github.com/docker/docker/image
 type Registry interface {
 	GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error)
@@ -72,7 +70,7 @@ func (registry *RegistryClient) getRegistryManifest(ctx context.Context, reposit
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderManifestSchemaV2
 	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.pullRegistry, repository, tag)
-	logrus.Debugf("Retrieving registry manifest from URL %s", url)
+	logrus.Infof("Retrieving registry manifest from URL %s", url)
 	body, err := GetHTTPRequest(ctx, mHeader, url)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed in getRegistryManifest for request url %s and header %s", url, mHeader)
