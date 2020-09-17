@@ -69,7 +69,7 @@ func (registry *RegistryClient) getRegistryManifest(ctx context.Context, reposit
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderManifestSchemaV2
 	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.pullRegistry, repository, tag)
-	logrus.Debugf("Retrieving registry manifest from URL %s", url)
+	logrus.Infof("Retrieving registry manifest from URL %s", url)
 	body, err := GetHTTPRequest(ctx, mHeader, url)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed in getRegistryManifest for request url %s and header %s", url, mHeader)
@@ -216,6 +216,7 @@ func (registry *RegistryClient) GetImageInfo(ctx context.Context, repository str
 func (registry *RegistryClient) LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error) {
 	//HEAD /v2/<repository>/blobs/<digest>
 	url := fmt.Sprintf("%s/v2/%s/blobs/%s", registry.pushRegistry, repository, layerDigest)
+	logrus.Infof("Check layer: %s", url)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -234,6 +235,7 @@ func (registry *RegistryClient) LayerExists(ctx context.Context, repository stri
 	if resp.StatusCode == 200 {
 		return true, nil
 	}
+	logrus.Warnf("Could not find layer %s. Got response=%d", layerDigest, resp.StatusCode)
 
 	return false, nil
 }
@@ -242,6 +244,7 @@ func (registry *RegistryClient) LayerExists(ctx context.Context, repository stri
 func (registry *RegistryClient) MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error {
 	//"https://<address>/v2/<srcRepository>/blobs/uploads/?mount=<digest>&from=<dstRepository>"
 	url := fmt.Sprintf(fmt.Sprintf("%s/v2/%s/blobs/uploads/?mount=%s&from=%s", registry.pushRegistry, dstRepository, layerDigest, srcRepository))
+	logrus.Infof("Mount layer: %s", url)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -266,6 +269,10 @@ func (registry *RegistryClient) MountLayer(ctx context.Context, srcRepository st
 		if err != nil {
 			return errors.Wrap(err, "MountLayer: Unable to read response body")
 		}
+		if(resp.StatusCode == 202) {
+			return fmt.Errorf("MountLayer: Layer does not exist %s", layerDigest)
+		}
+
 		return fmt.Errorf("MountLayer: Request failed with status code = %d. From server: %s", resp.StatusCode, string(respData))
 	}
 	return nil

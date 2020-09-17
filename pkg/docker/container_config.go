@@ -118,3 +118,7 @@ func (c *ContainerConfig) AddLabels(labels map[string]string) {
 		c.Config.Labels[k] = v
 	}
 }
+
+func (c *ContainerConfig) SetCmd(cmd []string) {
+	c.Config.Cmd = cmd
+}

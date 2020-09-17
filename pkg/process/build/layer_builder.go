@@ -143,8 +143,7 @@ func (l *LayerBuilder) Build(buildConfig docker.DockerBuildConfig) (*BuildOutput
 	}
 	containerConfig.AddEnv(buildConfig.Env)
 	containerConfig.AddLabels(buildConfig.Labels)
-
-	//TODO: Handle Cmd or entrypoint
+	containerConfig.SetCmd(buildConfig.Cmd)
 
 	err = containerConfig.Save(buildFolder, containerConfigFileName)
 	if err != nil {

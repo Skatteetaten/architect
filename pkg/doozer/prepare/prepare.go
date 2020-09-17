@@ -37,10 +37,6 @@ func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
 		baseImage runtime.BaseImage) ([]docker.DockerBuildConfig, error) {
 
-		if strings.ToLower(cfg.BuildStrategy) == config.Layer {
-			return nil, errors.New("Doozer layer build not supported")
-		}
-
 		logrus.Debug("Pull output image")
 		buildContext, err := prepareLayers(cfg.DockerSpec, auroraVersion, deliverable, baseImage)
 
@@ -61,7 +57,6 @@ func Prepper() process.Prepper {
 	}
 }
 
-//TODO: Lag testdata til denne og skriv en test
 func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (*BuildConfiguration, error) {
 	//Create build context
 	buildContext, err := ioutil.TempDir("", "deliverable")
@@ -107,7 +102,14 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 		return nil, errors.Wrap(err, "Could not read image metadata")
 	}
 
-	fileinfo, err := os.Stat(filepath.Join(buildContext, imageMetadata.SrcPath, imageMetadata.FileName))
+	var cmd []string
+	if imageMetadata.CmdScript == "" {
+		cmd = nil
+	} else {
+		cmd = []string{imageMetadata.CmdScript}
+	}
+
+	fileinfo, err := os.Stat(filepath.Join(buildContext, strings.TrimSpace(imageMetadata.SrcPath), strings.TrimSpace(imageMetadata.FileName)))
 
 	if err == nil && fileinfo.IsDir() {
 		src := filepath.Join(buildContext, imageMetadata.SrcPath)
@@ -115,8 +117,15 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 		if err := util.CopyDirectory(src, dst); err != nil {
 			return nil, errors.Wrapf(err, "Could not copy directory from src=%s to dst=%s", src, dst)
 		}
+		if cmd != nil {
+			executable := filepath.Join(buildContext, "layer", cmd[0])
+			err = os.Chmod(executable, 0755)
+			if err != nil {
+				return nil, errors.Wrap(err, "Could not set permission")
+			}
+		}
 	} else {
-		srcFile := filepath.Join(buildContext, "app/application/", imageMetadata.SrcPath, imageMetadata.FileName)
+		srcFile := filepath.Join(buildContext, "app/application", strings.TrimSpace(imageMetadata.SrcPath), strings.TrimSpace(imageMetadata.FileName))
 		dstPath := filepath.Join(buildContext, "layer", imageMetadata.DestPath)
 		err = os.MkdirAll(dstPath, 0755)
 		if err != nil {
@@ -127,6 +136,11 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 		if err := util.Copy(srcFile, dstFile); err != nil {
 			return nil, errors.Wrapf(err, "Could not copy file %s to dst=%s", imageMetadata.FileName, dstFile)
 		}
+
+		err = os.Chmod(dstFile, 0755)
+		if err != nil {
+			return nil, errors.Wrap(err, "Could not set permission")
+		}
 	}
 
 	//Create symlink
@@ -134,13 +148,6 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 	err = os.Symlink(target, buildContext+"/layer/u01/application/logs")
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to create symlink")
-	}
-
-	var cmd []string
-	if imageMetadata.CmdScript == "" {
-		cmd = nil
-	} else {
-		cmd = []string{imageMetadata.CmdScript}
 	}
 
 	return &BuildConfiguration{
