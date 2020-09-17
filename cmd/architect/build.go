@@ -79,6 +79,7 @@ var Build = &cobra.Command{
 		})
 	},
 }
+
 //bc buildconfig command
 var Bc = &cobra.Command{
 	Use:   "bc",
