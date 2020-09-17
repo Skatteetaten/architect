@@ -13,20 +13,17 @@ import (
 )
 
 type Builder interface {
-	Build(buildConfig docker.DockerBuildConfig) (*BuildOutput, error)
-	Pull(ctx context.Context, buildConfig docker.DockerBuildConfig) error
+	Build(buildConfig docker.BuildConfig) (*BuildOutput, error)
+	Pull(ctx context.Context, buildConfig docker.BuildConfig) error
 	Push(ctx context.Context, buildResult *BuildOutput, tag []string) error
 }
 
-//TODO: Lowercase + better naming
 type BuildOutput struct {
-	ImageId               string
 	BuildFolder           string
 	ContainerConfigDigest string
 	Layers                []Layer
 }
 
-//TODO: Lowercase
 type Layer struct {
 	Name          string
 	Digest        string
@@ -148,7 +145,7 @@ func Build(ctx context.Context, provider docker.Registry, cfg *config.Config, do
 		}
 
 		tags, err := tagResolver.ResolveTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
-		logrus.Debugf("Tag image %s with %s", buildResult.ImageId, tags)
+		logrus.Debugf("Tag image with %s", tags)
 		t, _ := tagResolver.ResolveShortTag(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
 		metaTags := make(map[string]string)
 		for i, tag := range tags {

@@ -301,6 +301,9 @@ func (registry *RegistryMock) MountLayer(ctx context.Context, srcRepository stri
 func (registry *RegistryMock) PushLayer(ctx context.Context, file string, dstRepository string, layerDigest string) error {
 	return nil
 }
+func (registry *RegistryMock) PullLayer(ctx context.Context, repository string, layerDigest string) (string, error) {
+	return "", nil
+}
 func (registry *RegistryMock) PushManifest(ctx context.Context, file string, repository string, tag string) error {
 	return nil
 }
@@ -317,6 +320,9 @@ func (registry *RegistryMockAppend) MountLayer(ctx context.Context, srcRepositor
 }
 func (registry *RegistryMockAppend) PushLayer(ctx context.Context, file string, dstRepository string, layerDigest string) error {
 	return nil
+}
+func (registry *RegistryMockAppend) PullLayer(ctx context.Context, repository string, layerDigest string) (string, error) {
+	return "", nil
 }
 func (registry *RegistryMockAppend) PushManifest(ctx context.Context, file string, repository string, tag string) error {
 	return nil

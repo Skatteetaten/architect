@@ -35,7 +35,7 @@ const (
 
 func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
-		baseImage runtime.BaseImage) ([]docker.DockerBuildConfig, error) {
+		baseImage runtime.BaseImage) ([]docker.BuildConfig, error) {
 
 		logrus.Debug("Pull output image")
 		buildContext, err := prepareLayers(cfg.DockerSpec, auroraVersion, deliverable, baseImage)
@@ -44,16 +44,16 @@ func Prepper() process.Prepper {
 			return nil, errors.Wrap(err, "Error prepare artifact")
 		}
 
-		buildConf := docker.DockerBuildConfig{
+		buildConf := docker.BuildConfig{
 			AuroraVersion:    auroraVersion,
 			BuildFolder:      buildContext.BuildContext,
 			DockerRepository: cfg.DockerSpec.OutputRepository,
-			Baseimage:        baseImage.DockerImage,
+			Image:            baseImage.DockerImage,
 			Env:              buildContext.Env,
 			Labels:           buildContext.Labels,
 			Cmd:              buildContext.Cmd,
 		}
-		return []docker.DockerBuildConfig{buildConf}, nil
+		return []docker.BuildConfig{buildConf}, nil
 	}
 }
 

@@ -28,8 +28,8 @@ func NewLayerBuilder(config *config.Config, provider docker.Registry) Builder {
 	}
 }
 
-func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.DockerBuildConfig) error {
-	baseImage := buildConfig.Baseimage
+func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.BuildConfig) error {
+	baseImage := buildConfig.Image
 
 	logrus.Infof("%s:%s", baseImage.Repository, baseImage.Tag)
 	manifest, err := l.provider.GetManifest(ctx, baseImage.Repository, baseImage.Tag)
@@ -41,7 +41,22 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.DockerBuildC
 	for _, layer := range manifest.Layers {
 		ok, _ := l.provider.LayerExists(ctx, l.config.DockerSpec.OutputRepository, layer.Digest)
 		if !ok {
-			err := l.provider.MountLayer(ctx, baseImage.Repository, l.config.DockerSpec.OutputRepository, layer.Digest)
+
+			//Pull-Push
+			ok, err := l.provider.LayerExists(ctx, baseImage.Repository, layer.Digest)
+			if err != nil || !ok {
+				layerLocation, err := l.provider.PullLayer(ctx, baseImage.Repository, layer.Digest)
+				if err != nil {
+					return errors.Wrapf(err, "Pull: Layer pull failed %s", layer.Digest)
+				}
+
+				err = l.provider.PushLayer(ctx, layerLocation, baseImage.Repository, layer.Digest)
+				if err != nil {
+					return errors.Wrapf(err, "Pull: Layer push failed %s", layer.Digest)
+				}
+			}
+
+			err = l.provider.MountLayer(ctx, baseImage.Repository, l.config.DockerSpec.OutputRepository, layer.Digest)
 			if err != nil {
 				return errors.Wrap(err, "Layer mount failed")
 			}
@@ -70,7 +85,7 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.DockerBuildC
 	return nil
 }
 
-func (l *LayerBuilder) Build(buildConfig docker.DockerBuildConfig) (*BuildOutput, error) {
+func (l *LayerBuilder) Build(buildConfig docker.BuildConfig) (*BuildOutput, error) {
 	buildFolder := buildConfig.BuildFolder
 
 	files, err := ioutil.ReadDir(buildConfig.BuildFolder + "/" + util.LayerFolder)
@@ -81,7 +96,6 @@ func (l *LayerBuilder) Build(buildConfig docker.DockerBuildConfig) (*BuildOutput
 	var layers []Layer
 	for _, file := range files {
 		if file.IsDir() {
-			logrus.Infof("Handle layer: %s", file.Name())
 			layer, err := util.CompressTarGz(buildFolder+"/"+util.LayerFolder, file.Name(), buildFolder)
 			if err != nil {
 				return nil, errors.Wrapf(err, "Compress of layer %s failed", file.Name())
@@ -141,6 +155,7 @@ func (l *LayerBuilder) Build(buildConfig docker.DockerBuildConfig) (*BuildOutput
 		})
 
 	}
+	//Set env, labels, and cmd
 	containerConfig.AddEnv(buildConfig.Env)
 	containerConfig.AddLabels(buildConfig.Labels)
 	containerConfig.SetCmd(buildConfig.Cmd)
@@ -169,7 +184,6 @@ func (l *LayerBuilder) Build(buildConfig docker.DockerBuildConfig) (*BuildOutput
 	}
 
 	return &BuildOutput{
-		ImageId:               "",
 		BuildFolder:           buildFolder,
 		ContainerConfigDigest: digest,
 		Layers:                layers,
@@ -180,7 +194,6 @@ func (l *LayerBuilder) Push(ctx context.Context, buildResult *BuildOutput, tag [
 
 	buildFolder := buildResult.BuildFolder
 	for _, layer := range buildResult.Layers {
-		logrus.Infof("Push: %s", layer.Digest)
 		layerLocation := buildResult.BuildFolder + "/" + layer.Name
 		//Push
 		err := l.provider.PushLayer(ctx, layerLocation, l.config.DockerSpec.OutputRepository, layer.Digest)
@@ -189,10 +202,12 @@ func (l *LayerBuilder) Push(ctx context.Context, buildResult *BuildOutput, tag [
 		}
 	}
 
-	logrus.Infof("Push config: %s", buildResult.ContainerConfigDigest)
-	err := l.provider.PushLayer(ctx, buildFolder+"/"+containerConfigFileName, l.config.DockerSpec.OutputRepository, buildResult.ContainerConfigDigest)
-	if err != nil {
-		return errors.New("Failed to push the container configuration")
+	if buildResult.ContainerConfigDigest != "" {
+		logrus.Infof("Push config: %s", buildResult.ContainerConfigDigest)
+		err := l.provider.PushLayer(ctx, buildFolder+"/"+containerConfigFileName, l.config.DockerSpec.OutputRepository, buildResult.ContainerConfigDigest)
+		if err != nil {
+			return errors.New("Failed to push the container configuration")
+		}
 	}
 
 	for _, t := range tag {

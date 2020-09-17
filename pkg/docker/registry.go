@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -27,6 +28,7 @@ type Registry interface {
 	MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error
 	PushLayer(ctx context.Context, file string, dstRepository string, layerDigest string) error
 	PushManifest(ctx context.Context, file string, repository string, tag string) error
+	PullLayer(ctx context.Context, repository string, layerDigest string) (string, error)
 }
 
 type Manifest struct {
@@ -216,7 +218,7 @@ func (registry *RegistryClient) GetImageInfo(ctx context.Context, repository str
 func (registry *RegistryClient) LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error) {
 	//HEAD /v2/<repository>/blobs/<digest>
 	url := fmt.Sprintf("%s/v2/%s/blobs/%s", registry.pushRegistry, repository, layerDigest)
-	logrus.Infof("Check layer: %s", url)
+	logrus.Debugf("Check layer: %s", url)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -240,7 +242,45 @@ func (registry *RegistryClient) LayerExists(ctx context.Context, repository stri
 	return false, nil
 }
 
+func (registry *RegistryClient) PullLayer(ctx context.Context, repository string, layerDigest string) (string, error) {
+	url := fmt.Sprintf(fmt.Sprintf("%s/v2/%s/blobs/%s", registry.pullRegistry, repository, layerDigest))
+	logrus.Infof("Pull layer: %s", url)
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return "", errors.Wrap(err, "Could not create the blob download request")
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed download")
+	}
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("unexpected http code %d", resp.StatusCode)
+	}
+
+	file, err := ioutil.TempFile("/tmp", "layer")
+	if err != nil {
+		return "", errors.Wrap(err, "Could not create a temp file")
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return "", errors.Wrap(err, "Could not copy content")
+	}
+	logrus.Infof("Pulled layer: %s", layerDigest)
+
+	return file.Name(), err
+}
+
 //MountLayer performs cross mounting
+//TODO: Insert layer instead off layer digest
 func (registry *RegistryClient) MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error {
 	//"https://<address>/v2/<srcRepository>/blobs/uploads/?mount=<digest>&from=<dstRepository>"
 	url := fmt.Sprintf(fmt.Sprintf("%s/v2/%s/blobs/uploads/?mount=%s&from=%s", registry.pushRegistry, dstRepository, layerDigest, srcRepository))
@@ -264,13 +304,10 @@ func (registry *RegistryClient) MountLayer(ctx context.Context, srcRepository st
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 201 {
+	if resp.StatusCode != 201 && resp.StatusCode != 202 {
 		respData, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return errors.Wrap(err, "MountLayer: Unable to read response body")
-		}
-		if(resp.StatusCode == 202) {
-			return fmt.Errorf("MountLayer: Layer does not exist %s", layerDigest)
 		}
 
 		return fmt.Errorf("MountLayer: Request failed with status code = %d. From server: %s", resp.StatusCode, string(respData))
@@ -375,6 +412,8 @@ func (registry *RegistryClient) PushLayer(ctx context.Context, file string, repo
 		bodyString := string(bodyBytes)
 		return errors.Errorf("PushLayer commit: Got unexpected http response %d. From server: %s", resp.StatusCode, bodyString)
 	}
+
+	logrus.Infof("Pushed layer %s:%s", repository, layerDigest)
 	return nil
 }
 

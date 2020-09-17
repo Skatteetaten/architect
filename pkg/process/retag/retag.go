@@ -9,6 +9,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/docker"
 	process "github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/tagger"
+	"io/ioutil"
 )
 
 type retagger struct {
@@ -35,6 +36,11 @@ func Retag(ctx context.Context, cfg *config.Config, credentials *docker.Registry
 func (m *retagger) Retag(ctx context.Context) error {
 	tag := m.Config.DockerSpec.RetagWith
 	repository := m.Config.DockerSpec.OutputRepository
+
+	buildContex, err := ioutil.TempDir("/tmp", "retag")
+	if err != nil {
+		return errors.Wrap(err, "Retag: Could not create temp folder")
+	}
 
 	logrus.Debug("Get ENV from image manifest")
 
@@ -96,7 +102,13 @@ func (m *retagger) Retag(ctx context.Context) error {
 
 	//We need to pull to make sure we push the newest image.. We should probably do this directly
 	//on the registry when we get v2 registry!:)
-	err = m.Builder.Pull(ctx, docker.DockerBuildConfig{Baseimage: pull})
+
+	buildConfig := docker.BuildConfig{
+		BuildFolder: buildContex,
+		Image:       pull,
+	}
+
+	err = m.Builder.Pull(ctx, buildConfig)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to pull image: %v", pull)
 	}
@@ -106,7 +118,7 @@ func (m *retagger) Retag(ctx context.Context) error {
 		logrus.Infof("Tag image %s with alias %s", sourceTag, tag)
 	}
 
-	err = m.Builder.Push(ctx, &process.BuildOutput{ImageId: sourceTag}, tagsToPush)
+	err = m.Builder.Push(ctx, &process.BuildOutput{BuildFolder: buildConfig.BuildFolder}, tagsToPush)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to push tag %s", tag)
 	}

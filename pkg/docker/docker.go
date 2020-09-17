@@ -17,11 +17,11 @@ type RegistryCredentials struct {
 	Serveraddress string `json:"serveraddress,omitempty"`
 }
 
-type DockerBuildConfig struct {
+type BuildConfig struct {
 	AuroraVersion    *runtime.AuroraVersion
 	DockerRepository string
 	BuildFolder      string
-	Baseimage        runtime.DockerImage //We need to pull the newest image...
+	Image            runtime.DockerImage //We need to pull the newest image...
 	OutputRegistry   string
 	Env              map[string]string
 	Labels           map[string]string
