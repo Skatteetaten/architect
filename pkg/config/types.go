@@ -30,19 +30,13 @@ const (
 	Doozerleveransepakke Classifier = "Doozerleveransepakke"
 )
 
-const (
-	Layer = "layer"
-)
-
 type Config struct {
 	ApplicationType   ApplicationType
 	ApplicationSpec   ApplicationSpec
 	DockerSpec        DockerSpec
 	BuilderSpec       BuilderSpec
-	NexusAccess       NexusAccess
 	BinaryBuild       bool
 	LocalBuild        bool
-	BuildStrategy     string
 	TLSVerify         bool
 	BuildTimeout      time.Duration
 	NoPush            bool
@@ -57,6 +51,9 @@ type NexusAccess struct {
 	NexusURL string
 }
 
+func (n NexusAccess) IsValid() bool {
+	return len(n.Username) > 0 && len(n.Password) > 0 && len(n.NexusURL) > 0
+}
 func (n NexusAccess) String() string {
 	return "{Username:" + n.Username + " Password:****** NexusURL:" + n.NexusURL + "}"
 }

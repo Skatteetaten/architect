@@ -21,6 +21,7 @@ func init() {
 	Build.Flags().BoolVarP(&noPush, "no-push", "", false, "If true the image is not pushed")
 	Build.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 	Bc.Flags().StringP("file", "f", "", "Path to a build configuration file")
+	Bc.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
 }
 
@@ -58,7 +59,6 @@ var Build = &cobra.Command{
 		var configReader = config.NewCmdConfigReader(cmd, args, noPush)
 		c, err := configReader.ReadConfig()
 
-		c.BuildStrategy = "Layer"
 		if err != nil {
 			logrus.Fatalf("Could not read configuration: %s", err)
 		}
@@ -87,6 +87,12 @@ var Bc = &cobra.Command{
 	Long:  "Build images from openshift build configurations",
 	Run: func(cmd *cobra.Command, args []string) {
 
+		if verbose {
+			logrus.SetLevel(logrus.DebugLevel)
+		} else {
+			logrus.SetLevel(logrus.InfoLevel)
+		}
+
 		var nexusDownloader nexus.Downloader
 		if verbose {
 			logrus.SetLevel(logrus.DebugLevel)
@@ -105,12 +111,15 @@ var Bc = &cobra.Command{
 			logrus.Fatalf("Could not read config: %s", err)
 		}
 
-		c.BuildStrategy = "Layer"
 		if err != nil {
 			logrus.Fatalf("Could not read configuration: %s", err)
 		}
+		nexusAccess, err := config.ReadNexusAccessFromEnvVars()
+		if err != nil {
+			logrus.Fatalf("Unable to get Nexus credentials: %s", err)
+		}
 
-		nexusDownloader = nexus.NewNexusDownloader(c.NexusAccess.NexusURL)
+		nexusDownloader = nexus.NewNexusDownloader(nexusAccess.NexusURL, nexusAccess.Username, nexusAccess.Password)
 
 		RunArchitect(RunConfiguration{
 			NexusDownloader:         nexusDownloader,

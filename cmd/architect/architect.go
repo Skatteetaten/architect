@@ -12,6 +12,7 @@ import (
 	nodejs "github.com/skatteetaten/architect/pkg/nodejs/prepare"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/retag"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -40,18 +41,41 @@ func RunArchitect(configuration RunConfiguration) {
 		logrus.Fatalf("Could not parse registry credentials %s", err)
 	}
 
-	provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry, c.DockerSpec.ExternalDockerRegistry, registryCredentials)
+	pushRegistryUrl := url.URL{
+		Host:   c.DockerSpec.OutputRegistry,
+		Scheme: "https",
+	}
+	if err != nil {
+		logrus.Fatalf("Unable to parse URL %s", c.DockerSpec.OutputRegistry)
+	}
+	pullRegistryUrl, err := url.Parse(c.DockerSpec.InternalPullRegistry)
+	if err != nil {
+		logrus.Fatalf("Unable to parse URL %s", c.DockerSpec.InternalPullRegistry)
+	}
+	pushRegistryConn := docker.RegistryConnectionInfo{
+		Port:        443,
+		Host:        pushRegistryUrl.Hostname(),
+		Credentials: registryCredentials,
+	}
+	pullRegistryConn := docker.RegistryConnectionInfo{
+		Port:        443,
+		Host:        pullRegistryUrl.Hostname(),
+		Credentials: nil,
+	}
+	pushRegistry := docker.NewRegistryClient(pushRegistryConn)
+	pullRegistry := docker.NewRegistryClient(pullRegistryConn)
 
 	var builder process.Builder
-	builder = process.NewLayerBuilder(c, provider)
+	builder = process.NewLayerBuilder(c, pushRegistry, pullRegistry)
 
 	if c.DockerSpec.RetagWith != "" {
 		logrus.Info("Perform retag")
-		if err := retag.Retag(ctx, c, registryCredentials, provider, builder); err != nil {
+		//TODO: Vi må kanskje gjøre noe spesielt med flytting mellom snapshot og release?
+		if err := retag.Retag(ctx, c, registryCredentials, pullRegistry, builder); err != nil {
 			logrus.Fatalf("Failed to retag temporary image %s", err)
 		}
 	} else {
-		err := performBuild(ctx, &configuration, c, provider, builder)
+		err := performBuild(ctx, &configuration, c, pullRegistry, pushRegistry, builder)
 
 		if err != nil {
 			var errorMessage string
@@ -72,7 +96,7 @@ func RunArchitect(configuration RunConfiguration) {
 	}
 	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
 }
-func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, provider docker.Registry, builder process.Builder) error {
+func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, pullRegistry docker.Registry, pushRegistry docker.Registry, builder process.Builder) error {
 	var prepper process.Prepper
 	if c.ApplicationType == config.JavaLeveransepakke {
 		logrus.Info("Perform Java build")
@@ -94,5 +118,5 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 	ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
 	defer cancel()
 
-	return process.Build(ctx, provider, c, configuration.NexusDownloader, prepper, builder)
+	return process.Build(ctx, pullRegistry, pushRegistry, c, configuration.NexusDownloader, prepper, builder)
 }

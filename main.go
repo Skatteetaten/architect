@@ -15,6 +15,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/cmd"
 	"github.com/skatteetaten/architect/cmd/architect"
@@ -56,9 +57,6 @@ func initializeAndRunOnOpenShift() {
 		logrus.Fatalf("Error reading config: %s", err)
 	}
 
-	mavenRepo := c.NexusAccess.NexusURL
-	logrus.Debugf("Using Maven repo on %s", mavenRepo)
-
 	var nexusDownloader nexus.Downloader
 	if c.BinaryBuild {
 		binaryInput, err := util.ExtractBinaryFromStdIn()
@@ -67,7 +65,12 @@ func initializeAndRunOnOpenShift() {
 		}
 		nexusDownloader = nexus.NewBinaryDownloader(binaryInput)
 	} else {
-		nexusDownloader = nexus.NewNexusDownloader(mavenRepo)
+		nexusAccess, err := config.ReadNexusConfigFromFileSystem()
+		if err != nil {
+			logrus.Fatalf("Error reading NexusAccess, and build is not binary: %s", errors.Unwrap(err))
+		}
+		logrus.Debugf("Using Maven repo on %s", nexusAccess.NexusURL)
+		nexusDownloader = nexus.NewNexusDownloader(nexusAccess.NexusURL, nexusAccess.Username, nexusAccess.Password)
 	}
 	runConfig := architect.RunConfiguration{
 		Config:                  c,

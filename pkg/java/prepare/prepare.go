@@ -46,6 +46,7 @@ func Prepper() process.Prepper {
 	}
 }
 
+//TODO: Vurder om vi kan trekke ut prepare layer, slik at den kan gjenbrukes på tvers av byggene våre. Metoden er veldig lik doozer sin
 func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable) (*BuildConfiguration, error) {
 	buildPath, err := ioutil.TempDir("", "deliverable")
 

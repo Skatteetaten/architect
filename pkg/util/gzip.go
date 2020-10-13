@@ -10,14 +10,17 @@ import (
 	"strings"
 )
 
-//CompressTarGz compress folder
-func CompressTarGz(src string, folder string, destination string) (string, error) {
+//CompressLayerTarGz compress folder
+func CompressLayerTarGz(src string, folder string, destination string) (string, error) {
+
 	name := folder + "-layer.tar.gz"
 	file, err := os.Create(destination + "/" + name)
 	if err != nil {
 		logrus.Fatalln(err)
 	}
 	defer file.Close()
+
+	//var buf bytes.Buffer
 
 	gw := gzip.NewWriter(file)
 	defer gw.Close()

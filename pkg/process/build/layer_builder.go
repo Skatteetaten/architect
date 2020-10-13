@@ -1,256 +1,235 @@
 package process
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/util"
+	"io"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 )
 
 type LayerBuilder struct {
-	config   *config.Config
-	provider docker.Registry
+	config       *config.Config
+	pushRegistry docker.Registry
+	pullRegistry docker.Registry
 }
 
-const (
-	manifestFileName        = "manifest.json"
-	containerConfigFileName = "config.json"
-)
+type LayerProvider struct {
+	Manifest        *docker.ManifestV2
+	ContainerConfig *docker.ContainerConfig
+	BaseImage       runtime.DockerImage
+	Layers          []Layer
+}
 
-func NewLayerBuilder(config *config.Config, provider docker.Registry) Builder {
+type Layer struct {
+	Digest string
+	Size   int
+	//TODO: Vi kan vurdere å lage et eget interface for bedre lesbarhet
+	Content func(cxt context.Context) (io.ReadCloser, error)
+}
+
+func NewLayerBuilder(config *config.Config, pushregistry docker.Registry, pullregistry docker.Registry) Builder {
 	return &LayerBuilder{
-		config:   config,
-		provider: provider,
+		config:       config,
+		pushRegistry: pushregistry,
+		pullRegistry: pullregistry,
 	}
 }
 
-func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.BuildConfig) error {
+func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.BuildConfig) (*LayerProvider, error) {
 	baseImage := buildConfig.Image
 
 	logrus.Infof("%s:%s", baseImage.Repository, baseImage.Tag)
-	manifest, err := l.provider.GetManifest(ctx, baseImage.Repository, baseImage.Tag)
+	manifest, err := l.pullRegistry.GetManifest(ctx, baseImage.Repository, baseImage.Tag)
 	if err != nil {
-		return errors.Wrap(err, "Failed to fetch manifest")
+		return nil, errors.Wrap(err, "Failed to fetch manifest")
 	}
 	logrus.Infof("Fetched manifest: %s/%s:%s", baseImage.Registry, baseImage.Repository, baseImage.Tag)
 
+	containerConfig, err := l.pullRegistry.GetContainerConfig(ctx, baseImage.Repository, manifest.Config.Digest)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to fetch the container config")
+	}
+
+	var layers []Layer
 	for _, layer := range manifest.Layers {
-		ok, _ := l.provider.LayerExists(ctx, l.config.DockerSpec.OutputRepository, layer.Digest)
+
+		ok, _ := l.pushRegistry.LayerExists(ctx, l.config.DockerSpec.OutputRepository, layer.Digest)
 		if !ok {
-
-			//Pull-Push
-			ok, err := l.provider.LayerExists(ctx, baseImage.Repository, layer.Digest)
+			//Pull missing layers
+			ok, err := l.pushRegistry.LayerExists(ctx, baseImage.Repository, layer.Digest)
 			if err != nil || !ok {
-				layerLocation, err := l.provider.PullLayer(ctx, baseImage.Repository, layer.Digest)
-				if err != nil {
-					return errors.Wrapf(err, "Pull: Layer pull failed %s", layer.Digest)
-				}
 
-				err = l.provider.PushLayer(ctx, layerLocation, baseImage.Repository, layer.Digest)
+				missingLayerPath, err := l.pullRegistry.PullLayer(ctx, baseImage.Repository, layer.Digest)
 				if err != nil {
-					return errors.Wrapf(err, "Pull: Layer push failed %s", layer.Digest)
+					return nil, errors.Wrapf(err, "Pull: Layer pull failed %s", layer.Digest)
 				}
+				layers = append(layers, Layer{
+					Digest: layer.Digest,
+					Size:   layer.Size,
+					Content: func(cxt context.Context) (io.ReadCloser, error) {
+						reader, err := os.Open(missingLayerPath)
+						if err != nil {
+							return nil, errors.Wrapf(err, "Unable to open layer %s file", missingLayerPath)
+						}
+						return reader, nil
+					},
+				})
 			}
-
-			err = l.provider.MountLayer(ctx, baseImage.Repository, l.config.DockerSpec.OutputRepository, layer.Digest)
-			if err != nil {
-				return errors.Wrap(err, "Layer mount failed")
-			}
-			logrus.Infof("Mounted layer %s", layer.Digest)
 		}
 	}
 
-	containerConfig, err := l.provider.GetContainerConfig(ctx, baseImage.Repository, manifest.Config.Digest)
-	if err != nil {
-		return errors.Wrap(err, "Failed to fetch the container config")
-	}
-
-	logrus.Debugf("Fetched container config: %s", manifest.Config.Digest)
-
-	logrus.Debugf("Numbers of layers in pull: %d", len(manifest.Layers))
-
-	err = manifest.Save(buildConfig.BuildFolder, manifestFileName)
-	if err != nil {
-		return errors.Wrap(err, "Manifest save: failed")
-	}
-
-	err = containerConfig.Save(buildConfig.BuildFolder, containerConfigFileName)
-	if err != nil {
-		return errors.Wrap(err, "Container config save: failed")
-	}
-	return nil
+	return &LayerProvider{
+		Manifest:        manifest,
+		ContainerConfig: containerConfig,
+		BaseImage:       baseImage,
+		Layers:          layers,
+	}, nil
 }
 
-func (l *LayerBuilder) Build(buildConfig docker.BuildConfig) (*BuildOutput, error) {
+func (l *LayerBuilder) Build(buildConfig docker.BuildConfig, baseImageLayerProvider *LayerProvider) (*LayerProvider, error) {
 	buildFolder := buildConfig.BuildFolder
+	layerFolder := filepath.Join(buildFolder, util.LayerFolder)
 
-	files, err := ioutil.ReadDir(buildConfig.BuildFolder + "/" + util.LayerFolder)
+	files, err := ioutil.ReadDir(layerFolder)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to the read the layer folder")
 	}
 
+	manifest := baseImageLayerProvider.Manifest.CleanCopy()
+	containerConfig := baseImageLayerProvider.ContainerConfig.CleanCopy()
+
 	var layers []Layer
 	for _, file := range files {
 		if file.IsDir() {
-			layer, err := util.CompressTarGz(buildFolder+"/"+util.LayerFolder, file.Name(), buildFolder)
+
+			layerArchiveName, err := util.CompressLayerTarGz(layerFolder, file.Name(), buildFolder)
 			if err != nil {
-				return nil, errors.Wrapf(err, "Compress of layer %s failed", file.Name())
+				return nil, errors.Wrapf(err, "Compression of layer %s failed", file.Name())
 			}
 
-			contentDigest, err := util.CalculateDigestFromArchive(buildFolder + "/" + layer)
+			layerPath := filepath.Join(buildFolder, layerArchiveName)
+
+			contentDigest, err := util.CalculateDigestFromArchive(layerPath)
 			if err != nil {
 				return nil, errors.Wrap(err, "Failed to calculate the content digest")
 			}
 
-			digest, err := util.CalculateDigest(buildFolder + "/" + layer)
+			reader, err := os.Open(layerPath)
 			if err != nil {
-				return nil, errors.Wrapf(err, "Manifest generation: Digest calculation failed on layer %s", layer)
+				return nil, errors.Wrapf(err, "Unable to open layer %s file", file)
+			}
+			defer reader.Close()
+
+			stat, err := reader.Stat()
+			if err != nil {
+				return nil, errors.Wrapf(err, "Unable to calculate layer size of layer %s ", file)
 			}
 
-			size, err := util.CalculateSize(buildFolder + "/" + layer)
+			size := int(stat.Size())
+			digest, err := util.CalculateDigestFromFile(layerPath)
 			if err != nil {
-				return nil, errors.Wrapf(err, "Manifest generation: Unable to stat layer %s", layer)
+				return nil, errors.Wrapf(err, "Unable to calculate layer digest of layer %s", file)
 			}
 
+			//TODO: Disse kan ligge i minne. Det vil øke farten noe
 			layers = append(layers, Layer{
-				Name:          layer,
-				Digest:        digest,
-				Size:          size,
-				ContentDigest: contentDigest,
+				Digest: digest,
+				Size:   size,
+				Content: func(cxt context.Context) (io.ReadCloser, error) {
+					file, err := os.Open(layerPath)
+					if err != nil {
+						return nil, errors.Wrapf(err, "Unable to open layer %s file", layerPath)
+					}
+					return file, nil
+				},
 			})
+
+			//Add content digest to RootFS
+			containerConfig = containerConfig.AddLayer(contentDigest)
+
+			//Add to manifest
+			manifest.Layers = append(manifest.Layers, docker.Layer{
+				MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+				Size:      size,
+				Digest:    digest,
+			})
+
 		}
 	}
 
-	//Update the manifest
-	manifest, err := getManifest(buildConfig.BuildFolder)
+	cc, err := containerConfig.Create(buildConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	containerConfig, err := getContainerConfig(buildConfig.BuildFolder)
-	if err != nil {
-		return nil, err
-	}
+	//Create the container configration layer
+	containerConfigDigest := util.CalculateDigest(cc)
+	layers = append(layers, Layer{
+		Digest: containerConfigDigest,
+		Size:   len(cc),
+		Content: func(cxt context.Context) (io.ReadCloser, error) {
+			return ioutil.NopCloser(bytes.NewBuffer(cc)), nil
+		},
+	})
 
-	//Removes unnecessary data
-	manifest = manifest.CleanCopy()
+	//Add container configuration to the manifest
+	manifest.Config.Size = len(cc)
+	manifest.Config.Digest = containerConfigDigest
 
-	//Removes unnecessary data
-	containerConfig = containerConfig.CleanCopy()
+	//Add base layers
+	layers = append(layers, baseImageLayerProvider.Layers...)
 
-	//Add layers to the container configuration
-	for _, layer := range layers {
-		//Add content digest to RootFS
-		containerConfig = containerConfig.AddLayer(layer.ContentDigest)
-
-		//Modify the manifest
-		manifest.Layers = append(manifest.Layers, docker.Layer{
-			MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
-			Size:      layer.Size,
-			Digest:    layer.Digest,
-		})
-
-	}
-	//Set env, labels, and cmd
-	containerConfig.AddEnv(buildConfig.Env)
-	containerConfig.AddLabels(buildConfig.Labels)
-	containerConfig.SetCmd(buildConfig.Cmd)
-
-	err = containerConfig.Save(buildFolder, containerConfigFileName)
-	if err != nil {
-		return nil, errors.Wrap(err, "Save operation failed")
-	}
-
-	size, err := util.CalculateSize(buildFolder + "/" + containerConfigFileName)
-	if err != nil {
-		return nil, errors.Wrap(err, "ContainerConfig: File stat failed")
-	}
-
-	digest, err := util.CalculateDigest(buildFolder + "/" + containerConfigFileName)
-	if err != nil {
-		return nil, errors.Wrap(err, "ContainerConfig: Digest calculation failed")
-	}
-
-	manifest.Config.Size = size
-	manifest.Config.Digest = digest
-
-	err = manifest.Save(buildFolder, manifestFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	return &BuildOutput{
-		BuildFolder:           buildFolder,
-		ContainerConfigDigest: digest,
-		Layers:                layers,
+	return &LayerProvider{
+		Manifest:        manifest,
+		ContainerConfig: containerConfig,
+		Layers:          layers,
+		BaseImage:       buildConfig.Image,
 	}, nil
 }
 
-func (l *LayerBuilder) Push(ctx context.Context, buildResult *BuildOutput, tag []string) error {
+func (l *LayerBuilder) Push(ctx context.Context, layers *LayerProvider, tag []string) error {
 
-	buildFolder := buildResult.BuildFolder
-	for _, layer := range buildResult.Layers {
-		layerLocation := buildResult.BuildFolder + "/" + layer.Name
-		//Push
-		err := l.provider.PushLayer(ctx, layerLocation, l.config.DockerSpec.OutputRepository, layer.Digest)
-		if err != nil {
-			return errors.Errorf("Failed to push layer %v", err)
+	//Push layers
+	for _, layer := range layers.Layers {
+		if layer.Content != nil {
+			contentReader, err := layer.Content(ctx)
+			if err != nil {
+				return errors.Wrap(err, "Failed to read layer")
+			}
+			defer contentReader.Close()
+
+			err = l.pushRegistry.PushLayer(ctx, contentReader, l.config.DockerSpec.OutputRepository, layer.Digest)
+			if err != nil {
+				return errors.Wrapf(err, "Failed to push layer %s", layer.Digest)
+			}
 		}
 	}
 
-	if buildResult.ContainerConfigDigest != "" {
-		logrus.Infof("Push config: %s", buildResult.ContainerConfigDigest)
-		err := l.provider.PushLayer(ctx, buildFolder+"/"+containerConfigFileName, l.config.DockerSpec.OutputRepository, buildResult.ContainerConfigDigest)
-		if err != nil {
-			return errors.New("Failed to push the container configuration")
-		}
-	}
-
+	//Push tags
 	for _, t := range tag {
 		shortTag, err := util.FindOutputTagOrHash(t)
 		if err != nil {
 			return errors.Wrap(err, "Tag failed")
 		}
-
 		logrus.Infof("Push tag: %s", t)
-		err = l.provider.PushManifest(ctx, buildFolder+"/"+manifestFileName, l.config.DockerSpec.OutputRepository, shortTag)
+
+		manifest, err := json.Marshal(layers.Manifest)
+		if err != nil {
+			return errors.Wrap(err, "Manfifest marshal failed")
+		}
+		err = l.pushRegistry.PushManifest(ctx, manifest, l.config.DockerSpec.OutputRepository, shortTag)
 		if err != nil {
 			return errors.Errorf("Failed to push manifest: %v", err)
 		}
 	}
 	return nil
-}
-
-func getManifest(folder string) (*docker.ManifestV2, error) {
-	data, err := ioutil.ReadFile(folder + "/" + manifestFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	var manifest docker.ManifestV2
-	err = json.Unmarshal(data, &manifest)
-	if err != nil {
-		return nil, errors.Wrapf(err, "getContainerConfig: Unmarshal operation failed")
-	}
-
-	return &manifest, nil
-}
-
-func getContainerConfig(folder string) (*docker.ContainerConfig, error) {
-	data, err := ioutil.ReadFile(folder + "/" + containerConfigFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	var containerConfig docker.ContainerConfig
-	err = json.Unmarshal(data, &containerConfig)
-	if err != nil {
-		return nil, errors.Wrapf(err, "getContainerConfig: Unmarshal operation failed")
-	}
-
-	return &containerConfig, nil
 }

@@ -85,7 +85,7 @@ func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 	pullRegistry := m.Cmd.Flag("pull-registry").Value.String()
 
 	if !strings.Contains(pullRegistry, "http") {
-		pullRegistry = fmt.Sprintf("https://%s:443", pullRegistry)
+		pullRegistry = fmt.Sprintf("https://%s", pullRegistry)
 	}
 
 	return &Config{
@@ -93,7 +93,6 @@ func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 		BinaryBuild:     true,
 		LocalBuild:      true,
 		ApplicationType: applicationType,
-		BuildStrategy:   Layer,
 		ApplicationSpec: ApplicationSpec{
 			MavenGav: MavenGav{
 				Version: output[1],
@@ -113,6 +112,36 @@ func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 		BuildTimeout: 900,
 	}, nil
 
+}
+
+func ReadNexusConfigFromFileSystem() (*NexusAccess, error) {
+	nexusAccess := NexusAccess{}
+	secretPath := "/u01/nexus/nexus.json"
+	jsonFile, err := ioutil.ReadFile(secretPath)
+	if err == nil {
+		var data map[string]interface{}
+		err := json.Unmarshal(jsonFile, &data)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Could not parse %s. Must be correct json when specified.", secretPath)
+		}
+		nexusAccess.NexusURL = data["nexusUrl"].(string)
+		nexusAccess.Username = data["username"].(string)
+		nexusAccess.Password = data["password"].(string)
+	} else {
+		return nil, errors.Errorf("Could not read nexus config at %s, error: %s", secretPath, err)
+	}
+	return &nexusAccess, nil
+}
+
+func ReadNexusAccessFromEnvVars() (*NexusAccess, error) {
+	nexusAccess := NexusAccess{}
+	nexusAccess.Username, _ = os.LookupEnv("NEXUS_USERNAME")
+	nexusAccess.Password, _ = os.LookupEnv("NEXUS_PASSWORD")
+	nexusAccess.NexusURL, _ = os.LookupEnv("NEXUS_URL")
+	if nexusAccess.IsValid() {
+		return &nexusAccess, nil
+	}
+	return nil, errors.Errorf("Could not read Nexus credentials from environment")
 }
 
 func (m *FileConfigReader) ReadConfig() (*Config, error) {
@@ -136,7 +165,6 @@ func (m *InClusterConfigReader) ReadConfig() (*Config, error) {
 
 func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, error) {
 	build := buildv1.Build{}
-
 	err := json.Unmarshal(buildConfig, &build)
 	if err != nil {
 		return nil, err
@@ -145,6 +173,8 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	if customStrategy == nil {
 		return nil, errors.New("Expected strategy to be custom strategy. Thats the only one supported.")
 	}
+
+	binaryBuild := build.Spec.Source.Type == buildv1.BuildSourceBinary
 
 	env := make(map[string]string)
 	for _, e := range customStrategy.Env {
@@ -159,8 +189,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			applicationType = DoozerLeveranse
 		}
 	}
-
-	var buildStrategy = Layer
 
 	var sporingscontext = ""
 	if value, err := findEnv(env, "SPORINGSCONTEXT"); err == nil {
@@ -179,22 +207,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		if strings.Contains(strings.ToLower(value), "false") {
 			tlsVerify = false
 		}
-	}
-
-	nexusAccess := NexusAccess{}
-	secretPath := "/u01/nexus/nexus.json"
-	jsonFile, err := ioutil.ReadFile(secretPath)
-	if err == nil {
-		var data map[string]interface{}
-		err := json.Unmarshal(jsonFile, &data)
-		if err != nil {
-			return nil, errors.Wrapf(err, "Could not parse %s. Must be correct json when specified.", secretPath)
-		}
-		nexusAccess.NexusURL = data["nexusUrl"].(string)
-		nexusAccess.Username = data["username"].(string)
-		nexusAccess.Password = data["password"].(string)
-	} else {
-		logrus.Warnf("Could not read nexus config at %s, error: %s", secretPath, err)
 	}
 
 	var buildTimeout time.Duration = 900
@@ -387,9 +399,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		ApplicationSpec:   applicationSpec,
 		DockerSpec:        dockerSpec,
 		BuilderSpec:       builderSpec,
-		NexusAccess:       nexusAccess,
-		BinaryBuild:       build.Spec.Source.Type == buildv1.BuildSourceBinary,
-		BuildStrategy:     buildStrategy,
+		BinaryBuild:       binaryBuild,
 		TLSVerify:         tlsVerify,
 		BuildTimeout:      buildTimeout,
 		SporingsContext:   sporingscontext,

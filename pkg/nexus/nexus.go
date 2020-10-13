@@ -18,12 +18,14 @@ import (
 
 //Downloader interface
 type Downloader interface {
-	DownloadArtifact(c *config.MavenGav, ns *config.NexusAccess) (Deliverable, error)
+	DownloadArtifact(c *config.MavenGav) (Deliverable, error)
 }
 
 //NexusDownloader struct
 type NexusDownloader struct {
-	baseURL string
+	baseURL  string
+	username string
+	password string
 }
 
 //BinaryDownloader struct
@@ -45,9 +47,11 @@ type Dependency struct {
 }
 
 //NewNexusDownloader of type Downloader
-func NewNexusDownloader(baseURL string) Downloader {
+func NewNexusDownloader(baseURL string, username string, password string) Downloader {
 	return &NexusDownloader{
-		baseURL: baseURL,
+		baseURL:  baseURL,
+		username: username,
+		password: password,
 	}
 }
 
@@ -58,7 +62,7 @@ func NewBinaryDownloader(path string) Downloader {
 	}
 }
 
-func (n *BinaryDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusAccess) (Deliverable, error) {
+func (n *BinaryDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, error) {
 	deliverable := Deliverable{
 		Path: n.Path,
 	}
@@ -69,7 +73,7 @@ func (n *BinaryDownloader) DownloadArtifact(c *config.MavenGav, na *config.Nexus
 }
 
 //DownloadArtifact downloads artifact with given GAV
-func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusAccess) (Deliverable, error) {
+func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, error) {
 
 	deliverable := Deliverable{}
 
@@ -104,26 +108,30 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 		if err != nil {
 			return deliverable, errors.Wrapf(err, "Failed to create request for Nexus url %s", resourceURL)
 		}
-		if na != nil && na.Username != "" && na.Password != "" {
-			req.SetBasicAuth(na.Username, na.Password)
+		if n.username != "" && n.password != "" {
+			req.SetBasicAuth(n.username, n.password)
 		}
 		httpResponse, err = httpClient.Do(req)
+		if err != nil {
+			return deliverable, errors.Wrapf(err, "Error when downloading artifact from %s", resourceURL)
+		}
 		if httpResponse.StatusCode == http.StatusFound {
 			location = httpResponse.Header.Get("Location")
 			logrus.Infof("Got redirect to location: %s", location)
 			nextURL = location
-			httpResponse.Body.Close()
-		} else if err != nil {
-			return deliverable, errors.Wrapf(err, "Failed to get artifact from Nexus %s", resourceURL)
-		} else {
+			_ = httpResponse.Body.Close()
+		} else if httpResponse.StatusCode == http.StatusOK {
 			break
+		} else {
+			return deliverable, errors.Errorf("Unhandled status code %s when downloading from %s",
+				httpResponse.Status, httpResponse.Request.URL)
 		}
 	}
 	defer httpResponse.Body.Close()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		return deliverable, errors.Errorf("Could not download artifact (Make sure you have deployed it!)"+
-			". Status code %s ", httpResponse.Status)
+			". Status code %s , Location %s", httpResponse.Status, httpResponse.Request.URL)
 	}
 
 	fileName, err := n.fileName(c, httpResponse.Header.Get("content-disposition"), location)

@@ -9,42 +9,37 @@ import (
 	"github.com/skatteetaten/architect/pkg/docker"
 	process "github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/tagger"
-	"io/ioutil"
 )
 
 type retagger struct {
-	Config      *config.Config
-	Credentials *docker.RegistryCredentials
-	Provider    docker.Registry
-	Builder     process.Builder
+	Config       *config.Config
+	Credentials  *docker.RegistryCredentials
+	PullRegistry docker.Registry
+	Builder      process.Builder
 }
 
-func newRetagger(cfg *config.Config, credentials *docker.RegistryCredentials, provider docker.Registry, builder process.Builder) *retagger {
+func newRetagger(cfg *config.Config, credentials *docker.RegistryCredentials, pullRegistry docker.Registry, builder process.Builder) *retagger {
 	return &retagger{
-		Config:      cfg,
-		Credentials: credentials,
-		Provider:    provider,
-		Builder:     builder,
+		Config:       cfg,
+		Credentials:  credentials,
+		PullRegistry: pullRegistry,
+		Builder:      builder,
 	}
 }
 
-func Retag(ctx context.Context, cfg *config.Config, credentials *docker.RegistryCredentials, provider docker.Registry, builder process.Builder) error {
-	r := newRetagger(cfg, credentials, provider, builder)
+func Retag(ctx context.Context, cfg *config.Config, credentials *docker.RegistryCredentials, pullRegistry docker.Registry, builder process.Builder) error {
+	r := newRetagger(cfg, credentials, pullRegistry, builder)
 	return r.Retag(ctx)
 }
 
+//TODO: Rewrite this.. This is moving between registries. Check if we need to use the pull registry
 func (m *retagger) Retag(ctx context.Context) error {
 	tag := m.Config.DockerSpec.RetagWith
 	repository := m.Config.DockerSpec.OutputRepository
 
-	buildContex, err := ioutil.TempDir("/tmp", "retag")
-	if err != nil {
-		return errors.Wrap(err, "Retag: Could not create temp folder")
-	}
-
 	logrus.Debug("Get ENV from image manifest")
 
-	imageInfo, err := m.Provider.GetImageInfo(ctx, repository, tag)
+	imageInfo, err := m.PullRegistry.GetImageInfo(ctx, repository, tag)
 
 	if err != nil {
 		return errors.Wrap(err, "Failed to retag image")
@@ -80,19 +75,20 @@ func (m *retagger) Retag(ctx context.Context) error {
 
 	pushExtraTags := config.ParseExtraTags(extratags)
 
+	//This in only for the push-registry
+	retagRegistry := docker.RegistryConnectionInfo{
+		Port:        443,
+		Host:        m.Config.DockerSpec.OutputRegistry,
+		Credentials: m.Credentials,
+	}
 	t := tagger.NormalTagResolver{
 		Repository: m.Config.DockerSpec.OutputRepository,
 		Registry:   m.Config.DockerSpec.OutputRegistry,
-		Provider:   docker.NewRegistryClient(m.Config.DockerSpec.ExternalDockerRegistry, m.Config.DockerSpec.ExternalDockerRegistry, m.Credentials),
-		Overwrite:  m.Config.DockerSpec.TagOverwrite,
+		//TODO: Fix signature.. We don't want to have to registries on retag...
+		RegistryClient: docker.NewRegistryClient(retagRegistry),
+		Overwrite:      m.Config.DockerSpec.TagOverwrite,
 	}
 	logrus.Debugf("Extract tag info, auroraVersion=%v, appVersion=%v, extraTags=%s", auroraVersion, appVersion, extratags)
-
-	pull := runtime.DockerImage{
-		Registry:   m.Config.DockerSpec.GetInternalPullRegistryWithoutProtocol(),
-		Repository: m.Config.DockerSpec.OutputRepository,
-		Tag:        m.Config.DockerSpec.RetagWith,
-	}
 
 	tagsToPush, err := t.ResolveTags(appVersion, pushExtraTags)
 
@@ -102,13 +98,17 @@ func (m *retagger) Retag(ctx context.Context) error {
 
 	//We need to pull to make sure we push the newest image.. We should probably do this directly
 	//on the registry when we get v2 registry!:)
-
-	buildConfig := docker.BuildConfig{
-		BuildFolder: buildContex,
-		Image:       pull,
+	pull := runtime.DockerImage{
+		Registry:   m.Config.DockerSpec.GetInternalPullRegistryWithoutProtocol(),
+		Repository: m.Config.DockerSpec.OutputRepository,
+		Tag:        m.Config.DockerSpec.RetagWith,
 	}
 
-	err = m.Builder.Pull(ctx, buildConfig)
+	buildConfig := docker.BuildConfig{
+		Image: pull,
+	}
+
+	imageLayers, err := m.Builder.Pull(ctx, buildConfig)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to pull image: %v", pull)
 	}
@@ -118,7 +118,7 @@ func (m *retagger) Retag(ctx context.Context) error {
 		logrus.Infof("Tag image %s with alias %s", sourceTag, tag)
 	}
 
-	err = m.Builder.Push(ctx, &process.BuildOutput{BuildFolder: buildConfig.BuildFolder}, tagsToPush)
+	err = m.Builder.Push(ctx, imageLayers, tagsToPush)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to push tag %s", tag)
 	}

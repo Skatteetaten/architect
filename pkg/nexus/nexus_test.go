@@ -27,14 +27,14 @@ func TestDownloadFromNexus2Server(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	n := NewNexusDownloader(ts.URL)
+	n := NewNexusDownloader(ts.URL, "", "")
 	m := config.MavenGav{
 		ArtifactId: "openshift-resource-monitor",
 		GroupId:    "ske.fellesplattform.monitor",
 		Version:    "1.1.4",
 	}
 
-	r, err := n.DownloadArtifact(&m, nil)
+	r, err := n.DownloadArtifact(&m)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -61,7 +61,7 @@ func TestDownloadFromNexus3Server(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	n := NewNexusDownloader(ts.URL)
+	n := NewNexusDownloader(ts.URL, "", "")
 	m := config.MavenGav{
 		ArtifactId: "openshift-resource-monitor",
 		GroupId:    "ske.fellesplattform.monitor",
@@ -70,13 +70,7 @@ func TestDownloadFromNexus3Server(t *testing.T) {
 		Classifier: "leveransepakke",
 	}
 
-	na := config.NexusAccess{
-		Username: "username",
-		Password: "password1",
-		NexusURL: ts.URL,
-	}
-
-	r, err := n.DownloadArtifact(&m, &na)
+	r, err := n.DownloadArtifact(&m)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -95,7 +89,7 @@ func TestNewLocalDownloader(t *testing.T) {
 		GroupId:    "ske",
 		Version:    "develop-SNAPSHOT",
 	}
-	l, err := d.DownloadArtifact(&m, nil)
+	l, err := d.DownloadArtifact(&m)
 
 	expected := "test"
 	if l.Path != expected {

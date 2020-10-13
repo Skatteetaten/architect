@@ -5,6 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/sirupsen/logrus"
+	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/pkg/config/runtime"
+	"github.com/skatteetaten/architect/pkg/docker"
 	"net/http"
 	"time"
 )
@@ -57,4 +60,18 @@ func (t *Tracer) send(ctx context.Context, jsonStr string) {
 		}
 		defer resp.Body.Close()
 	}
+}
+
+func (t *Tracer) AddBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig) {
+
+	payload := BaseImage{
+		Type:        "baseImage",
+		Name:        application.BaseImageSpec.BaseImage,
+		Version:     application.BaseImageSpec.BaseVersion,
+		Digest:      imageInfo.Digest,
+		ImageConfig: containerConfig,
+	}
+	logrus.Debugf("Pushing trace data %v", payload)
+	t.AddImageMetadata(payload)
+
 }

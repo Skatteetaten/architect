@@ -2,7 +2,6 @@ package docker
 
 import (
 	"context"
-	"crypto/tls"
 	"github.com/pkg/errors"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"io/ioutil"
@@ -54,22 +53,26 @@ func GetUtcTimestamp() string {
 
 }
 
-func GetHTTPRequest(ctx context.Context, headers map[string]string, url string) ([]byte, error) {
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+func getHTTPRequest(client *http.Client, ctx context.Context, headers map[string]string, url string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unable to create request %s", url)
 	}
-	client := &http.Client{Transport: tr}
-	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
 	for key, value := range headers {
 		req.Header.Add(key, value)
 	}
-	res, _ := client.Do(req)
-
-	body, err := ioutil.ReadAll(res.Body)
+	res, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to read requested body for url %s and header %s", url, headers)
+		return nil, errors.Wrapf(err, "GET %s failed", url)
 	}
 	defer res.Body.Close()
-
-	return body, nil
+	if res.StatusCode == http.StatusOK {
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to read requested body for url %s with header %s", url, headers)
+		}
+		return body, nil
+	} else {
+		return nil, errors.Errorf("Unabled to read manifest. From registry: %s", res.Status)
+	}
 }

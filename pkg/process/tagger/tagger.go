@@ -35,14 +35,14 @@ func (m *SingleTagTagResolver) ResolveShortTag(appVersion *runtime.AuroraVersion
 }
 
 type NormalTagResolver struct {
-	Registry   string
-	Repository string
-	Overwrite  bool
-	Provider   docker.Registry
+	Registry       string
+	Repository     string
+	Overwrite      bool
+	RegistryClient docker.Registry
 }
 
 func (m *NormalTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
-	tags, err := findCandidateTags(appVersion, m.Overwrite, m.Repository, pushExtratags, m.Provider)
+	tags, err := findCandidateTags(appVersion, m.Overwrite, m.Repository, pushExtratags, m.RegistryClient)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (m *NormalTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushE
 }
 
 func (m *NormalTagResolver) ResolveShortTag(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
-	tags, err := findCandidateTags(appVersion, m.Overwrite, m.Repository, pushExtratags, m.Provider)
+	tags, err := findCandidateTags(appVersion, m.Overwrite, m.Repository, pushExtratags, m.RegistryClient)
 	if err != nil {
 		return nil, err
 	}

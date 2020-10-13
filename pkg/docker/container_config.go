@@ -86,7 +86,6 @@ func (c *ContainerConfig) AddLayer(digest string) *ContainerConfig {
 }
 
 func (c *ContainerConfig) Save(dstFolder string, filename string) error {
-
 	containerConfigFile, err := os.Create(dstFolder + "/" + filename)
 	if err != nil {
 		return errors.Wrap(err, "Failed when creating container config tmp file")
@@ -105,7 +104,7 @@ func (c *ContainerConfig) Save(dstFolder string, filename string) error {
 	return nil
 }
 
-func (c *ContainerConfig) AddEnv(env map[string]string) {
+func (c *ContainerConfig) addEnv(env map[string]string) {
 	var envList []string
 	for k, v := range env {
 		envList = append(envList, fmt.Sprintf("%s=%s", k, v))
@@ -113,12 +112,25 @@ func (c *ContainerConfig) AddEnv(env map[string]string) {
 	c.Config.Env = append(c.Config.Env, envList...)
 }
 
-func (c *ContainerConfig) AddLabels(labels map[string]string) {
+func (c *ContainerConfig) addLabels(labels map[string]string) {
 	for k, v := range labels {
 		c.Config.Labels[k] = v
 	}
 }
 
-func (c *ContainerConfig) SetCmd(cmd []string) {
+func (c *ContainerConfig) setCmd(cmd []string) {
 	c.Config.Cmd = cmd
+}
+
+func (c *ContainerConfig) Create(buildConfig BuildConfig) ([]byte, error) {
+	//Set env, labels, and cmd
+	c.addEnv(buildConfig.Env)
+	c.addLabels(buildConfig.Labels)
+	c.setCmd(buildConfig.Cmd)
+
+	rawContainerConfig, err := json.Marshal(c)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Container config marshal failed")
+	}
+	return rawContainerConfig, nil
 }

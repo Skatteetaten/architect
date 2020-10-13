@@ -7,6 +7,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"os"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -22,7 +25,7 @@ func TestGetManifestEnvSchemaV1(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL, server.URL, nil)
+	target := createTestRegistryClient(server)
 	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 
@@ -37,7 +40,7 @@ func TestGetCompleteBaseImageVersionSchemaV1(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL, server.URL, nil)
+	target := createTestRegistryClient(server)
 	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, imageInfo.CompleteBaseImageVersion)
@@ -50,7 +53,7 @@ func TestGetManifestEnvMapSchemaV1(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL, server.URL, nil)
+	target := createTestRegistryClient(server)
 	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 
@@ -65,7 +68,7 @@ func TestGetManifestEnvSchemaV2(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL, server.URL, nil)
+	target := createTestRegistryClient(server)
 	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 
@@ -80,7 +83,7 @@ func TestGetCompleteBaseImageVersionSchemaV2(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL, server.URL, nil)
+	target := createTestRegistryClient(server)
 	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, imageInfo.CompleteBaseImageVersion)
@@ -91,7 +94,7 @@ func TestGetManifestV2(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL, server.URL, nil)
+	target := createTestRegistryClient(server)
 	manifest, err := target.GetManifest(context.Background(), repository, tag)
 	assert.NoError(t, err)
 	assert.Equal(t, "sha256:b6a7c668428ff9347ef5c4f8736e8b7f38696dc6acc74409627d360752017fcc", manifest.Config.Digest)
@@ -102,7 +105,7 @@ func TestGetContainerConfig(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL, server.URL, nil)
+	target := createTestRegistryClient(server)
 	config, err := target.GetContainerConfig(context.Background(), repository, tag)
 	assert.NoError(t, err)
 	assert.Equal(t, "amd64", config.Architecture)
@@ -119,7 +122,7 @@ func TestLayerExists(t *testing.T) {
 		ts.StartTLS()
 		defer ts.Close()
 
-		target := NewRegistryClient(ts.URL, ts.URL, nil)
+		target := createTestRegistryClient(ts)
 
 		ok, err := target.LayerExists(context.Background(), repository, tag)
 		assert.NoError(t, err)
@@ -135,7 +138,7 @@ func TestLayerExists(t *testing.T) {
 		ts.StartTLS()
 		defer ts.Close()
 
-		target := NewRegistryClient(ts.URL, ts.URL, nil)
+		target := createTestRegistryClient(ts)
 
 		ok, err := target.LayerExists(context.Background(), repository, tag)
 		assert.NoError(t, err)
@@ -147,13 +150,13 @@ func TestMountLayer(t *testing.T) {
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
-		assert.Equal(t, "/v2/test/architect/blobs/uploads/?mount=777&from=aurora/wingnut", r.RequestURI)
+		assert.Equal(t, "/v2/test/architect/blobs/uploads/%3Fmount=777&from=aurora/wingnut", r.RequestURI)
 		w.WriteHeader(201)
 	}))
 	ts.StartTLS()
 	defer ts.Close()
 
-	target := NewRegistryClient(ts.URL, ts.URL, nil)
+	target := createTestRegistryClient(ts)
 
 	err := target.MountLayer(context.Background(), "aurora/wingnut", "test/architect", "777")
 	assert.NoError(t, err)
@@ -168,9 +171,12 @@ func TestPushManifest(t *testing.T) {
 	ts.StartTLS()
 	defer ts.Close()
 
-	target := NewRegistryClient(ts.URL, ts.URL, nil)
+	target := createTestRegistryClient(ts)
 
-	err := target.PushManifest(context.Background(), "testdata/aurora_flange_manifest_v2.json", "test/architect", "latest")
+	reader, _ := os.Open("testdata/aurora_flange_manifest_v2.json")
+	manifest, _ := ioutil.ReadAll(reader)
+
+	err := target.PushManifest(context.Background(), manifest, "test/architect", "latest")
 	assert.NoError(t, err)
 }
 
@@ -202,9 +208,11 @@ func TestPushLayer(t *testing.T) {
 	ts.StartTLS()
 	defer ts.Close()
 
-	target := NewRegistryClient(ts.URL, ts.URL, nil)
+	target := createTestRegistryClient(ts)
 
-	err := target.PushLayer(context.Background(), "testdata/app-layer.tar.gz", "test/architect", "666")
+	file, _ := os.Open("testdata/app-layer.tar.gz")
+
+	err := target.PushLayer(context.Background(), file, "test/architect", "666")
 	assert.NoError(t, err)
 
 }
@@ -216,7 +224,7 @@ func TestGetManifestEnvMapSchemaV2(t *testing.T) {
 	defer server.Close()
 	assert.NoError(t, err)
 
-	target := NewRegistryClient(server.URL, server.URL, nil)
+	target := createTestRegistryClient(server)
 	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 
@@ -233,7 +241,7 @@ func TestGetTags(t *testing.T) {
 		"develop-SNAPSHOT-9be2b9ca43a024415947a6c262e183406dbb090b",
 		"2.0.0", "1.3.0", "1.2.1", "1.1.2", "1.1", "1.2", "1.3", "2.0", "2", "1"}
 
-	target := NewRegistryClient(server.URL, server.URL, nil)
+	target := createTestRegistryClient(server)
 	tags, err := target.GetTags(context.Background(), "aurora/oracle8")
 	assert.NoError(t, err)
 	verifyTagListContent(tags.Tags, expectedTags, t)
@@ -248,7 +256,7 @@ func TestGetTagsWithMeta(t *testing.T) {
 		"develop-SNAPSHOT-9be2b9ca43a024415947a6c262e183406dbb090b",
 		"2.0.0+somemeta2", "1.3.0+somemeta1", "1.2.1", "1.1.2", "1.1", "1.2", "1.3+somemeta1", "2.0+somemeta2", "2+somemeta2", "1+somemeta1"}
 
-	target := NewRegistryClient(server.URL, server.URL, nil)
+	target := createTestRegistryClient(server)
 	tags, err := target.GetTags(context.Background(), "aurora/oracle8")
 	assert.NoError(t, err)
 	verifyTagListContent(tags.Tags, expectedTags, t)
@@ -272,6 +280,22 @@ func TestReadingOfEnvStrings(t *testing.T) {
 
 	key, value, err = envKeyValue("KEY")
 	assert.Error(t, err)
+}
+
+func createTestRegistryClient(server *httptest.Server) Registry {
+	u, _ := url.Parse(server.URL)
+	var port int
+	if len(u.Port()) == 0 {
+		port = 443
+	} else {
+		port, _ = strconv.Atoi(u.Port())
+	}
+	rci := RegistryConnectionInfo{
+		Host:     u.Hostname(),
+		Port:     port,
+		Insecure: true,
+	}
+	return NewRegistryClient(rci)
 }
 
 func verifyTagListContent(actualList []string, expectedList []string, t *testing.T) {

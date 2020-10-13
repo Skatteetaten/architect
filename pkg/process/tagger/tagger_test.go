@@ -7,6 +7,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"log"
 	"os"
 	"sort"
@@ -44,7 +45,7 @@ type RegistryMock struct {
 var supertagger = NormalTagResolver{
 	Registry:   "testregistry",
 	Repository: "aurora/test",
-	Provider: &RegistryMock{
+	RegistryClient: &RegistryMock{
 		tagsFromRegistry: readTags(),
 	},
 }
@@ -71,7 +72,7 @@ func readTags() []string {
 var tagger = NormalTagResolver{
 	Registry:   "testregistry",
 	Repository: "aurora/test",
-	Provider: &RegistryMock{
+	RegistryClient: &RegistryMock{
 		tagsFromRegistry: []string{"latest", "1.1.2", "1.1", "1", "1.2.1", "1.2", "1.3.0",
 			"1.3", "1.1.0", "2.0.0", "2.0", "2", "3+metadata", "3.2+metadata", "3.2.1+metadata"},
 	},
@@ -132,7 +133,7 @@ func TestFilterTags(t *testing.T) {
 var taggerWithMeta = NormalTagResolver{
 	Registry:   "testregistry",
 	Repository: "aurora/test",
-	Provider: &RegistryMock{
+	RegistryClient: &RegistryMock{
 		tagsFromRegistry: []string{"latest", "1.1.2", "1.1", "1", "1.2.1", "1.2", "1.3.0",
 			"1.3", "1.1.0", "2.0.0", "2.0", "2", "3+metadata", "3.2+metadata", "3.2.1+metadata",
 			"2+meta2", "2.0+meta2", "2.0.0+meta2"},
@@ -144,7 +145,7 @@ type NormalTagResolver struct {
 	Registry   string
 	Repository string
 	Overwrite  bool
-	Provider   docker.Registry
+	RegistryClient   docker.Registry
 }
 */
 
@@ -230,7 +231,7 @@ var tagsAppend = []string{""}
 var taggerAppend = NormalTagResolver{
 	Registry:   "testregistry",
 	Repository: "aurora/test",
-	Provider: &RegistryMockAppend{
+	RegistryClient: &RegistryMockAppend{
 		tagsFromRegistry: tagsAppend,
 	},
 }
@@ -298,13 +299,15 @@ func (registry *RegistryMock) LayerExists(ctx context.Context, repository string
 func (registry *RegistryMock) MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error {
 	return nil
 }
-func (registry *RegistryMock) PushLayer(ctx context.Context, file string, dstRepository string, layerDigest string) error {
+func (registry *RegistryMock) PushLayer(ctx context.Context, layer io.Reader, dstRepository string, layerDigest string) error {
 	return nil
 }
+
 func (registry *RegistryMock) PullLayer(ctx context.Context, repository string, layerDigest string) (string, error) {
 	return "", nil
 }
-func (registry *RegistryMock) PushManifest(ctx context.Context, file string, repository string, tag string) error {
+
+func (registry *RegistryMock) PushManifest(ctx context.Context, manifest []byte, repository string, tag string) error {
 	return nil
 }
 
@@ -318,13 +321,15 @@ func (registry *RegistryMockAppend) LayerExists(ctx context.Context, repository 
 func (registry *RegistryMockAppend) MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error {
 	return nil
 }
-func (registry *RegistryMockAppend) PushLayer(ctx context.Context, file string, dstRepository string, layerDigest string) error {
+func (registry *RegistryMockAppend) PushLayer(ctx context.Context, layer io.Reader, dstRepository string, layerDigest string) error {
 	return nil
 }
+
 func (registry *RegistryMockAppend) PullLayer(ctx context.Context, repository string, layerDigest string) (string, error) {
 	return "", nil
 }
-func (registry *RegistryMockAppend) PushManifest(ctx context.Context, file string, repository string, tag string) error {
+
+func (registry *RegistryMockAppend) PushManifest(ctx context.Context, manifest []byte, repository string, tag string) error {
 	return nil
 }
 
