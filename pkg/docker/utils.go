@@ -59,7 +59,10 @@ func GetHTTPRequest(ctx context.Context, headers map[string]string, url string) 
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Get request to %s failed", url)
+	}
 	for key, value := range headers {
 		req.Header.Add(key, value)
 	}
