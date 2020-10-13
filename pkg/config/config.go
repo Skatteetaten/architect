@@ -93,7 +93,6 @@ func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 		BinaryBuild:     true,
 		LocalBuild:      true,
 		ApplicationType: applicationType,
-		BuildStrategy:   Layer,
 		ApplicationSpec: ApplicationSpec{
 			MavenGav: MavenGav{
 				Version: output[1],
@@ -159,8 +158,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			applicationType = DoozerLeveranse
 		}
 	}
-
-	var buildStrategy = Layer
 
 	var sporingscontext = ""
 	if value, err := findEnv(env, "SPORINGSCONTEXT"); err == nil {
@@ -389,7 +386,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		BuilderSpec:       builderSpec,
 		NexusAccess:       nexusAccess,
 		BinaryBuild:       build.Spec.Source.Type == buildv1.BuildSourceBinary,
-		BuildStrategy:     buildStrategy,
 		TLSVerify:         tlsVerify,
 		BuildTimeout:      buildTimeout,
 		SporingsContext:   sporingscontext,

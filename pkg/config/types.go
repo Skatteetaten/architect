@@ -30,10 +30,6 @@ const (
 	Doozerleveransepakke Classifier = "Doozerleveransepakke"
 )
 
-const (
-	Layer = "layer"
-)
-
 type Config struct {
 	ApplicationType   ApplicationType
 	ApplicationSpec   ApplicationSpec
@@ -42,7 +38,6 @@ type Config struct {
 	NexusAccess       NexusAccess
 	BinaryBuild       bool
 	LocalBuild        bool
-	BuildStrategy     string
 	TLSVerify         bool
 	BuildTimeout      time.Duration
 	NoPush            bool
