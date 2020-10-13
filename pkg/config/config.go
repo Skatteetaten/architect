@@ -85,7 +85,7 @@ func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 	pullRegistry := m.Cmd.Flag("pull-registry").Value.String()
 
 	if !strings.Contains(pullRegistry, "http") {
-		pullRegistry = fmt.Sprintf("https://%s:443", pullRegistry)
+		pullRegistry = fmt.Sprintf("https://%s", pullRegistry)
 	}
 
 	return &Config{
