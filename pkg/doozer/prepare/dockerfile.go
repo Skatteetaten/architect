@@ -32,7 +32,7 @@ RUN find $HOME/application -type d -exec chmod 755 {} + && \
 
 ENV{{range $key, $value := .Env}} {{$key}}="{{$value}}"{{end}}
 `
-var dockerFileTemplateCmd string = `CMD "{{.CmdScript}}"
+var dockerFileTemplateCmd string = `CMD ["{{.CmdScript}}"]
 `
 
 type DockerfileData struct {
