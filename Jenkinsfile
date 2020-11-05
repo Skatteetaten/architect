@@ -8,11 +8,12 @@ def config = [
     deliveryBundleClassifier : "Doozerleveransepakke",
     scriptVersion            : 'v7',
     pipelineScript           : 'https://git.aurora.skead.no/scm/ao/aurora-pipeline-scripts.git',
-    iqOrganizationName       : 'Team AOT',
+    iqOrganizationName       : 'Team AppSikk',
     openShiftBaseImage       : 'builder',
     openShiftBaseImageVersion: 'latest',
     goVersion                : '1.13',
     artifactPath             : 'bin/amd64/',
+    chatRoom                 : "#sitj-build",
     credentialsId: "github",
     versionStrategy          : [
         [branch: 'master', versionHint: '1']
