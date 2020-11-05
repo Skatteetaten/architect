@@ -52,7 +52,7 @@ RUN find $HOME/application -type d -exec chmod 755 {} + && \
 	ln -s $HOME/logs $HOME/application/logs
 
 ENV APP_VERSION="0.0.1-SNAPSHOT" AURORA_VERSION="0.0.1-SNAPSHOT-bbuildimage-builder-latest" IMAGE_BUILD_TIME="2017-09-10T14:30:10Z" PUSH_EXTRA_TAGS="major" SNAPSHOT_TAG="0.0.1-SNAPSHOT" TZ="Europe/Oslo"
-CMD "./bin/somestartupcmd"
+CMD ["./bin/somestartupcmd"]
 `
 
 func TestBuild(t *testing.T) {
