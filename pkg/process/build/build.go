@@ -16,7 +16,7 @@ type Builder interface {
 	Build(ctx context.Context, buildFolder string) (string, error)
 	Push(ctx context.Context, imageid string, tag []string, credentials *docker.RegistryCredentials) error
 	Tag(ctx context.Context, imageid string, tag string) error
-	Pull(ctx context.Context, image runtime.DockerImage) error
+	Pull(ctx context.Context, image runtime.DockerImage, credentials *docker.RegistryCredentials) error
 }
 
 func Build(ctx context.Context, credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
@@ -100,7 +100,7 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 	for _, buildConfig := range dockerBuildConfig {
 
-		err := builder.Pull(ctx, buildConfig.Baseimage)
+		err := builder.Pull(ctx, buildConfig.Baseimage, credentials)
 		if err != nil {
 			return errors.Wrap(err, "There was an error with the pull operation.")
 		}
