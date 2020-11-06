@@ -8,7 +8,7 @@ def config = [
     deliveryBundleClassifier : "Doozerleveransepakke",
     scriptVersion            : 'v7',
     pipelineScript           : 'https://git.aurora.skead.no/scm/ao/aurora-pipeline-scripts.git',
-    iqOrganizationName       : 'Team AppSikk',
+    iqOrganizationName       : 'Team APS',
     openShiftBaseImage       : 'builder',
     openShiftBaseImageVersion: 'latest',
     goVersion                : '1.13',
