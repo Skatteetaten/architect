@@ -26,8 +26,7 @@ func (d *DockerCmd) Build(ctx context.Context, buildfolder string) (string, erro
 	return d.client.BuildImage(ctx, buildfolder)
 }
 
-func (d *DockerCmd) Pull(ctx context.Context, image runtime.DockerImage) error {
-	//Buildah dont require this method. better way ?
+func (d *DockerCmd) Pull(ctx context.Context, image runtime.DockerImage, credentials *docker.RegistryCredentials) error {
 	return d.client.PullImage(ctx, image)
 }
 

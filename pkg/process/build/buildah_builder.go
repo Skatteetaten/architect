@@ -47,9 +47,39 @@ func (b *BuildahCmd) Build(ctx context.Context, buildFolder string) (string, err
 	}
 }
 
-func (b *BuildahCmd) Pull(ctx context.Context, image runtime.DockerImage) error {
-	//Buildah dont require this method as long as we don't cache
-	return nil
+func (b *BuildahCmd) Pull(ctx context.Context, image runtime.DockerImage, credentials *docker.RegistryCredentials) error {
+	c := make(chan error)
+
+	go func() {
+		var err error
+		var creds = ""
+		if credentials != nil {
+			creds = "--creds=" + credentials.Username + ":" + credentials.Password
+		}
+
+		var cmd *exec.Cmd
+		if credentials != nil {
+			cmd = exec.Command("buildah", "--storage-driver", "vfs", "pull", "--quiet",
+				"--tls-verify="+strconv.FormatBool(b.TlsVerify), creds, image.GetCompleteDockerTagName())
+		} else {
+			cmd = exec.Command("buildah", "--storage-driver", "vfs", "pull", "--quiet",
+				"--tls-verify="+strconv.FormatBool(b.TlsVerify), image.GetCompleteDockerTagName())
+		}
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err = cmd.Run()
+		err = errors.Wrapf(err, "Pull of image %s failed", image.GetCompleteDockerTagName())
+
+		c <- err
+	}()
+	select {
+	case <-ctx.Done():
+		<-c //Wait for function
+		return errors.Wrap(ctx.Err(), "Buildah pull operation timed out")
+	case err := <-c:
+		return err
+	}
+
 }
 
 func (b *BuildahCmd) Push(ctx context.Context, ruuid string, tags []string, credentials *docker.RegistryCredentials) error {
