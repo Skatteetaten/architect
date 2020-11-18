@@ -9,6 +9,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/doozer/config"
 	"github.com/skatteetaten/architect/pkg/util"
 	"io"
+	"strings"
 )
 
 var dockerFileTemplateBody string = `FROM {{.BaseImage}}
@@ -93,6 +94,10 @@ func NewDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVer
 		env := createEnv(auroraVersion, dockerSpec.PushExtraTags, imageBuildTime)
 
 		dockerFileTemplate := dockerFileTemplateBody
+		if strings.Contains(baseImage.GetCompleteDockerTagName(), "rumple39") {
+			dockerFileTemplate += "RUN $HOME/application/bin/install-deps.sh\n"
+		}
+
 		if meta.Doozer.CmdScript != "" {
 			dockerFileTemplate += dockerFileTemplateCmd
 		}
