@@ -94,7 +94,7 @@ func NewDockerFile(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVer
 		env := createEnv(auroraVersion, dockerSpec.PushExtraTags, imageBuildTime)
 
 		dockerFileTemplate := dockerFileTemplateBody
-		if strings.Contains(baseImage.GetCompleteDockerTagName(), "rumple39") {
+		if strings.Contains(baseImage.GetCompleteDockerTagName(), "rumple") {
 			dockerFileTemplate += "RUN $HOME/application/bin/install-deps.sh\n"
 		}
 
