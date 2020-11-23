@@ -7,6 +7,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/docker"
 	"github.com/skatteetaten/architect/pkg/doozer"
+	"github.com/skatteetaten/architect/pkg/python"
 	"github.com/skatteetaten/architect/pkg/java"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/nodejs/prepare"
@@ -98,6 +99,9 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 	} else if c.ApplicationType == config.DoozerLeveranse {
 		logrus.Info("Perform Doozerleveranse build")
 		prepper = doozer.Prepper()
+	} else if c.ApplicationType == config.PythonLeveranse {
+		logrus.Info("Perform Pythonleveranse build")
+		prepper = python.Prepper()
 	}
 
 	if !c.LocalBuild {

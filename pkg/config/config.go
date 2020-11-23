@@ -66,6 +66,8 @@ func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 			applicationType = NodeJsLeveransepakke
 		} else if strings.ToLower(value) == "doozer" {
 			applicationType = DoozerLeveranse
+		} else if strings.ToLower(value) == "python" {
+			applicationType = PythonLeveranse
 		}
 	}
 
@@ -152,6 +154,8 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			applicationType = NodeJsLeveransepakke
 		} else if strings.ToUpper(appType) == Doozer {
 			applicationType = DoozerLeveranse
+		} else if strings.ToUpper(appType) == Python {
+			applicationType = PythonLeveranse
 		}
 	}
 
@@ -251,6 +255,15 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		applicationSpec.MavenGav.Type = ZipPackaging
 	} else {
 		applicationSpec.MavenGav.Type = TgzPackaging
+	}
+
+	if applicationType == PythonLeveranse {
+		applicationSpec.MavenGav.GroupId = "python"
+		if moduleName, err := findEnv(env, "MODULE_NAME"); err == nil {
+			applicationSpec.MavenGav.ArtifactId = moduleName
+		}
+		applicationSpec.MavenGav.Classifier = Pythonleveransepakke
+		applicationSpec.MavenGav.Type = ZipPackaging
 	}
 
 	if baseSpec, err := findBaseImage(env); err == nil {

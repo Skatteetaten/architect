@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"fmt"
 )
 
 type Downloader interface {
@@ -174,11 +175,19 @@ func GetSnapshotTimestampVersion(gav config.MavenGav, deliverable Deliverable) s
 
 func (m *NexusDownloader) resourceURL(cfg *config.MavenGav, useNexus3 bool) (string, error) {
 	if useNexus3 {
-		resourceUrl, err := m.createNexus3URL(cfg)
-		if err != nil {
-			return resourceUrl, errors.Wrapf(err, "Failed to create Nexus 3 url for GAV %+v", cfg)
+		if (cfg.GroupId == "python") {
+			resourceUrl, err := m.createNexus3PyPiURL(cfg)
+			if err != nil {
+				return resourceUrl, errors.Wrapf(err, "Failed to create Nexus 3 PyPi url for GAV %+v", cfg)
+			}
+			return resourceUrl, nil
+		} else {
+			resourceUrl, err := m.createNexus3URL(cfg)
+			if err != nil {
+				return resourceUrl, errors.Wrapf(err, "Failed to create Nexus 3 url for GAV %+v", cfg)
+			}
+			return resourceUrl, nil
 		}
-		return resourceUrl, nil
 	} else {
 		resourceUrl, err := m.createURL(cfg)
 		if err != nil {
@@ -222,6 +231,22 @@ func (m *NexusDownloader) createNexus3URL(n *config.MavenGav) (string, error) {
 		query.Set("version", n.Version)
 	}
 	tmpUrl.RawQuery = query.Encode()
+	return tmpUrl.String(), nil
+}
+
+func (m *NexusDownloader) createNexus3PyPiURL(n *config.MavenGav) (string, error) {
+	tmpUrl, err := url.Parse(m.baseUrl + fmt.Sprint(
+		"/repository/pypi-all/packages/%v/%v/%v-%v-Leveransepakke.zip",
+		n.ArtifactId,
+		n.Version,
+		n.ArtifactId,
+		n.Version
+	))
+
+	if err != nil {
+		return "", errors.Wrapf(err, "Failed to parse url")
+	}
+
 	return tmpUrl.String(), nil
 }
 

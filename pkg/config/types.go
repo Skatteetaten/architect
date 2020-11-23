@@ -11,8 +11,10 @@ const (
 	JavaLeveransepakke   ApplicationType = "JavaLeveransepakke"
 	NodeJsLeveransepakke ApplicationType = "NodeJsLeveranse"
 	DoozerLeveranse      ApplicationType = "DoozerLeveranse"
+	PythonLeveranse      ApplicationType = "PythonLeveranse"
 	NodeJs                               = "NODEJS"
 	Doozer                               = "DOOZER"
+	Python								 = "PYTHON"
 )
 
 type PackageType string
@@ -28,6 +30,7 @@ const (
 	Leveransepakke       Classifier = "Leveransepakke"
 	Webleveransepakke    Classifier = "Webleveransepakke"
 	Doozerleveransepakke Classifier = "Doozerleveransepakke"
+	Pythonleveransepakke Classifier = "Pythonleveransepakke"
 )
 
 const (
