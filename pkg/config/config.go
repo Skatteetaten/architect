@@ -259,9 +259,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 
 	if applicationType == PythonLeveranse {
 		applicationSpec.MavenGav.GroupId = "python"
-		if moduleName, err := findEnv(env, "MODULE_NAME"); err == nil {
-			applicationSpec.MavenGav.ArtifactId = moduleName
-		}
 		applicationSpec.MavenGav.Classifier = Pythonleveransepakke
 		applicationSpec.MavenGav.Type = ZipPackaging
 	}
