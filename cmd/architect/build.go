@@ -13,7 +13,7 @@ var noPush bool
 
 func init() {
 	Build.Flags().StringP("file", "f", "", "Path to the compressed leveransepakke")
-	Build.Flags().StringP("type", "t", "java", "Application type [java, doozer, nodejs]")
+	Build.Flags().StringP("type", "t", "java", "Application type [java, doozer, nodejs | python]")
 	Build.Flags().StringP("output", "o", "", "Output repository with tag e.g aurora/architect:latest")
 	Build.Flags().StringP("from", "", "", "Base image e.g aurora/wingnut11:latest")
 	Build.Flags().StringP("push-registry", "", "container-registry-internal.aurora.skead.no", "Push registry")
@@ -23,7 +23,7 @@ func init() {
 }
 
 var Build = &cobra.Command{
-	Use:   "build --file <file> --from <baseimage:version> --output <repository:tag> --type [java | nodejs | doozer] ",
+	Use:   "build --file <file> --from <baseimage:version> --output <repository:tag> --type [java | nodejs | doozer | python] ",
 	Short: "Build Docker image from binary source",
 	Run: func(cmd *cobra.Command, args []string) {
 

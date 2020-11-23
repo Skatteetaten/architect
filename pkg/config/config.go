@@ -247,11 +247,13 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			applicationSpec.MavenGav.Classifier = Leveransepakke
 		} else if applicationType == NodeJsLeveransepakke {
 			applicationSpec.MavenGav.Classifier = Webleveransepakke
-		} else {
+		} else if applicationType == DoozerLeveranse {
 			applicationSpec.MavenGav.Classifier = Doozerleveransepakke
+		} else if applicationType == PythonLeveranse {
+			applicationSpec.MavenGav.Classifier = Pythonleveransepakke
 		}
 	}
-	if applicationType == JavaLeveransepakke || applicationType == DoozerLeveranse {
+	if applicationType == JavaLeveransepakke || applicationType == DoozerLeveranse || applicationType == PythonLeveranse {
 		applicationSpec.MavenGav.Type = ZipPackaging
 	} else {
 		applicationSpec.MavenGav.Type = TgzPackaging
@@ -259,8 +261,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 
 	if applicationType == PythonLeveranse {
 		applicationSpec.MavenGav.GroupId = "python"
-		applicationSpec.MavenGav.Classifier = Pythonleveransepakke
-		applicationSpec.MavenGav.Type = ZipPackaging
 	}
 
 	if baseSpec, err := findBaseImage(env); err == nil {
