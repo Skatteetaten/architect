@@ -14,7 +14,7 @@ const (
 	PythonLeveranse      ApplicationType = "PythonLeveranse"
 	NodeJs                               = "NODEJS"
 	Doozer                               = "DOOZER"
-	Python								 = "PYTHON"
+	Python                               = "PYTHON"
 )
 
 type PackageType string
