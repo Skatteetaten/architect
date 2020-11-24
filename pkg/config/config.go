@@ -260,7 +260,9 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 
 	if applicationType == PythonLeveranse {
-		applicationSpec.MavenGav.GroupId = "python"
+		applicationSpec.MavenGav.Repository = PyPiRepository
+	} else {
+		applicationSpec.MavenGav.Repository = MavenRepository
 	}
 
 	if baseSpec, err := findBaseImage(env); err == nil {

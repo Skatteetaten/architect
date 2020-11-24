@@ -175,7 +175,7 @@ func GetSnapshotTimestampVersion(gav config.MavenGav, deliverable Deliverable) s
 
 func (m *NexusDownloader) resourceURL(cfg *config.MavenGav, useNexus3 bool) (string, error) {
 	if useNexus3 {
-		if cfg.GroupId == "python" {
+		if cfg.Repository == config.PyPiRepository {
 			resourceUrl, err := m.createNexus3PyPiURL(cfg)
 			if err != nil {
 				return resourceUrl, errors.Wrapf(err, "Failed to create Nexus 3 PyPi url for GAV %+v", cfg)

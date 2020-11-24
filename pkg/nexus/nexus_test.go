@@ -68,6 +68,7 @@ func TestDownloadFromNexus3Server(t *testing.T) {
 		Version:    "1.1.4",
 		Type:       "zip",
 		Classifier: "leveransepakke",
+		Repository: config.PyPiRepository,
 	}
 
 	na := config.NexusAccess{

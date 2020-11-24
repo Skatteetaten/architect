@@ -67,12 +67,9 @@ func createLabels(meta config.DeliverableMetadata) map[string]string {
 
 func verifyMetadata(meta config.DeliverableMetadata) error {
 	if meta.Python == nil {
-		return errors.Errorf("Deliverable metadata does not contain \"Docker\" element")
+		return errors.Errorf("Deliverable metadata does not contain \"Python\" element")
 	} else if meta.Docker.Maintainer == "" {
 		return errors.Errorf("Deliverable metadata does not contain \"Docker.Maintainer\" element")
-	}
-	if meta.Python == nil {
-		return errors.Errorf("Deliverable metadata does not contain \"Doozer\" element")
 	}
 
 	return nil

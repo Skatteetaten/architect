@@ -38,6 +38,13 @@ const (
 	Buildah = "buildah"
 )
 
+type RepositoryType string
+
+const (
+	MavenRepository RepositoryType = "maven"
+	PyPiRepository  RepositoryType = "pypi"
+)
+
 type Config struct {
 	ApplicationType   ApplicationType
 	ApplicationSpec   ApplicationSpec
@@ -76,6 +83,7 @@ type MavenGav struct {
 	Version    string
 	Classifier Classifier
 	Type       PackageType
+	Repository RepositoryType
 }
 
 func (m *MavenGav) IsSnapshot() bool {
