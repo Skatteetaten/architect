@@ -89,14 +89,17 @@ func prepare(cfg config.Config, auroraVersion *runtime.AuroraVersion,
 func prepareImage(dockerSpec config.DockerSpec, v *openshiftJson, baseImage runtime.BaseImage, auroraVersion *runtime.AuroraVersion, writer util.FileWriter,
 	imageBuildTime string) error {
 	completeDockerName := baseImage.GetCompleteDockerTagName()
-	nginxData, dockerData, err := mapOpenShiftJsonToTemplateInput(dockerSpec, v, completeDockerName, imageBuildTime, auroraVersion)
 
-	if err != nil {
-		return errors.Wrap(err, "Error processing AuroraConfig")
-	}
+	var nginxData *NginxfileData
+	var dockerData *DockerfileData
+	var err error
 
 	if architecture, exists := baseImage.ImageInfo.Labels["www.skatteetaten.no-imageArchitecture"]; exists && architecture == "nodejs" {
+		nginxData, dockerData, err = mapOpenShiftJsonToTemplateInput(dockerSpec, v, completeDockerName, imageBuildTime, auroraVersion, false)
 
+		if err != nil {
+			return errors.Wrap(err, "Error processing AuroraConfig")
+		}
 		logrus.Info("Running radish nodejs build")
 
 		if err := writer(newRadishNginxConfig(dockerData, nginxData), "nginx-radish.json"); err != nil {
@@ -110,7 +113,11 @@ func prepareImage(dockerSpec config.DockerSpec, v *openshiftJson, baseImage runt
 
 	} else {
 		logrus.Info("Running nodejs legacy build...")
+		nginxData, dockerData, err = mapOpenShiftJsonToTemplateInput(dockerSpec, v, completeDockerName, imageBuildTime, auroraVersion, true)
 
+		if err != nil {
+			return errors.Wrap(err, "Error processing AuroraConfig")
+		}
 		err = writer(util.NewTemplateWriter(nginxData, "NgnixConfiguration", NGINX_CONFIG_TEMPLATE), "nginx.conf")
 		if err != nil {
 			return errors.Wrap(err, "Error creating nginxData configuration")
@@ -172,7 +179,7 @@ func findMaintainer(dockerMetadata dockerMetadata) string {
 	return dockerMetadata.Maintainer
 }
 
-func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJson, completeDockerName string, imageBuildTime string, auroraVersion *runtime.AuroraVersion) (*NginxfileData, *DockerfileData, error) {
+func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJson, completeDockerName string, imageBuildTime string, auroraVersion *runtime.AuroraVersion, whitelist bool) (*NginxfileData, *DockerfileData, error) {
 	labels := make(map[string]string)
 	if v.DockerMetadata.Labels != nil {
 		for k, v := range v.DockerMetadata.Labels {
@@ -200,9 +207,11 @@ func mapOpenShiftJsonToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 	if v.Aurora.NodeJS != nil {
 		nodejsMainfile = strings.TrimSpace(v.Aurora.NodeJS.Main)
 		overrides = v.Aurora.NodeJS.Overrides
-		err = whitelistOverrides(overrides)
-		if err != nil {
-			return nil, nil, err
+		if whitelist {
+			err = whitelistOverrides(overrides)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 
