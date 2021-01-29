@@ -156,32 +156,6 @@ func TestThatValuesAreSetAsExpected(t *testing.T) {
 	assert.Equal(t, openshiftJSON.Aurora.Webapp.StaticContent, "build")
 }
 
-func TestThatOverridesAreWhitelistedAndSetCorrectly(t *testing.T) {
-	openshiftJSON := openshiftJSON{}
-	assert.NoError(t, json.Unmarshal([]byte(OpenshiftJSONNewFormat), &openshiftJSON))
-	openshiftJSON.Aurora.NodeJS.Overrides = map[string]string{
-		"a_value_not_whitelisted": "value",
-	}
-	_, _, err := mapObject(&openshiftJSON)
-	assert.EqualError(t, err, "Config a_value_not_whitelisted is not allowed to override with Architect.")
-
-	openshiftJSON.Aurora.NodeJS.Overrides = map[string]string{
-		"client_max_body_size": "51m",
-	}
-	_, _, err = mapObject(&openshiftJSON)
-	assert.EqualError(t, err, "Value on client_max_body_size should be on the form Nm where N is between 1 and 50")
-
-	openshiftJSON.Aurora.NodeJS.Overrides = map[string]string{
-		"client_max_body_size": "50m",
-	}
-	_, _, err = mapObject(&openshiftJSON)
-	assert.NoError(t, err)
-	openshiftJSON.Aurora.NodeJS.Overrides = map[string]string{
-		"client_max_body_size": "2m",
-	}
-	assert.NoError(t, err)
-}
-
 func TestThatExcludeIsSetCorrectly(t *testing.T) {
 	openshiftJSON := openshiftJSON{}
 	assert.NoError(t, json.Unmarshal([]byte(OpenshiftJSONNewFormat), &openshiftJSON))

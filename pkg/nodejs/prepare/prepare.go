@@ -3,7 +3,6 @@ package prepare
 import (
 	process "github.com/skatteetaten/architect/pkg/process/build"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -41,25 +40,6 @@ func Prepper() process.Prepper {
 			Cmd:              buildConfiguration.Cmd,
 		}}, nil
 	}
-}
-
-/*
-We sanitize the input.... Don't want to large inputs.
-
-For example; Accepting very large client_max_body_size would make a DOS attack very easy to implement...
-*/
-var allowedNginxOverrides = map[string]func(string) error{
-	"client_max_body_size": func(s string) error {
-		// between 1 and 20
-		match, err := regexp.MatchString("^([1-9]|[1-4][0-9]|[5][0])m$", s)
-		if err != nil {
-			return err
-		}
-		if !match {
-			return errors.New("Value on client_max_body_size should be on the form Nm where N is between 1 and 50")
-		}
-		return nil
-	},
 }
 
 func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (*BuildConfiguration, error) {
@@ -208,16 +188,10 @@ func mapOpenShiftJSONToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 
 	var nodejsMainfile string
 	var overrides map[string]string
-	var err error
 	if v.Aurora.NodeJS != nil {
 		nodejsMainfile = strings.TrimSpace(v.Aurora.NodeJS.Main)
 		overrides = v.Aurora.NodeJS.Overrides
-		err = whitelistOverrides(overrides)
-		if err != nil {
-			return nil, nil, err
-		}
 	}
-
 	var exclude []string
 	var static string
 	var spa bool
@@ -314,22 +288,4 @@ func buildNginxLocations(locations map[string]interface{}) nginxLocations {
 		nginxLocationMap[locKey] = &nginxLocation{headersMap, gZip}
 	}
 	return nginxLocationMap
-}
-
-func whitelistOverrides(overrides map[string]string) error {
-	if overrides == nil {
-		return nil
-	}
-
-	for key, value := range overrides {
-		validateFunc, exists := allowedNginxOverrides[key]
-		if !exists {
-			return errors.New("Config " + key + " is not allowed to override with Architect.")
-		}
-		var err error
-		if err = validateFunc(value); err != nil {
-			return err
-		}
-	}
-	return nil
 }
