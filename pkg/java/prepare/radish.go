@@ -12,7 +12,7 @@ type Type struct {
 	Version string `json:"Version"`
 }
 
-type JavaDescriptorData struct {
+type javaDescriptorData struct {
 	Basedir               string   `json:"Basedir"`
 	PathsToClassLibraries []string `json:"PathsToClassLibraries"`
 	MainClass             string   `json:"MainClass"`
@@ -20,19 +20,19 @@ type JavaDescriptorData struct {
 	JavaOptions           string   `json:"JavaOptions"`
 }
 
-type JavaDescriptor struct {
+type javaDescriptor struct {
 	Type
-	Data JavaDescriptorData
+	Data javaDescriptorData
 }
 
 func newRadishDescriptor(meta *config.DeliverableMetadata, basedir string) util.WriterFunc {
 	return func(writer io.Writer) error {
-		desc := JavaDescriptor{
+		desc := javaDescriptor{
 			Type: Type{
 				Type:    "Java",
 				Version: "1",
 			},
-			Data: JavaDescriptorData{
+			Data: javaDescriptorData{
 				Basedir:               basedir,
 				PathsToClassLibraries: []string{"lib", "repo"},
 				MainClass:             meta.Java.MainClass,

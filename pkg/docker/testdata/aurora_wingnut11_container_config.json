@@ -1,0 +1,308 @@
+{
+  "architecture": "amd64",
+  "config": {
+    "Hostname": "9f137c4c7bc8",
+    "Domainname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": false,
+    "AttachStderr": false,
+    "Tty": false,
+    "OpenStdin": false,
+    "StdinOnce": false,
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/jvm/jre/jre/bin",
+      "container=oci",
+      "LANG=en_US.UTF-8",
+      "TZ=Europe/Oslo",
+      "HOME=/u01",
+      "BASE_IMAGE_VERSION=1.10.0",
+      "UBI_VERSION=7.7",
+      "JAVA_HOME=/usr/lib/jvm/jre",
+      "JAVA_VERSION_MAJOR=11",
+      "JAVA_VERSION_MINOR=0",
+      "JAVA_VERSION_BUILD=5.10-0",
+      "RADISH_VERSION=1.8.2",
+      "JOLOKIA_VERSION=1.6.0",
+      "JAVA_PACKAGE=java-11-openjdk-headless",
+      "JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true",
+      "JOLOKIA_PATH=/opt/jolokia/jolokia-jvm-1.6.0-agent.jar",
+      "APP_DYNAMICS_AGENT_VERSION=20.5.0.30113",
+      "APPDYNAMICS_AGENT_BASE_DIR=/opt/appdynamics",
+      "TRUST_STORE=/usr/lib/jvm/jre/lib/security/cacerts",
+      "LOGBACK_FILE=/u01/config/logback.xml",
+      "LOGBACK_ACCESS_B3=/u01/config/logback-b3-access.xml",
+      "LOGBACK_ACCESS=/u01/config/logback-access.xml"
+    ],
+    "Cmd": [
+      "/u01/bin/run.sh"
+    ],
+    "ArgsEscaped": true,
+    "Image": "sha256:73fd1abebce41f06541e6399cf501f1eddb08f25c84a40367b8a4f0328aaf074",
+    "Volumes": null,
+    "WorkingDir": "/u01/application",
+    "Entrypoint": null,
+    "OnBuild": [],
+    "Labels": {
+      "architecture": "x86_64",
+      "authoritative-source-url": "registry.access.redhat.com",
+      "build-date": "2019-08-01T09:22:10.072335",
+      "com.redhat.build-host": "cpt-1002.osbs.prod.upshift.rdu2.redhat.com",
+      "com.redhat.component": "ubi7-minimal-container",
+      "com.redhat.license_terms": "https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI",
+      "description": "The Universal Base Image Minimal is a stripped down image that uses microdnf as a package manager. This base image is freely redistributable, but Red Hat only supports Red Hat technologies through subscriptions for Red Hat products. This image is maintained by Red Hat and updated regularly.",
+      "distribution-scope": "public",
+      "io.k8s.description": "The Universal Base Image Minimal is a stripped down image that uses microdnf as a package manager. This base image is freely redistributable, but Red Hat only supports Red Hat technologies through subscriptions for Red Hat products. This image is maintained by Red Hat and updated regularly.",
+      "io.k8s.display-name": "Red Hat Universal Base Image 7 Minimal",
+      "io.openshift.tags": "minimal rhel7",
+      "java": "java-11-openjdk-headless-11.0.5.10-0",
+      "jolokia": "1.6.0",
+      "maintainer": "The Norwegian Tax Administration \u003cutvpaas@skatteetaten.no\u003e",
+      "name": "ubi7-minimal",
+      "radish": "1.8.2",
+      "release": "98",
+      "summary": "Provides the latest release of the minimal Red Hat Universal Base Image 7.",
+      "ubi": "7.7",
+      "url": "https://access.redhat.com/containers/#/registry.access.redhat.com/ubi7-minimal/images/7.7-98",
+      "vcs-ref": "6dd6cdf8e14631f235b95eff02b29b1b11519338",
+      "vcs-type": "git",
+      "vendor": "Red Hat, Inc.",
+      "version": "1.10.0",
+      "www.skatteetaten.no-imageArchitecture": "java"
+    }
+  },
+  "container": "08231d6d81125447201719e3f749b0467250afcd0e17ef02af2aef39029a7779",
+  "container_config": {
+    "Hostname": "9f137c4c7bc8",
+    "Domainname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": false,
+    "AttachStderr": false,
+    "Tty": false,
+    "OpenStdin": false,
+    "StdinOnce": false,
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/jvm/jre/jre/bin",
+      "container=oci",
+      "LANG=en_US.UTF-8",
+      "TZ=Europe/Oslo",
+      "HOME=/u01",
+      "BASE_IMAGE_VERSION=1.10.0",
+      "UBI_VERSION=7.7",
+      "JAVA_HOME=/usr/lib/jvm/jre",
+      "JAVA_VERSION_MAJOR=11",
+      "JAVA_VERSION_MINOR=0",
+      "JAVA_VERSION_BUILD=5.10-0",
+      "RADISH_VERSION=1.8.2",
+      "JOLOKIA_VERSION=1.6.0",
+      "JAVA_PACKAGE=java-11-openjdk-headless",
+      "JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true",
+      "JOLOKIA_PATH=/opt/jolokia/jolokia-jvm-1.6.0-agent.jar",
+      "APP_DYNAMICS_AGENT_VERSION=20.5.0.30113",
+      "APPDYNAMICS_AGENT_BASE_DIR=/opt/appdynamics",
+      "TRUST_STORE=/usr/lib/jvm/jre/lib/security/cacerts",
+      "LOGBACK_FILE=/u01/config/logback.xml",
+      "LOGBACK_ACCESS_B3=/u01/config/logback-b3-access.xml",
+      "LOGBACK_ACCESS=/u01/config/logback-access.xml"
+    ],
+    "Cmd": [
+      "/bin/sh",
+      "-c",
+      "#(nop) ",
+      "CMD [\"/u01/bin/run.sh\"]"
+    ],
+    "ArgsEscaped": true,
+    "Image": "sha256:73fd1abebce41f06541e6399cf501f1eddb08f25c84a40367b8a4f0328aaf074",
+    "Volumes": null,
+    "WorkingDir": "/u01/application",
+    "Entrypoint": null,
+    "OnBuild": [],
+    "Labels": {
+      "architecture": "x86_64",
+      "authoritative-source-url": "registry.access.redhat.com",
+      "build-date": "2019-08-01T09:22:10.072335",
+      "com.redhat.build-host": "cpt-1002.osbs.prod.upshift.rdu2.redhat.com",
+      "com.redhat.component": "ubi7-minimal-container",
+      "com.redhat.license_terms": "https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI",
+      "description": "The Universal Base Image Minimal is a stripped down image that uses microdnf as a package manager. This base image is freely redistributable, but Red Hat only supports Red Hat technologies through subscriptions for Red Hat products. This image is maintained by Red Hat and updated regularly.",
+      "distribution-scope": "public",
+      "io.k8s.description": "The Universal Base Image Minimal is a stripped down image that uses microdnf as a package manager. This base image is freely redistributable, but Red Hat only supports Red Hat technologies through subscriptions for Red Hat products. This image is maintained by Red Hat and updated regularly.",
+      "io.k8s.display-name": "Red Hat Universal Base Image 7 Minimal",
+      "io.openshift.tags": "minimal rhel7",
+      "java": "java-11-openjdk-headless-11.0.5.10-0",
+      "jolokia": "1.6.0",
+      "maintainer": "The Norwegian Tax Administration \u003cutvpaas@skatteetaten.no\u003e",
+      "name": "ubi7-minimal",
+      "radish": "1.8.2",
+      "release": "98",
+      "summary": "Provides the latest release of the minimal Red Hat Universal Base Image 7.",
+      "ubi": "7.7",
+      "url": "https://access.redhat.com/containers/#/registry.access.redhat.com/ubi7-minimal/images/7.7-98",
+      "vcs-ref": "6dd6cdf8e14631f235b95eff02b29b1b11519338",
+      "vcs-type": "git",
+      "vendor": "Red Hat, Inc.",
+      "version": "1.10.0",
+      "www.skatteetaten.no-imageArchitecture": "java"
+    }
+  },
+  "created": "2020-06-30T07:45:38.082604358Z",
+  "docker_version": "1.13.1",
+  "history": [
+    {
+      "created": "2019-08-01T09:22:17.706396851Z",
+      "comment": "Imported from -"
+    },
+    {
+      "created": "2019-08-01T09:22:24.711805Z"
+    },
+    {
+      "created": "2020-06-29T10:15:50.608822155Z",
+      "created_by": "/bin/sh -c #(nop)  ARG baseImageVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-29T10:15:50.78183811Z",
+      "created_by": "/bin/sh -c #(nop)  LABEL maintainer=The Norwegian Tax Administration \u003cutvpaas@skatteetaten.no\u003e ubi=7.7 version=",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-29T10:28:31.337233894Z",
+      "created_by": "/bin/sh -c #(nop)  ENV LANG=en_US.UTF-8 TZ=Europe/Oslo HOME=/u01 BASE_IMAGE_VERSION=2.2.0 UBI_VERSION=7.7",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-29T10:28:31.503819364Z",
+      "created_by": "/bin/sh -c #(nop) COPY dir:7fd8650c28f1ef3842cc70912887034a130068f11615c61f02c1dff431b211be in /etc/pki/ca-trust/source/anchors/ "
+    },
+    {
+      "created": "2020-06-29T10:28:31.724731646Z",
+      "created_by": "/bin/sh -c #(nop) COPY dir:a279bff32d3c0542be4572c6bacd975a557e6b4056830d599466e2d49b4832cf in /etc/yum.repos.d/ "
+    },
+    {
+      "created": "2020-06-29T10:28:32.274295292Z",
+      "created_by": "/bin/sh -c #(nop) COPY dir:eb740121e659ec8d23b2f9f5ded805ffceff301be0d5607c52c2f249a53f0a4f in /etc/pki/rpm-gpg/ "
+    },
+    {
+      "created": "2020-06-29T10:28:32.433153178Z",
+      "created_by": "/bin/sh -c #(nop) COPY dir:25e38bcc5605d8a371ea75687b6d31f7f94718d2129827f1b99dc03b6c9bab8f in /usr/share/zoneinfo/ "
+    },
+    {
+      "created": "2020-06-29T10:32:49.746880055Z",
+      "created_by": "|1 baseImageVersion=2.2.0 /bin/sh -c update-ca-trust extract \u0026\u0026     microdnf update --nodocs \u0026\u0026     microdnf install --nodocs --enablerepo rhel-7-server-rpms --enablerepo epel       ldns procps-ng \u0026\u0026     microdnf clean all \u0026\u0026     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \u0026\u0026     echo $TZ \u003e /etc/timezone \u0026\u0026     mkdir ${HOME}"
+    },
+    {
+      "created": "2020-06-29T10:38:58.194499241Z",
+      "created_by": "/bin/sh -c #(nop)  ARG javaMajorVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-29T10:38:58.352565731Z",
+      "created_by": "/bin/sh -c #(nop)  ARG javaMinorVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-29T10:38:58.474969573Z",
+      "created_by": "/bin/sh -c #(nop)  ARG javaBuildVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-29T10:38:58.656661569Z",
+      "created_by": "/bin/sh -c #(nop)  ARG jolokiaVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-29T10:38:58.840187926Z",
+      "created_by": "/bin/sh -c #(nop)  ARG baseImageVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-29T10:38:59.006451138Z",
+      "created_by": "/bin/sh -c #(nop)  ARG radishVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-29T10:38:59.213459206Z",
+      "created_by": "/bin/sh -c #(nop)  ARG appDynamicsAgentVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-30T07:43:50.726301915Z",
+      "created_by": "/bin/sh -c #(nop)  ENV JAVA_HOME=/usr/lib/jvm/jre JAVA_VERSION_MAJOR=11 JAVA_VERSION_MINOR=0 JAVA_VERSION_BUILD=5.10-0 RADISH_VERSION=1.8.2 JOLOKIA_VERSION=1.6.0 BASE_IMAGE_VERSION=1.10.0",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-30T07:43:50.832393927Z",
+      "created_by": "/bin/sh -c #(nop)  LABEL maintainer=The Norwegian Tax Administration \u003cutvpaas@skatteetaten.no\u003e java=java-11-openjdk-headless-11.0.5.10-0 jolokia=1.6.0 radish=1.8.2 version=1.10.0 www.skatteetaten.no-imageArchitecture=java",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-30T07:43:50.9481654Z",
+      "created_by": "/bin/sh -c #(nop)  ENV JAVA_PACKAGE=java-11-openjdk-headless JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/jvm/jre/jre/bin JOLOKIA_PATH=/opt/jolokia/jolokia-jvm-1.6.0-agent.jar APP_DYNAMICS_AGENT_VERSION=20.5.0.30113 APPDYNAMICS_AGENT_BASE_DIR=/opt/appdynamics TRUST_STORE=/usr/lib/jvm/jre/lib/security/cacerts LOGBACK_FILE=/u01/config/logback.xml LOGBACK_ACCESS_B3=/u01/config/logback-b3-access.xml LOGBACK_ACCESS=/u01/config/logback-access.xml RADISH_VERSION=1.8.2",
+      "empty_layer": true
+    },
+    {
+      "created": "2020-06-30T07:43:51.141839235Z",
+      "created_by": "/bin/sh -c #(nop) ADD tarsum.v1+sha256:e9a56a1044a3b9fae1a342c4a51da65f68ac72b9af5152cceb7be50f8d7b8bd6 in /opt/jolokia/jolokia-jvm-1.6.0-agent.jar "
+    },
+    {
+      "created": "2020-06-30T07:43:51.313083806Z",
+      "created_by": "/bin/sh -c #(nop) ADD dir:8859a9883071c5c37f4dc61502512a2d7bf0b3f5ccac56f4ee8da7b0f1b6b3d5 in /opt/appdynamics "
+    },
+    {
+      "created": "2020-06-30T07:45:30.588787303Z",
+      "created_by": "|7 appDynamicsAgentVersion=20.5.0.30113 baseImageVersion=1.10.0 javaBuildVersion=5.10-0 javaMajorVersion=11 javaMinorVersion=0 jolokiaVersion=1.6.0 radishVersion=1.8.2 /bin/sh -c chmod -R go+r /opt/jolokia \u0026\u0026     microdnf install --nodocs --enablerepo rhel-7-server-rpms tar curl unzip       ${JAVA_PACKAGE} fontconfig \u0026\u0026     update-ca-trust extract"
+    },
+    {
+      "created": "2020-06-30T07:45:31.853269907Z",
+      "created_by": "/bin/sh -c #(nop) COPY file:8baaaf3b3b34aa6ef76b200367481ded1dc8ca0b75c2f65c00a7dfad348ed976 in appserveragent-20.5.0.30113.zip "
+    },
+    {
+      "created": "2020-06-30T07:45:33.550365787Z",
+      "created_by": "|7 appDynamicsAgentVersion=20.5.0.30113 baseImageVersion=1.10.0 javaBuildVersion=5.10-0 javaMajorVersion=11 javaMinorVersion=0 jolokiaVersion=1.6.0 radishVersion=1.8.2 /bin/sh -c mkdir -p /u01/bin \u0026\u0026     curl http://aurora.skead.no/nexus/service/local/repositories/releases/content/no/skatteetaten/aurora/openshift/radish/${RADISH_VERSION}/radish-${RADISH_VERSION}.tar.gz | tar -xz -C /u01/bin \u0026\u0026     unzip -n appserveragent-${APP_DYNAMICS_AGENT_VERSION}.zip -d ${APPDYNAMICS_AGENT_BASE_DIR}/ \u0026\u0026     chmod -R go+rw ${APPDYNAMICS_AGENT_BASE_DIR} \u0026\u0026     microdnf clean all"
+    },
+    {
+      "created": "2020-06-30T07:45:33.760282571Z",
+      "created_by": "/bin/sh -c #(nop) ADD file:6dea93361aaef6d712394ffc4a9617d95915ef7ed23814dd57a37f6fa02f61e6 in /u01/bin/run.sh "
+    },
+    {
+      "created": "2020-06-30T07:45:34.038526431Z",
+      "created_by": "/bin/sh -c #(nop) ADD dir:c06e9a968e4644e54a9a6b28ffb3683c865df5daafefcf7088eb65c6dc42d983 in /u01/config "
+    },
+    {
+      "created": "2020-06-30T07:45:35.79834492Z",
+      "created_by": "|7 appDynamicsAgentVersion=20.5.0.30113 baseImageVersion=1.10.0 javaBuildVersion=5.10-0 javaMajorVersion=11 javaMinorVersion=0 jolokiaVersion=1.6.0 radishVersion=1.8.2 /bin/sh -c chmod -R go=u ${HOME}"
+    },
+    {
+      "created": "2020-06-30T07:45:37.76786342Z",
+      "created_by": "/bin/sh -c #(nop) WORKDIR /u01/application"
+    },
+    {
+      "created": "2020-06-30T07:45:38.082604358Z",
+      "created_by": "/bin/sh -c #(nop)  CMD [\"/u01/bin/run.sh\"]",
+      "empty_layer": true
+    }
+  ],
+  "os": "linux",
+  "rootfs": {
+    "type": "layers",
+    "diff_ids": [
+      "sha256:ce459cc5389961770382751f388313fa2f4a10d6b8084929ff6ec68c1db00c6a",
+      "sha256:2705f79af6db7c9d16052497ba4266c1292de6de5c00e752931556b369467d66",
+      "sha256:a5f87917a33f5d9b0badf206713a090604770adcd4211918a2acde261ca3c2be",
+      "sha256:f46bdf17b9b601077b9b7a3568a6b667bc7bca1386592d8acd62eb1830cac17d",
+      "sha256:ab0539b6be56b66d932a8d47d92214c50d76aaf45233fc71a8c6d3cb0d53e2c8",
+      "sha256:5d1389d94f9731c09588e0d57f93b4eb041c6dd5e98239ff1deeb661a6a7a8be",
+      "sha256:8910d8af7f3051594c32192c8cfe3add1b6192bc8836335a46bbbf678eff40fb",
+      "sha256:894305d3462ff2d99483d6308848f6ee84ea1eae1f52c547bc151cb885a8052d",
+      "sha256:855a59dc7dbdff3d2d2f34e81eb537a42536d228ecf10838557486ad0f63686a",
+      "sha256:836e9cdf100122accef361b67cf2c4ccc1a8180b9406cad4d7a085978e89889c",
+      "sha256:615e39af05334f7fba8b0f51980cb4cff50798f3016c1751b34d0e242582b8d2",
+      "sha256:dc16dc05ef8cb9004b8d43bec27d0d55a9e49647ae7cf9bae009c143bea8be2e",
+      "sha256:f424328675f34e5a361dfe99f271f530eb839ffa53d4c6e58d3e31c7eea91209",
+      "sha256:765e075ff77315acbb0cbb01ee8e098aa75771c5056cc5cf453cd4b3b0c2d37c",
+      "sha256:09cfe9fd17a4d3c7e41a7582876e363c702de0905b6a8399cbd3c352397f6550",
+      "sha256:c29d30563c6fca29cf139bac9378bc543022f0a821ce3f570cf42c2087783c60"
+    ]
+  }
+}

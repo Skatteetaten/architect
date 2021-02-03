@@ -32,3 +32,5 @@ binary
 .go
 .vscode
 run/
+test/
+TEST-junit.xml

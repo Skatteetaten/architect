@@ -9,10 +9,13 @@ import (
 	"text/template"
 )
 
+//FileWriter function
 type FileWriter func(WriterFunc, ...string) error
 
+//WriterFunc function
 type WriterFunc func(io.Writer) error
 
+//NewTemplateWriter wrapper
 func NewTemplateWriter(input interface{}, templatename string, templateString string) WriterFunc {
 	return func(writer io.Writer) error {
 		tmpl, err := template.New(templatename).Parse(templateString)
@@ -27,6 +30,7 @@ func NewTemplateWriter(input interface{}, templatename string, templateString st
 	}
 }
 
+//NewByteWriter wrapper
 func NewByteWriter(data []byte) WriterFunc {
 	return func(writer io.Writer) error {
 		n, err := writer.Write(data)
@@ -37,6 +41,7 @@ func NewByteWriter(data []byte) WriterFunc {
 	}
 }
 
+//NewFileWriter wrapper
 func NewFileWriter(targetFolder string) FileWriter {
 	return func(writerFunc WriterFunc, fileAsPath ...string) error {
 		fileAsPath = append(fileAsPath, "")

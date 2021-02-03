@@ -6,26 +6,28 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/doozer"
-	"github.com/skatteetaten/architect/pkg/java"
+	doozer "github.com/skatteetaten/architect/pkg/doozer/prepare"
+	java "github.com/skatteetaten/architect/pkg/java/prepare"
 	"github.com/skatteetaten/architect/pkg/nexus"
-	"github.com/skatteetaten/architect/pkg/nodejs/prepare"
+	nodejs "github.com/skatteetaten/architect/pkg/nodejs/prepare"
 	"github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/retag"
+	"net/url"
 	"os"
 	"strings"
 	"time"
 )
 
-var localRepo bool
 var verbose bool
 
+//RunConfiguration runtime configuration
 type RunConfiguration struct {
 	NexusDownloader         nexus.Downloader
 	Config                  *config.Config
 	RegistryCredentialsFunc func(string) (*docker.RegistryCredentials, error)
 }
 
+//RunArchitect main
 func RunArchitect(configuration RunConfiguration) {
 	c := configuration.Config
 	ctx := context.Background()
@@ -39,34 +41,41 @@ func RunArchitect(configuration RunConfiguration) {
 		logrus.Fatalf("Could not parse registry credentials %s", err)
 	}
 
-	var builder process.Builder
-
-	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Buildah) {
-		logrus.Info("ALPHA FEATURE: Running buildah builds")
-		builder = &process.BuildahCmd{
-			TlsVerify: c.TlsVerify,
-		}
-
-	} else {
-		if !strings.Contains(strings.ToLower(c.BuildStrategy), config.Docker) {
-			logrus.Warnf("Unsupported build strategy: %s. Defaulting to docker", c.BuildStrategy)
-		}
-
-		builder, err = process.NewDockerBuilder()
-		if err != nil {
-			logrus.Fatal("err", err)
-		}
+	pushRegistryUrl := url.URL{
+		Host:   c.DockerSpec.OutputRegistry,
+		Scheme: "https",
 	}
+	if err != nil {
+		logrus.Fatalf("Unable to parse URL %s", c.DockerSpec.OutputRegistry)
+	}
+	pullRegistryUrl, err := url.Parse(c.DockerSpec.InternalPullRegistry)
+	if err != nil {
+		logrus.Fatalf("Unable to parse URL %s", c.DockerSpec.InternalPullRegistry)
+	}
+	pushRegistryConn := docker.RegistryConnectionInfo{
+		Port:        443,
+		Host:        pushRegistryUrl.Hostname(),
+		Credentials: registryCredentials,
+	}
+	pullRegistryConn := docker.RegistryConnectionInfo{
+		Port:        443,
+		Host:        pullRegistryUrl.Hostname(),
+		Credentials: nil,
+	}
+	pushRegistry := docker.NewRegistryClient(pushRegistryConn)
+	pullRegistry := docker.NewRegistryClient(pullRegistryConn)
+
+	var builder process.Builder
+	builder = process.NewLayerBuilder(c, pushRegistry, pullRegistry)
 
 	if c.DockerSpec.RetagWith != "" {
-		provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry)
 		logrus.Info("Perform retag")
-		if err := retag.Retag(ctx, c, registryCredentials, provider, builder); err != nil {
+		//TODO: Vi må kanskje gjøre noe spesielt med flytting mellom snapshot og release?
+		if err := retag.Retag(ctx, c, registryCredentials, pullRegistry, builder); err != nil {
 			logrus.Fatalf("Failed to retag temporary image %s", err)
 		}
 	} else {
-		provider := docker.NewRegistryClient(c.DockerSpec.InternalPullRegistry)
-		err := performBuild(ctx, &configuration, c, registryCredentials, provider, builder)
+		err := performBuild(ctx, &configuration, c, pullRegistry, pushRegistry, builder)
 
 		if err != nil {
 			var errorMessage string
@@ -87,14 +96,14 @@ func RunArchitect(configuration RunConfiguration) {
 	}
 	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
 }
-func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, r *docker.RegistryCredentials, provider docker.ImageInfoProvider, builder process.Builder) error {
+func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, pullRegistry docker.Registry, pushRegistry docker.Registry, builder process.Builder) error {
 	var prepper process.Prepper
 	if c.ApplicationType == config.JavaLeveransepakke {
 		logrus.Info("Perform Java build")
 		prepper = java.Prepper()
 	} else if c.ApplicationType == config.NodeJsLeveransepakke {
 		logrus.Info("Perform Webleveranse build")
-		prepper = prepare.Prepper()
+		prepper = nodejs.Prepper()
 	} else if c.ApplicationType == config.DoozerLeveranse {
 		logrus.Info("Perform Doozerleveranse build")
 		prepper = doozer.Prepper()
@@ -104,29 +113,10 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 		if c.BinaryBuild && !c.ApplicationSpec.MavenGav.IsSnapshot() {
 			logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
 		}
-
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
 	defer cancel()
-	if strings.Contains(strings.ToLower(c.BuildStrategy), config.Buildah) {
-		logrus.Info("ALPHA FEATURE: Running buildah builds")
-		buildah := &process.BuildahCmd{
-			TlsVerify: c.TlsVerify,
-		}
-		return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, buildah)
 
-	} else {
-		if !strings.Contains(c.BuildStrategy, config.Docker) {
-			logrus.Warnf("Unsupported build strategy: %s. Defaulting to docker", c.BuildStrategy)
-		}
-
-		dockerClient, err := process.NewDockerBuilder()
-		if err != nil {
-			return err
-		}
-
-		logrus.Info("Running docker build")
-		return process.Build(ctx, r, provider, c, configuration.NexusDownloader, prepper, dockerClient)
-	}
+	return process.Build(ctx, pullRegistry, pushRegistry, c, configuration.NexusDownloader, prepper, builder)
 }

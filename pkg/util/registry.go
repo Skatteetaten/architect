@@ -3,30 +3,13 @@ package util
 import (
 	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
+	"strings"
 )
 
-func FindOutputRepository(dockerName string) (string, error) {
-
-	name, err := reference.ParseNormalizedNamed(dockerName)
-
-	//name, err := reference.ParseNamed(dockerName)
-	if err != nil {
-		return "", errors.Wrap(err, "Error parsing docker registry reference")
-	}
-
-	return reference.Path(name), nil
-
-}
-
-func FindOutputRegistry(dockerName string) (string, error) {
-	name, err := reference.ParseNamed(dockerName)
-	if err != nil {
-		return "", errors.Wrap(err, "Error parsing docker registry reference")
-	}
-	return reference.Domain(name), nil
-}
-
+//FindOutoutTagOrHash get tag or hash from docker name
 func FindOutputTagOrHash(dockerName string) (string, error) {
+	//In case when working with insecure registries
+	dockerName = strings.Replace(dockerName, "http://", "", -1)
 	name, err := reference.ParseNamed(dockerName)
 	if err != nil {
 		return "", errors.Wrap(err, "Error parsing docker registry reference")

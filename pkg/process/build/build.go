@@ -13,13 +13,13 @@ import (
 )
 
 type Builder interface {
-	Build(ctx context.Context, buildFolder string) (string, error)
-	Push(ctx context.Context, imageid string, tag []string, credentials *docker.RegistryCredentials) error
-	Tag(ctx context.Context, imageid string, tag string) error
-	Pull(ctx context.Context, image runtime.DockerImage, credentials *docker.RegistryCredentials) error
+	Build(buildConfig docker.BuildConfig, baseimageLayers *LayerProvider) (*LayerProvider, error)
+	Pull(ctx context.Context, buildConfig docker.BuildConfig) (*LayerProvider, error)
+	Push(ctx context.Context, buildResult *LayerProvider, tag []string) error
 }
 
-func Build(ctx context.Context, credentials *docker.RegistryCredentials, provider docker.ImageInfoProvider, cfg *config.Config, downloader nexus.Downloader, prepper Prepper, builder Builder) error {
+func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docker.Registry, cfg *config.Config,
+	downloader nexus.Downloader, prepper Prepper, builder Builder) error {
 	sporingscontext := cfg.SporingsContext
 	if sporingscontext == "" {
 		logrus.Infof("Use Context %s from the build definition", cfg.OwnerReferenceUid)
@@ -28,33 +28,20 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 	tracer := trace.NewTracer(cfg.Sporingstjeneste, sporingscontext)
 
 	logrus.Debugf("Download deliverable for GAV %-v", cfg.ApplicationSpec)
-	deliverable, err := downloader.DownloadArtifact(&cfg.ApplicationSpec.MavenGav, &cfg.NexusAccess)
+	deliverable, err := downloader.DownloadArtifact(&cfg.ApplicationSpec.MavenGav)
 	if err != nil {
 		return errors.Wrapf(err, "Could not download deliverable %-v", cfg.ApplicationSpec)
 	}
 	application := cfg.ApplicationSpec
 	logrus.Debug("Extract build info")
 
-	imageInfo, err := provider.GetImageInfo(application.BaseImageSpec.BaseImage,
+	logrus.Infof("Fetching image info %s:%s", application.BaseImageSpec.BaseImage, application.BaseImageSpec.BaseVersion)
+
+	//TODO: Refactor out baseimage-stuff
+	imageInfo, err := pullRegistry.GetImageInfo(ctx, application.BaseImageSpec.BaseImage,
 		application.BaseImageSpec.BaseVersion)
 	if err != nil {
 		return errors.Wrap(err, "Unable to get the complete build version")
-	}
-
-	baseImageConfig, err := provider.GetImageConfig(application.BaseImageSpec.BaseImage, imageInfo.Digest)
-	if err == nil {
-		payload := trace.BaseImage{
-			Type:        "baseImage",
-			Name:        application.BaseImageSpec.BaseImage,
-			Version:     application.BaseImageSpec.BaseVersion,
-			Digest:      imageInfo.Digest,
-			ImageConfig: baseImageConfig,
-		}
-		logrus.Debugf("Pushing trace data %v", baseImageConfig)
-		tracer.AddImageMetadata(payload)
-	} else {
-		logrus.Warnf("Unable to find information about %s:%s. Got error: %s", application.BaseImageSpec.BaseImage,
-			application.BaseImageSpec.BaseVersion, err)
 	}
 
 	completeBaseImageVersion := imageInfo.CompleteBaseImageVersion
@@ -84,7 +71,7 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 	if !cfg.DockerSpec.TagOverwrite {
 		for _, buildConfig := range dockerBuildConfig {
 			if !buildConfig.AuroraVersion.Snapshot {
-				tags, err := provider.GetTags(cfg.DockerSpec.OutputRepository)
+				tags, err := pushRegistry.GetTags(ctx, cfg.DockerSpec.OutputRepository)
 				if err != nil {
 					return err
 				}
@@ -100,30 +87,29 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 
 	for _, buildConfig := range dockerBuildConfig {
 
-		err := builder.Pull(ctx, buildConfig.Baseimage, credentials)
+		baseimageLayers, err := builder.Pull(ctx, buildConfig)
 		if err != nil {
 			return errors.Wrap(err, "There was an error with the pull operation.")
 		}
+
+		tracer.AddBaseImageMetadata(application, imageInfo, baseimageLayers.ContainerConfig)
 
 		logrus.Info("Docker context ", buildConfig.BuildFolder)
 
 		dependencyMetadata, _ := nexus.ExtractDependecyMetadata(buildConfig.BuildFolder)
 
-		imageid, err := builder.Build(ctx, buildConfig.BuildFolder)
-
+		buildResult, err := builder.Build(buildConfig, baseimageLayers)
 		if err != nil {
 			return errors.Wrap(err, "There was an error with the build operation.")
-		} else {
-			logrus.Infof("Done building. Imageid: %s", imageid)
 		}
 
 		var tagResolver tagger.TagResolver
 		if cfg.DockerSpec.TagWith == "" {
 			tagResolver = &tagger.NormalTagResolver{
-				Overwrite:  cfg.DockerSpec.TagOverwrite,
-				Provider:   provider,
-				Registry:   cfg.DockerSpec.OutputRegistry,
-				Repository: buildConfig.DockerRepository,
+				Overwrite:      cfg.DockerSpec.TagOverwrite,
+				RegistryClient: pushRegistry,
+				Registry:       cfg.DockerSpec.OutputRegistry,
+				Repository:     buildConfig.DockerRepository,
 			}
 		} else {
 			tagResolver = &tagger.SingleTagTagResolver{
@@ -134,34 +120,29 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 		}
 
 		tags, err := tagResolver.ResolveTags(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
-		logrus.Debugf("Tag image %s with %s", imageid, tags)
-		t, _ := tagResolver.ResolveShortTag(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
-		metaTags := make(map[string]string)
-		for i, tag := range tags {
-			logrus.Infof("Tag: %s", tag)
-			err = builder.Tag(ctx, imageid, tag)
-			if err != nil {
-				return errors.Wrapf(err, "Image tag failed")
-			}
-			metaTags[t[i]] = tag
+		t, err := tagResolver.ResolveShortTag(buildConfig.AuroraVersion, cfg.DockerSpec.PushExtraTags)
+		if err != nil {
+			return errors.Wrapf(err, "Image tag failed")
 		}
-
+		metatags := make(map[string]string)
+		for i, tag := range tags {
+			metatags[t[i]] = tag
+		}
 		if !cfg.NoPush {
-			err = builder.Push(ctx, imageid, tags, credentials)
-			manifest, err := provider.GetImageInfo(buildConfig.DockerRepository, t[0])
+			err = builder.Push(ctx, buildResult, tags)
+			manifest, err := pushRegistry.GetImageInfo(ctx, buildConfig.DockerRepository, t[0])
 			if err == nil {
-				imageConfig, err := provider.GetImageConfig(buildConfig.DockerRepository, manifest.Digest)
+				imageConfig, err := pushRegistry.GetImageConfig(ctx, buildConfig.DockerRepository, manifest.Digest)
 				if err == nil {
-					payload := trace.DeployableImage{
+					tracer.AddImageMetadata(trace.DeployableImage{
 						Type:         "deployableImage",
 						Digest:       manifest.Digest,
 						Name:         buildConfig.DockerRepository,
-						Tags:         metaTags,
+						Tags:         metatags,
 						ImageConfig:  imageConfig,
 						NexusSHA1:    deliverable.SHA1,
 						Dependencies: dependencyMetadata,
-					}
-					tracer.AddImageMetadata(payload)
+					})
 				} else {
 					logrus.Warnf("Unable to find information about %s:%s. Got error: %s",
 						buildConfig.DockerRepository, imageInfo.Digest, err)
@@ -171,7 +152,6 @@ func Build(ctx context.Context, credentials *docker.RegistryCredentials, provide
 					buildConfig.DockerRepository, t[0], err)
 			}
 		}
-
 		return err
 	}
 	return nil

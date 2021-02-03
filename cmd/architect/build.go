@@ -20,11 +20,16 @@ func init() {
 	Build.Flags().StringP("pull-registry", "", "container-registry-internal-private-pull.aurora.skead.no", "Pull registry")
 	Build.Flags().BoolVarP(&noPush, "no-push", "", false, "If true the image is not pushed")
 	Build.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
+	Bc.Flags().StringP("file", "f", "", "Path to a build configuration file")
+	Bc.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
+
 }
 
+//Build command
 var Build = &cobra.Command{
-	Use:   "build --file <file> --from <baseimage:version> --output <repository:tag> --type [java | nodejs | doozer] ",
-	Short: "Build Docker image from binary source",
+	Use:   "build",
+	Short: "build file --file <file> --from <baseimage:version> --output <repository:tag> --type [java | nodejs | doozer]",
+	Long:  "build images from source",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		var nexusDownloader nexus.Downloader
@@ -53,6 +58,7 @@ var Build = &cobra.Command{
 		// Read build config
 		var configReader = config.NewCmdConfigReader(cmd, args, noPush)
 		c, err := configReader.ReadConfig()
+
 		if err != nil {
 			logrus.Fatalf("Could not read configuration: %s", err)
 		}
@@ -65,6 +71,55 @@ var Build = &cobra.Command{
 		}
 
 		nexusDownloader = nexus.NewBinaryDownloader(binaryInput)
+
+		RunArchitect(RunConfiguration{
+			NexusDownloader:         nexusDownloader,
+			Config:                  c,
+			RegistryCredentialsFunc: docker.LocalRegistryCredentials(),
+		})
+	},
+}
+
+//bc buildconfig command
+var Bc = &cobra.Command{
+	Use:   "bc",
+	Short: "build bc --file <bc>.json",
+	Long:  "Build images from openshift build configurations",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		if verbose {
+			logrus.SetLevel(logrus.DebugLevel)
+		} else {
+			logrus.SetLevel(logrus.InfoLevel)
+		}
+
+		var nexusDownloader nexus.Downloader
+		if verbose {
+			logrus.SetLevel(logrus.DebugLevel)
+		} else {
+			logrus.SetLevel(logrus.InfoLevel)
+		}
+
+		configPath := cmd.Flag("file").Value.String()
+		logrus.Debugf("Building from %s", configPath)
+
+		// Read build config
+		var configReader = config.NewFileConfigReader(configPath)
+
+		c, err := configReader.ReadConfig()
+		if err != nil {
+			logrus.Fatalf("Could not read config: %s", err)
+		}
+
+		if err != nil {
+			logrus.Fatalf("Could not read configuration: %s", err)
+		}
+		nexusAccess, err := config.ReadNexusAccessFromEnvVars()
+		if err != nil {
+			logrus.Fatalf("Unable to get Nexus credentials: %s", err)
+		}
+
+		nexusDownloader = nexus.NewNexusDownloader(nexusAccess.NexusURL, nexusAccess.Username, nexusAccess.Password)
 
 		RunArchitect(RunConfiguration{
 			NexusDownloader:         nexusDownloader,

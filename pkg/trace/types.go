@@ -1,13 +1,16 @@
 package trace
 
-import "github.com/skatteetaten/architect/pkg/nexus"
+import (
+	"github.com/skatteetaten/architect/pkg/docker"
+	"github.com/skatteetaten/architect/pkg/nexus"
+)
 
 type BaseImage struct {
-	Type        string                 `json:"type"`
-	Name        string                 `json:"name"`
-	Version     string                 `json:"version"`
-	Digest      string                 `json:"digest"`
-	ImageConfig map[string]interface{} `json:"image_config"`
+	Type        string                  `json:"type"`
+	Name        string                  `json:"name"`
+	Version     string                  `json:"version"`
+	Digest      string                  `json:"digest"`
+	ImageConfig *docker.ContainerConfig `json:"image_config"`
 }
 
 type DeployableImage struct {
