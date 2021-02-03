@@ -16,7 +16,8 @@ def config = [
     chatRoom                 : "#sitj-build",
     credentialsId: "github",
     versionStrategy          : [
-        [branch: 'master', versionHint: '1']
+        [branch: '2-release', versionHint: '2'],
+        [branch: 'master', versionHint: '2']
         ]
     ]
 
