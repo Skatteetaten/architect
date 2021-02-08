@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/gogo/protobuf v1.3.1 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/hashicorp/go-version v1.1.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
