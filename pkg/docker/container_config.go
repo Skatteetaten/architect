@@ -126,8 +126,11 @@ func (c *ContainerConfig) Create(buildConfig BuildConfig) ([]byte, error) {
 	//Set env, labels, and cmd
 	c.addEnv(buildConfig.Env)
 	c.addLabels(buildConfig.Labels)
-	c.setCmd(buildConfig.Cmd)
 
+	//Ensure that we dont override
+	if buildConfig.Cmd != nil {
+		c.setCmd(buildConfig.Cmd)
+	}
 	rawContainerConfig, err := json.Marshal(c)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Container config marshal failed")
