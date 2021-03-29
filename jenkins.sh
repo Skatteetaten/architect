@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e
 
 type glide 2> /dev/null || /bin/sh -c "export GOPATH=$GOROOT && curl -k https://glide.sh/get | sh"
 type go-junit-report 2> /dev/null || go get -u github.com/jstemmer/go-junit-report
