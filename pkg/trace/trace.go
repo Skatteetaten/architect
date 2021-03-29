@@ -27,7 +27,8 @@ func (t *Tracer) AddImageMetadata(data interface{}) {
 	if t.enabled {
 		ctx := context.Background()
 		timeoutIn := time.Now().Add(30 * time.Millisecond)
-		context.WithDeadline(ctx, timeoutIn)
+		ctx, cancelFunc := context.WithDeadline(ctx, timeoutIn)
+		defer cancelFunc()
 
 		d, err := json.Marshal(data)
 		if err != nil {
