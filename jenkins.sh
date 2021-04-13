@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 make clean
 make test-xml
 make test-coverage

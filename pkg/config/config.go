@@ -181,7 +181,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		env[e.Name] = e.Value
 	}
 
-	var applicationType ApplicationType = JavaLeveransepakke
+	var applicationType = JavaLeveransepakke
 	if appType, err := findEnv(env, "APPLICATION_TYPE"); err == nil {
 		if strings.ToUpper(appType) == NodeJs {
 			applicationType = NodeJsLeveransepakke
@@ -394,6 +394,9 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		return nil, errors.Errorf("Unknown outputkind. Only DockerImage and ImageStreamTag supported, was %s", outputKind)
 	}
 	logrus.Debugf("Pushing to %s/%s:%s", dockerSpec.OutputRegistry, dockerSpec.OutputRepository, dockerSpec.TagWith)
+
+	logrus.Debugf("Output registry: %s", dockerSpec.OutputRegistry)
+
 	c := &Config{
 		ApplicationType:   applicationType,
 		ApplicationSpec:   applicationSpec,
