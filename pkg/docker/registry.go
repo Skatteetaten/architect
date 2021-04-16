@@ -45,7 +45,7 @@ type Manifest struct {
 }
 
 type RegistryConnectionInfo struct {
-	Port        int
+	Port        string
 	Host        string
 	Insecure    bool
 	Credentials *RegistryCredentials
@@ -94,7 +94,7 @@ const (
 )
 
 func (r *RegistryConnectionInfo) URL() *url.URL {
-	hostAndPort := fmt.Sprintf("%s:%d", r.Host, r.Port)
+	hostAndPort := fmt.Sprintf("%s:%s", r.Host, r.Port)
 	logrus.Debugf("Host: %s", r.Host)
 	u := url.URL{
 		Scheme: "https",
@@ -489,7 +489,12 @@ func envKeyValue(target string) (string, string, error) {
 
 func (registry *RegistryClient) newRequest(ctx context.Context, method string, path string, body io.Reader) (*http.Request, error) {
 
-	u := registry.connectionInfo.URL().ResolveReference(&url.URL{Path: path})
+	reference, err := url.ParseRequestURI(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "Request creation failed")
+	}
+
+	u := registry.connectionInfo.URL().ResolveReference(reference)
 
 	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
 	if err != nil {

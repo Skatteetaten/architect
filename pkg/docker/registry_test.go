@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"testing"
 )
@@ -150,7 +149,7 @@ func TestMountLayer(t *testing.T) {
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
-		assert.Equal(t, "/v2/test/architect/blobs/uploads/%3Fmount=777&from=aurora/wingnut", r.RequestURI)
+		assert.Equal(t, "/v2/test/architect/blobs/uploads/?mount=777&from=aurora/wingnut", r.RequestURI)
 		w.WriteHeader(201)
 	}))
 	ts.StartTLS()
@@ -284,11 +283,11 @@ func TestReadingOfEnvStrings(t *testing.T) {
 
 func createTestRegistryClient(server *httptest.Server) Registry {
 	u, _ := url.Parse(server.URL)
-	var port int
+	var port string
 	if len(u.Port()) == 0 {
-		port = 443
+		port = "443"
 	} else {
-		port, _ = strconv.Atoi(u.Port())
+		port = u.Port()
 	}
 	rci := RegistryConnectionInfo{
 		Host:     u.Hostname(),

@@ -77,7 +77,7 @@ func (m *retagger) Retag(ctx context.Context) error {
 
 	//This in only for the push-registry
 	retagRegistry := docker.RegistryConnectionInfo{
-		Port:        443,
+		Port:        "443",
 		Host:        m.Config.DockerSpec.OutputRegistry,
 		Credentials: m.Credentials,
 	}
