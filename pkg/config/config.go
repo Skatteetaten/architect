@@ -395,7 +395,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 	logrus.Debugf("Pushing to %s/%s:%s", dockerSpec.OutputRegistry, dockerSpec.OutputRepository, dockerSpec.TagWith)
 
-
 	c := &Config{
 		ApplicationType:   applicationType,
 		ApplicationSpec:   applicationSpec,

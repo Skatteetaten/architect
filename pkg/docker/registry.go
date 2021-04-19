@@ -296,7 +296,7 @@ func (registry *RegistryClient) PullLayer(ctx context.Context, repository string
 		return "", fmt.Errorf("unexpected http code %d", resp.StatusCode)
 	}
 
-	file, err := ioutil.TempFile("tmp", "layer.*.tar.gz")
+	file, err := ioutil.TempFile("/tmp", "layer.*.tar.gz")
 	if err != nil {
 		return "", errors.Wrap(err, "Could not create temporary file")
 	}

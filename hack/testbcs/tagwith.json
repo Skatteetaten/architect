@@ -28,15 +28,15 @@
                     },
                     {
                       "name": "ARTIFACT_ID",
-                      "value": "aos-simple"
+                      "value": "openshift-reference-springboot-server"
                     },
                     {
                       "name": "GROUP_ID",
-                      "value": "ske.aurora.openshift.demo"
+                      "value": "no.skatteetaten.aurora.openshift"
                     },
                     {
                       "name": "VERSION",
-                      "value": "2.1.0"
+                      "value": "4.1.5"
                     },
                     {
                       "name": "DOCKER_BASE_VERSION",
@@ -56,7 +56,7 @@
                     },
                     {
                       "name": "INTERNAL_PULL_REGISTRY",
-                      "value": "container-registry-internal.aurora.skead.no"
+                      "value": "container-registry-internal-private-pull.aurora.skead.no"
                     }
                 ],
                 "exposeDockerSocket": true

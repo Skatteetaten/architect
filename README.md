@@ -234,18 +234,20 @@ make # Build the application. Is is written to bin/<achitecture>
 make test # Runs test, go vet and go fmt. Should be run before every checkin
 ```
 
+# How to test architect ?
+
+```
+make test                        # unit tests
+source ./hack/initCredentials.sh # Load nexus credentials 
+./hack/run_happy_day_test.sh     # Run integration tests
+```
+
 ## Dependecies
 
-We use glide. When you need to install dependencies, use
+We use go modules. 
 
-```
-glide install
-```
-
-For update of dependecies, see Glide documentation (http://glide.sh)
+Dependencies are managed via `go.mod`. Remember to run `go mod tidy` after dependency update.
 
 ## Building
-
-Architect is build on OpenShift with a builder called Cotterpin. Look at architect_bc.json for a working BC.
-
 The build is orchestrated on Jenkins, with Jenkinsfile
+

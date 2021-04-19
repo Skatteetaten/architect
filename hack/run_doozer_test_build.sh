@@ -3,8 +3,6 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BASE="$(dirname "$DIR")"
 
-CMD="${BASE}/bin/amd64/architect"
+CMD="${BASE}/bin/architect"
 
-#dlv exec ${CMD} -- build -f "$DIR/test.json"  -v
-${CMD} build bc -f "$DIR/testbcs/testdoozer.json"
-#${CMD} build bc -f "$DIR/testbcs/testdoozer_architect.json"
+${CMD} build bc -f "$DIR/testbcs/testdoozer_architect.json"
