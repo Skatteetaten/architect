@@ -7,5 +7,4 @@ CMD="${BASE}/bin/amd64/architect"
 
 #dlv exec ${CMD} -- build -f "$DIR/test.json"  -v
 ${CMD} build bc -f "$DIR/testbcs/testdoozer.json"
-${CMD} build bc -f "$DIR/testbcs/testdoozer_with_tweezer.json"
-${CMD} build bc -f "$DIR/testbcs/testdoozer_architect.json"
+#${CMD} build bc -f "$DIR/testbcs/testdoozer_architect.json"
