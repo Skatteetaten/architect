@@ -56,7 +56,7 @@
                     },
                     {
                       "name": "INTERNAL_PULL_REGISTRY",
-                      "value": "container-registry-internal.aurora.skead.no"
+                      "value": "container-registry-internal-private-pull.aurora.skead.no"
                     }
                 ],
                 "exposeDockerSocket": true
