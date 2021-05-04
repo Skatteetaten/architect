@@ -12,8 +12,8 @@ _______  _______  _______          __________________ _______  _______ _________
 
 # Introduction
 
-Architect is a tool for building Docker images. It accepts a software deliverable as input, 
-usually a Maven artifact containing a runnable application, and builds a Docker image using the 
+Architect is a tool for building container images. It accepts a software deliverable as input, 
+usually a Maven artifact containing a runnable application, and builds a container image using the 
 deliverable as the main component of the build context.
 
 Architect was designed with the OpenShift Custom Build Strategy in mind.
@@ -22,15 +22,16 @@ Thus, it will normally be embedded in a custom builder container.
 However, Architect can also run outside Docker and OpenShift, e.g. on a developer workstation.
 
 The input deliverable must contain a runnable application and must meet certain requirements
-regarding content and file structure. 
+regarding content and file structure. Architect is highly opinionated in this regard.
 
 Architect will perform the following tasks: 
  
-* Download and prepare the deliverable in order to use it as the 'context' for a Docker build.
-* Create a custom Dockerfile.
-* Perform the Docker build.
+* Download and prepare the deliverable in order to use it as the 'context' for a container build.
+* Create the application layer file structure.
+* Create and push image layer blobs.
+* Update and push the image manifest.
+* Update and push the container the configuration layer blob.  
 * Create a set of image tags.
-* Push the image and image tags to the designated registry.
 
 # Concepts
 
@@ -41,13 +42,11 @@ which is supplied to Architect as build configuration variables.
 
 A specially tailored base image is associated with every deliverable. 
 
-Currently Architect supports only one deliverable type: Java application. 
-
 ### Java application
 
 #### Base image
 
-Base image name is ```aurora/oracle8```
+Base image name is ```aurora/wingnut8``` or ```aurora/wingnut11```
 
 #### Content
 
@@ -64,14 +63,57 @@ This deliverable contains the following:
 Architect creates several scripts and files during the prepare stage. 
 
 * Default start script if not provided. The main Java class must be specified in the metadata file.
-* Default liveness and readiness scripts [Sjekke!]
-* Logging configuration.
-* Dockerfile - Based on a standard template and customized with information from the metadata file.
+* Default liveness and readiness scripts
+* Applications files are prepared and the layer file structure is created.
+* Log folder is created with correct file permissions.
 
 #### Metadata file
 
-The metadata file, openshift.json, contains information required to prepare the Dockerfile as well as the 
+The metadata file, openshift.json, contains information required to prepare the application layer as well as the 
 start script, liveness and readiness scripts.
+
+### NodeJs Application
+
+#### Base image
+
+Base image name is ```aurora/wrench8```, ```aurora/wrench10```, or ```aurora/wrench12``` depending on NodeJS version.
+
+#### Content
+
+This deliverable contains the following 
+
+* NodeJs bundle with the application  
+* Metadata file
+* liveness and readiness scripts (Optional)
+* Static resources
+
+#### Prepare for build
+Architect creates several scripts and files during the prepare stage.
+
+* The main Javascript file must be specified in the metadata file.
+* Add/create liveness and readiness scripts
+* Application files are extracted and the layer file structure is created.
+* Log folder is created with correct permissions.
+
+### Doozer Application
+
+#### Baseimage
+
+Doozer builds supports an arbitrary base image. 
+
+#### Content
+This deliverable contains the following
+* Application bundle
+* Metadata file
+
+#### Prepare for build
+Architect creates several files during the prepare stage
+
+* Start script must be specified in the metadata file.
+* Application is extracted to the location specified in the metadata file.
+* Application files are prepared and the layer file structure is created.  
+* Log folder is created with correct permissions.
+
 
 ## Deliverable version types
 
