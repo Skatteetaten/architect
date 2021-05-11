@@ -12,9 +12,9 @@
     </encoder>
   </appender>
   <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>logs/application.log</file>
+    <file>logs/${APPLOG_NAME:-application.log}</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-      <fileNamePattern>logs/application.%i.log.gz</fileNamePattern>
+      <fileNamePattern>logs/${APPLOG_ROLLING:-application.%i.log.gz}</fileNamePattern>
       <minIndex>1</minIndex>
       <maxIndex>2</maxIndex>
     </rollingPolicy>
@@ -27,9 +27,9 @@
     </encoder>
   </appender>
   <appender name="AUDIT" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>logs/application.audit.json</file>
+    <file>logs/${AUDITLOG_NAME:-application.audit.json}</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-      <fileNamePattern>logs/application.%i.audit.json.gz</fileNamePattern>
+      <fileNamePattern>logs/${AUDITLOG_ROLLING:-application.%i.audit.json.gz}</fileNamePattern>
       <minIndex>1</minIndex>
       <maxIndex>2</maxIndex>
     </rollingPolicy>
