@@ -106,6 +106,24 @@ This deliverable contains the following
 * Application bundle
 * Metadata file
 
+Metadata file example
+```
+{
+  "docker": {
+    "maintainer": "maintainer",
+    "labels": {}
+  },
+  "doozer": {
+    "srcPath": "",
+    "fileName": "app",              
+    "destPath": "/u01/bin",
+    "destFilename": "app",          // Optional. Will use FileName as default
+    "entrypoint": "/bin/sh -c ",    // Optional if base image CMD is applicable
+    "cmdScript": "/u01/bin/app"     // Optional if base image Entrypoint is applicable
+  }
+}
+```
+
 #### Prepare for build
 Architect creates several files during the prepare stage
 
