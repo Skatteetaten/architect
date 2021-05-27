@@ -131,11 +131,11 @@ func (c *ContainerConfig) Create(buildConfig BuildConfig) ([]byte, error) {
 	c.addEnv(buildConfig.Env)
 	c.addLabels(buildConfig.Labels)
 
-	//Ensure that we dont override
+	//Dont override if empty
 	if buildConfig.Cmd != nil && len(buildConfig.Cmd) > 0 {
 		c.setCmd(buildConfig.Cmd)
 	}
-	//Ensure that we dont override
+	//Dont override if empty
 	if buildConfig.Entrypoint != nil && len(buildConfig.Entrypoint) > 0 {
 		c.setEntrypoint(buildConfig.Entrypoint)
 	}
