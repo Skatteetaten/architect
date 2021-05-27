@@ -105,7 +105,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 	}
 
 	cmd := strings.Split(imageMetadata.CmdScript, " ")
-	entrypoint := strings.Split(imageMetadata.Entrypoint, "")
+	entrypoint := strings.Split(imageMetadata.Entrypoint, " ")
 
 	fileinfo, err := os.Stat(filepath.Join(buildContext, strings.TrimSpace(imageMetadata.SrcPath), strings.TrimSpace(imageMetadata.FileName)))
 
