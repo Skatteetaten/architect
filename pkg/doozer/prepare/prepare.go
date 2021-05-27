@@ -115,7 +115,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 		if err := util.CopyDirectory(src, dst); err != nil {
 			return nil, errors.Wrapf(err, "Could not copy directory from src=%s to dst=%s", src, dst)
 		}
-		if cmd != nil && entrypoint == nil {
+		if len(cmd) > 0 && len(entrypoint) == 0 {
 			executable := filepath.Join(buildContext, "layer", cmd[0])
 			err = os.Chmod(executable, 0755)
 			if err != nil {

@@ -132,11 +132,11 @@ func (c *ContainerConfig) Create(buildConfig BuildConfig) ([]byte, error) {
 	c.addLabels(buildConfig.Labels)
 
 	//Ensure that we dont override
-	if buildConfig.Cmd != nil {
+	if buildConfig.Cmd != nil && len(buildConfig.Cmd) > 0 {
 		c.setCmd(buildConfig.Cmd)
 	}
 	//Ensure that we dont override
-	if buildConfig.Entrypoint != nil {
+	if buildConfig.Entrypoint != nil && len(buildConfig.Entrypoint) > 0 {
 		c.setEntrypoint(buildConfig.Entrypoint)
 	}
 
