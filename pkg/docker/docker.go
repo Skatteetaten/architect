@@ -26,6 +26,7 @@ type BuildConfig struct {
 	Env              map[string]string
 	Labels           map[string]string
 	Cmd              []string
+	Entrypoint       []string
 }
 
 func (rc RegistryCredentials) Encode() (string, error) {

@@ -25,7 +25,9 @@ func TestNewFromJson(t *testing.T) {
   "doozer": {
     "srcPath": "app/",
     "fileName": "application.war",
-    "destPath": "/usr/local/tomcat/webapps/"
+    "destPath": "/usr/local/tomcat/webapps/",
+    "entrypoint": "/bin/sh",
+    "cmdScript": "-c ls -a"
   },
   "java": {
     "mainClass": "ske.aurora.openshift.referanse.springboot.Main",
@@ -49,6 +51,8 @@ func TestNewFromJson(t *testing.T) {
 	assertEquals(t, srcPath, meta.Doozer.SrcPath)
 	assertEquals(t, fileName, meta.Doozer.FileName)
 	assertEquals(t, destPath, meta.Doozer.DestPath)
+	assertEquals(t, "/bin/sh", meta.Doozer.Entrypoint)
+	assertEquals(t, "-c ls -a", meta.Doozer.CmdScript)
 }
 
 func TestErrorOnInvalidJson(t *testing.T) {

@@ -27,6 +27,7 @@ type BuildConfiguration struct {
 	Env          map[string]string
 	Labels       map[string]string
 	Cmd          []string
+	EntryPoint   []string
 }
 
 const (
@@ -52,6 +53,7 @@ func Prepper() process.Prepper {
 			Env:              buildContext.Env,
 			Labels:           buildContext.Labels,
 			Cmd:              buildContext.Cmd,
+			Entrypoint:       buildContext.EntryPoint,
 		}
 		return []docker.BuildConfig{buildConf}, nil
 	}
@@ -102,12 +104,8 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 		return nil, errors.Wrap(err, "Could not read image metadata")
 	}
 
-	var cmd []string
-	if imageMetadata.CmdScript == "" {
-		cmd = nil
-	} else {
-		cmd = []string{imageMetadata.CmdScript}
-	}
+	cmd := strings.Split(imageMetadata.CmdScript, " ")
+	entrypoint := strings.Split(imageMetadata.Entrypoint, "")
 
 	fileinfo, err := os.Stat(filepath.Join(buildContext, strings.TrimSpace(imageMetadata.SrcPath), strings.TrimSpace(imageMetadata.FileName)))
 
@@ -117,7 +115,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 		if err := util.CopyDirectory(src, dst); err != nil {
 			return nil, errors.Wrapf(err, "Could not copy directory from src=%s to dst=%s", src, dst)
 		}
-		if cmd != nil {
+		if cmd != nil && entrypoint == nil {
 			executable := filepath.Join(buildContext, "layer", cmd[0])
 			err = os.Chmod(executable, 0755)
 			if err != nil {
@@ -155,6 +153,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 		Env:          imageMetadata.Env,
 		Labels:       imageMetadata.Labels,
 		Cmd:          cmd,
+		EntryPoint:   entrypoint,
 	}, nil
 }
 

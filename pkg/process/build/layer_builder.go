@@ -162,7 +162,6 @@ func (l *LayerBuilder) Build(buildConfig docker.BuildConfig, baseImageLayerProvi
 				Size:      size,
 				Digest:    digest,
 			})
-
 		}
 	}
 
