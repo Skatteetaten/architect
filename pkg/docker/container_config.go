@@ -35,7 +35,7 @@ type DockerContainerConfig struct {
 	Image        string
 	Volumes      interface{}
 	WorkingDir   string
-	EntryPoint   []string
+	Entrypoint   []string
 	OnBuild      []interface{}
 	Labels       map[string]string
 }
@@ -122,15 +122,24 @@ func (c *ContainerConfig) setCmd(cmd []string) {
 	c.Config.Cmd = cmd
 }
 
+func (c *ContainerConfig) setEntrypoint(entrypoint []string) {
+	c.Config.Entrypoint = entrypoint
+}
+
 func (c *ContainerConfig) Create(buildConfig BuildConfig) ([]byte, error) {
 	//Set env, labels, and cmd
 	c.addEnv(buildConfig.Env)
 	c.addLabels(buildConfig.Labels)
 
-	//Ensure that we dont override
-	if buildConfig.Cmd != nil {
+	//Dont override if empty
+	if buildConfig.Cmd != nil && len(buildConfig.Cmd) > 0 {
 		c.setCmd(buildConfig.Cmd)
 	}
+	//Dont override if empty
+	if buildConfig.Entrypoint != nil && len(buildConfig.Entrypoint) > 0 {
+		c.setEntrypoint(buildConfig.Entrypoint)
+	}
+
 	rawContainerConfig, err := json.Marshal(c)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Container config marshal failed")

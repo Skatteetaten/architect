@@ -16,6 +16,7 @@ type ImageMetaData struct {
 	FileName   string
 	DestPath   string
 	CmdScript  string
+	Entrypoint string
 	Labels     map[string]string
 	Env        map[string]string
 }
@@ -87,6 +88,7 @@ func ReadMetadata(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVers
 		FileName:   meta.Doozer.FileName,
 		DestPath:   destPath,
 		CmdScript:  meta.Doozer.CmdScript,
+		Entrypoint: meta.Doozer.Entrypoint,
 		Labels:     createLabels(meta),
 		Env:        env,
 	}, nil

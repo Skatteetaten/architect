@@ -26,6 +26,7 @@ type MetadataDoozer struct {
 	DestPath     string `json:"destPath"`
 	DestFilename string `json:"destFilename"` // Optional. Will use FileName as default
 	CmdScript    string `json:"cmdScript"`    // Optional if base image CMD is applicable
+	Entrypoint   string `json:"entrypoint"`   // Optional if base image Entrypoint is applicable
 }
 
 type MetadataJava struct {
