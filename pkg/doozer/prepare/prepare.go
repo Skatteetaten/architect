@@ -104,8 +104,14 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 		return nil, errors.Wrap(err, "Could not read image metadata")
 	}
 
-	cmd := strings.Split(imageMetadata.CmdScript, " ")
-	entrypoint := strings.Split(imageMetadata.Entrypoint, " ")
+	var cmd []string
+	if imageMetadata.CmdScript != "" {
+		cmd = strings.Split(imageMetadata.CmdScript, " ")
+	}
+	var entrypoint []string
+	if imageMetadata.Entrypoint != "" {
+		entrypoint = strings.Split(imageMetadata.Entrypoint, " ")
+	}
 
 	fileinfo, err := os.Stat(filepath.Join(buildContext, strings.TrimSpace(imageMetadata.SrcPath), strings.TrimSpace(imageMetadata.FileName)))
 
