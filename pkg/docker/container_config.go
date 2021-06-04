@@ -134,10 +134,15 @@ func (c *ContainerConfig) Create(buildConfig BuildConfig) ([]byte, error) {
 	//Dont override if empty
 	if buildConfig.Cmd != nil && len(buildConfig.Cmd) > 0 {
 		c.setCmd(buildConfig.Cmd)
+	} else {
+		c.setCmd(nil)
 	}
+
 	//Dont override if empty
 	if buildConfig.Entrypoint != nil && len(buildConfig.Entrypoint) > 0 {
 		c.setEntrypoint(buildConfig.Entrypoint)
+	} else {
+		c.setEntrypoint(nil)
 	}
 
 	rawContainerConfig, err := json.Marshal(c)
