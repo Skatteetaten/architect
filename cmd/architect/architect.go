@@ -3,6 +3,11 @@ package architect
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/docker"
@@ -10,12 +15,8 @@ import (
 	java "github.com/skatteetaten/architect/pkg/java/prepare"
 	"github.com/skatteetaten/architect/pkg/nexus"
 	nodejs "github.com/skatteetaten/architect/pkg/nodejs/prepare"
-	"github.com/skatteetaten/architect/pkg/process/build"
+	process "github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/retag"
-	"net/url"
-	"os"
-	"strings"
-	"time"
 )
 
 var verbose bool
@@ -112,12 +113,6 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 	} else if c.ApplicationType == config.DoozerLeveranse {
 		logrus.Info("Perform Doozerleveranse build")
 		prepper = doozer.Prepper()
-	}
-
-	if !c.LocalBuild {
-		if c.BinaryBuild && !c.ApplicationSpec.MavenGav.IsSnapshot() {
-			logrus.Fatalf("Trying to build a release as binary build? Sorry, only SNAPSHOTS;)")
-		}
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
