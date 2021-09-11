@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"os"
+	"time"
 )
 
 //
@@ -126,6 +127,22 @@ func (c *ContainerConfig) setEntrypoint(entrypoint []string) {
 	c.Config.Entrypoint = entrypoint
 }
 
+func (c *ContainerConfig) setCreatedTimestamp() {
+	layout := "2006-01-02T15:04:05.000000000Z"
+	timestamp := time.Now().Format(layout)
+	c.Created = timestamp
+}
+
+func (c *ContainerConfig) addHistoryEntry() {
+	layout := "2006-01-02T15:04:05.000000000Z"
+	timestamp := time.Now().Format(layout)
+
+	c.History = append(c.History, History{
+		Created: timestamp,
+		Comment: "Application layer added with architect",
+	})
+}
+
 func (c *ContainerConfig) Create(buildConfig BuildConfig) ([]byte, error) {
 	//Set env, labels, and cmd
 	c.addEnv(buildConfig.Env)
@@ -140,6 +157,9 @@ func (c *ContainerConfig) Create(buildConfig BuildConfig) ([]byte, error) {
 	if buildConfig.Entrypoint != nil && len(buildConfig.Entrypoint) > 0 {
 		c.setEntrypoint(buildConfig.Entrypoint)
 	}
+
+	c.setCreatedTimestamp()
+	c.addHistoryEntry()
 
 	rawContainerConfig, err := json.Marshal(c)
 	if err != nil {
