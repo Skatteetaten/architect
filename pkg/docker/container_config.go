@@ -136,7 +136,7 @@ func (c *ContainerConfig) addHistoryEntry() {
 	timestamp := time.Now().Format(layout)
 
 	c.History = append(c.History, History{
-		Created: timestamp,
+		Created:   timestamp,
 		CreatedBy: "architect",
 	})
 }
