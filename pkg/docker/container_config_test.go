@@ -8,6 +8,7 @@ import (
 )
 
 func TestCreatedAndHistory(t *testing.T) {
+	println("Running test")
 
 	data, err := os.ReadFile("testdata/container_config.json")
 	if err != nil {
