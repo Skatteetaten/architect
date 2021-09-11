@@ -11,13 +11,13 @@ func TestCreatedAndHistory(t *testing.T) {
 
 	data, err := os.ReadFile("testdata/container_config.json")
 	if err != nil {
-		t.Failed()
+		t.Error("Unable to read test data")
 	}
 
 	var config ContainerConfig
 	err = json.Unmarshal(data, &config)
 	if err != nil {
-		t.Failed()
+		t.Errorf("Unable to unmarshal test data")
 	}
 
 	wip := config.CleanCopy()
