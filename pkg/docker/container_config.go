@@ -73,11 +73,8 @@ type History struct {
 	EmptyLayer bool   `json:"empty_layer,omitempty"`
 }
 
-//TODO: Implement me!
 func (c *ContainerConfig) CleanCopy() *ContainerConfig {
 	c.ContainerConfig = OCIContainerConfig{}
-	c.History = nil
-
 	return c
 }
 
