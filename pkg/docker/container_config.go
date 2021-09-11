@@ -69,6 +69,7 @@ type RootFs struct {
 
 type History struct {
 	Created    string `json:"created,omitempty"`
+	CreatedBy  string `json:"created_by,omitempty"`
 	Comment    string `json:"comment,omitempty"`
 	EmptyLayer bool   `json:"empty_layer,omitempty"`
 }
@@ -136,7 +137,7 @@ func (c *ContainerConfig) addHistoryEntry() {
 
 	c.History = append(c.History, History{
 		Created: timestamp,
-		Comment: "Application layer added with architect",
+		CreatedBy: "architect",
 	})
 }
 
