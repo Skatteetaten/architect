@@ -41,6 +41,8 @@ func RunArchitect(configuration RunConfiguration) {
 		logrus.Fatalf("Could not parse registry credentials %s", err)
 	}
 
+	logrus.Infof("Output registry %s", c.DockerSpec.OutputRegistry)
+
 	pushRegistryUrl := url.URL{
 		Host:   c.DockerSpec.OutputRegistry,
 		Scheme: "https",
@@ -55,16 +57,16 @@ func RunArchitect(configuration RunConfiguration) {
 	}
 
 	pushRegistryConn := docker.RegistryConnectionInfo{
-		Port:        getPortOrDefault(pushRegistryUrl.Port()),
-		Insecure:    insecureOrDefault(c),
+		Port:        docker.GetPortOrDefault(pushRegistryUrl.Port()),
+		Insecure:    docker.InsecureOrDefault(c),
 		Host:        pushRegistryUrl.Hostname(),
 		Credentials: registryCredentials,
 	}
 
 	pullRegistryConn := docker.RegistryConnectionInfo{
-		Port:        getPortOrDefault(pullRegistryUrl.Port()),
+		Port:        docker.GetPortOrDefault(pullRegistryUrl.Port()),
 		Host:        pullRegistryUrl.Hostname(),
-		Insecure:    insecureOrDefault(c),
+		Insecure:    docker.InsecureOrDefault(c),
 		Credentials: nil,
 	}
 	pushRegistry := docker.NewRegistryClient(pushRegistryConn)
@@ -124,19 +126,4 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 	defer cancel()
 
 	return process.Build(ctx, pullRegistry, pushRegistry, c, configuration.NexusDownloader, prepper, builder)
-}
-
-func getPortOrDefault(port string) string {
-	if port == "" {
-		return "443"
-	}
-	return port
-}
-
-//TODO: HACK: Fix registry certificate. TLS handshake fails with: does not contain any IP SANs
-func insecureOrDefault(config *config.Config) bool {
-	if config.BinaryBuild {
-		return true
-	}
-	return false
 }
