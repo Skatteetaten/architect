@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"github.com/pkg/errors"
+	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/skatteetaten/architect/pkg/config/runtime"
 	"io/ioutil"
 	"net/http"
@@ -75,4 +76,19 @@ func getHTTPRequest(client *http.Client, ctx context.Context, headers map[string
 	} else {
 		return nil, errors.Errorf("Unabled to read manifest. From registry: %s", res.Status)
 	}
+}
+
+func GetPortOrDefault(port string) string {
+	if port == "" {
+		return "443"
+	}
+	return port
+}
+
+//TODO: HACK: Fix registry certificate. TLS handshake fails with: does not contain any IP SANs
+func InsecureOrDefault(config *config.Config) bool {
+	if config.BinaryBuild {
+		return true
+	}
+	return false
 }

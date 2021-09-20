@@ -9,6 +9,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/docker"
 	process "github.com/skatteetaten/architect/pkg/process/build"
 	"github.com/skatteetaten/architect/pkg/process/tagger"
+	"net/url"
 )
 
 type retagger struct {
@@ -75,10 +76,16 @@ func (m *retagger) Retag(ctx context.Context) error {
 
 	pushExtraTags := config.ParseExtraTags(extratags)
 
+	retagRegistryUrl := url.URL{
+		Host:   m.Config.DockerSpec.OutputRegistry,
+		Scheme: "https",
+	}
+
 	//This in only for the push-registry
 	retagRegistry := docker.RegistryConnectionInfo{
-		Port:        "443",
-		Host:        m.Config.DockerSpec.OutputRegistry,
+		Port:        docker.GetPortOrDefault(retagRegistryUrl.Port()),
+		Insecure:    docker.InsecureOrDefault(m.Config),
+		Host:        retagRegistryUrl.Hostname(),
 		Credentials: m.Credentials,
 	}
 	t := tagger.NormalTagResolver{
