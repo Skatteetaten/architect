@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"os"
+	"time"
 )
 
 //
@@ -68,15 +69,13 @@ type RootFs struct {
 
 type History struct {
 	Created    string `json:"created,omitempty"`
+	CreatedBy  string `json:"created_by,omitempty"`
 	Comment    string `json:"comment,omitempty"`
 	EmptyLayer bool   `json:"empty_layer,omitempty"`
 }
 
-//TODO: Implement me!
 func (c *ContainerConfig) CleanCopy() *ContainerConfig {
 	c.ContainerConfig = OCIContainerConfig{}
-	c.History = nil
-
 	return c
 }
 
@@ -126,6 +125,22 @@ func (c *ContainerConfig) setEntrypoint(entrypoint []string) {
 	c.Config.Entrypoint = entrypoint
 }
 
+func (c *ContainerConfig) setCreatedTimestamp() {
+	layout := "2006-01-02T15:04:05.000000000Z"
+	timestamp := time.Now().Format(layout)
+	c.Created = timestamp
+}
+
+func (c *ContainerConfig) addHistoryEntry() {
+	layout := "2006-01-02T15:04:05.000000000Z"
+	timestamp := time.Now().Format(layout)
+
+	c.History = append(c.History, History{
+		Created:   timestamp,
+		CreatedBy: "architect",
+	})
+}
+
 func (c *ContainerConfig) Create(buildConfig BuildConfig) ([]byte, error) {
 	//Set env, labels, and cmd
 	c.addEnv(buildConfig.Env)
@@ -140,6 +155,9 @@ func (c *ContainerConfig) Create(buildConfig BuildConfig) ([]byte, error) {
 	if buildConfig.Entrypoint != nil && len(buildConfig.Entrypoint) > 0 {
 		c.setEntrypoint(buildConfig.Entrypoint)
 	}
+
+	c.setCreatedTimestamp()
+	c.addHistoryEntry()
 
 	rawContainerConfig, err := json.Marshal(c)
 	if err != nil {
