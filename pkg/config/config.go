@@ -331,6 +331,11 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
+	buildType := Snapshot
+	if envBuildType, err := findEnv(env, "BUILD_TYPE"); err == nil {
+		buildType = BuildType(envBuildType)
+	}
+
 	builderSpec := BuilderSpec{}
 
 	if builderVersion, present := os.LookupEnv("APP_VERSION"); present {
@@ -406,6 +411,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		SporingsContext:   sporingscontext,
 		Sporingstjeneste:  sporingstjeneste,
 		OwnerReferenceUid: string(build.UID),
+		BuildType:         buildType,
 	}
 	return c, nil
 }
