@@ -324,11 +324,9 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		dockerSpec.RetagWith = temporaryTag
 	}
 
-	dockerSpec.TagOverwrite = false
-	if tagOverwrite, err := findEnv(env, "TAG_OVERWRITE"); err == nil {
-		if strings.Contains(strings.ToLower(tagOverwrite), "true") {
-			dockerSpec.TagOverwrite = true
-		}
+	// TagOverwrite has been removed since 10.2021. Kept to logg usage
+	if _, err := findEnv(env, "TAG_OVERWRITE"); err == nil {
+		logrus.Warning("Functionality for TAG_OVERWRITE has been removed")
 	}
 
 	buildType := Snapshot

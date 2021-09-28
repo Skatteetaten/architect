@@ -19,7 +19,6 @@ func TestPrepareLayers(t *testing.T) {
 		ExternalDockerRegistry: "",
 		TagWith:                "",
 		RetagWith:              "",
-		TagOverwrite:           false,
 	}, runtime.NewAuroraVersion("", false, "", ""),
 		nexus.Deliverable{
 			Path: "testdata/openshift-referanse-react-snapshot_test-SNAPSHOT-Webleveransepakke.tgz",

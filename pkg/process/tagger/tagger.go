@@ -37,12 +37,11 @@ func (m *SingleTagTagResolver) ResolveShortTag(appVersion *runtime.AuroraVersion
 type NormalTagResolver struct {
 	Registry       string
 	Repository     string
-	Overwrite      bool
 	RegistryClient docker.Registry
 }
 
 func (m *NormalTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
-	tags, err := findCandidateTags(appVersion, m.Overwrite, m.Repository, pushExtratags, m.RegistryClient)
+	tags, err := findCandidateTags(appVersion, m.Repository, pushExtratags, m.RegistryClient)
 	if err != nil {
 		return nil, err
 	}
@@ -51,37 +50,33 @@ func (m *NormalTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushE
 }
 
 func (m *NormalTagResolver) ResolveShortTag(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
-	tags, err := findCandidateTags(appVersion, m.Overwrite, m.Repository, pushExtratags, m.RegistryClient)
+	tags, err := findCandidateTags(appVersion, m.Repository, pushExtratags, m.RegistryClient)
 	if err != nil {
 		return nil, err
 	}
 	return tags, nil
 }
 
-func findCandidateTags(appVersion *runtime.AuroraVersion, tagOverwrite bool, outputRepository string,
-	pushExtraTags config.PushExtraTags, provider docker.Registry) ([]string, error) {
-	var repositoryTags []string
+func findCandidateTags(appVersion *runtime.AuroraVersion, outputRepository string, pushExtraTags config.PushExtraTags, provider docker.Registry) ([]string, error) {
 	logrus.Debugf("Version is:%s, meta is:%s", appVersion.GetCompleteVersion(), util.GetVersionMetadata(string(appVersion.GetAppVersion())))
-	if !tagOverwrite {
 
+	if appVersion.IsSemanticReleaseVersion() {
 		tagsInRepo, err := provider.GetTags(context.Background(), outputRepository)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error in ResolveShortTag, repository=%s", outputRepository)
 		}
 		logrus.Debug("Tags in repository ", tagsInRepo.Tags)
-		repositoryTags = tagsInRepo.Tags
-	}
-	if appVersion.IsSemanticReleaseVersion() {
+
 		logrus.Debugf("%s is semantic version. Filter tags", string(appVersion.GetAppVersion()))
 		candidateTags, err := getSemanticVersionTags(appVersion, pushExtraTags)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error in FilterVersionTags, app_version=%v, repositoryTags=%v",
-				appVersion, repositoryTags)
+				appVersion, tagsInRepo.Tags)
 		}
-		filteredTags, err := filterTagsFromRepository(appVersion, candidateTags, repositoryTags)
+		filteredTags, err := filterTagsFromRepository(appVersion, candidateTags, tagsInRepo.Tags)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error in FilterVersionTags, app_version=%v, "+
-				"candidateTags=%v, repositoryTags=%v", appVersion, candidateTags, repositoryTags)
+				"candidateTags=%v, repositoryTags=%v", appVersion, candidateTags, tagsInRepo.Tags)
 		}
 		return filteredTags, nil
 	} else {

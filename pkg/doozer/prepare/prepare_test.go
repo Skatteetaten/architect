@@ -19,7 +19,6 @@ func TestArchitectPrepareLayers(t *testing.T) {
 		ExternalDockerRegistry: "",
 		TagWith:                "",
 		RetagWith:              "",
-		TagOverwrite:           false,
 	}, runtime.NewAuroraVersion("", false, "", ""),
 		nexus.Deliverable{
 			Path: "testdata/architect-1.25.14-Doozerleveransepakke.zip",
@@ -58,7 +57,6 @@ func TestPrepareLayers(t *testing.T) {
 		ExternalDockerRegistry: "",
 		TagWith:                "",
 		RetagWith:              "",
-		TagOverwrite:           false,
 	}, runtime.NewAuroraVersion("", false, "", ""),
 		nexus.Deliverable{
 			Path: "testdata/test-war-0.0.1-SNAPSHOT-DoozerLeveranse.zip",

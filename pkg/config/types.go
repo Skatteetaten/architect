@@ -103,9 +103,8 @@ type DockerSpec struct {
 	//This is the external docker registry where we check versions.
 	ExternalDockerRegistry string
 	//The tag to push to. This is only used for ImageStreamTags (as for now) and RETAG functionality
-	TagWith      string
-	RetagWith    string
-	TagOverwrite bool
+	TagWith   string
+	RetagWith string
 }
 
 type BuilderSpec struct {
