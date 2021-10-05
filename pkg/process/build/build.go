@@ -70,7 +70,7 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 
 	tagWith := cfg.DockerSpec.TagWith
 	for _, buildConfig := range dockerBuildConfig {
-		if !buildConfig.AuroraVersion.Snapshot {
+		if buildConfig.AuroraVersion.IsSemanticReleaseVersion() {
 			tags, err := pushRegistry.GetTags(ctx, cfg.DockerSpec.OutputRepository)
 			if err != nil {
 				return err
