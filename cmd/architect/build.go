@@ -7,7 +7,6 @@ import (
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/util"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var noPush bool
@@ -38,10 +37,6 @@ var Build = &cobra.Command{
 			logrus.SetLevel(logrus.DebugLevel)
 		} else {
 			logrus.SetLevel(logrus.InfoLevel)
-		}
-
-		if loglevel, err := logrus.ParseLevel(os.Getenv("LOG_LEVEL")); err != nil {
-			logrus.SetLevel(loglevel)
 		}
 
 		notValid := len(cmd.Flag("file").Value.String()) == 0 ||
@@ -97,10 +92,6 @@ var Bc = &cobra.Command{
 			logrus.SetLevel(logrus.DebugLevel)
 		} else {
 			logrus.SetLevel(logrus.InfoLevel)
-		}
-
-		if loglevel, err := logrus.ParseLevel(os.Getenv("LOG_LEVEL")); err != nil {
-			logrus.SetLevel(loglevel)
 		}
 
 		configPath := cmd.Flag("file").Value.String()
