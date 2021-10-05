@@ -70,14 +70,17 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 
 	tagWith := cfg.DockerSpec.TagWith
 	for _, buildConfig := range dockerBuildConfig {
-		if buildConfig.AuroraVersion.IsSemanticReleaseVersion() {
+		if buildConfig.AuroraVersion.Snapshot {
 			tags, err := pushRegistry.GetTags(ctx, cfg.DockerSpec.OutputRepository)
 			if err != nil {
 				return err
 			}
 			semanticVersion := buildConfig.AuroraVersion.GetGivenVersion()
+			completeVersion := buildConfig.AuroraVersion.GetCompleteVersion()
 			for _, tag := range tags.Tags {
-				logrus.Infof("Semantic=%s, tag=%s", semanticVersion, tag)
+				if tag == completeVersion {
+					return errors.Errorf("There are already a build with tag %s, overwrite not allowed", completeVersion)
+				}
 				if tag == semanticVersion {
 					return errors.Errorf("There are already a build with tag %s, overwrite not allowed", semanticVersion)
 				}
