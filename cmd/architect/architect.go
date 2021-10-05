@@ -117,7 +117,7 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 		prepper = doozer.Prepper()
 	}
 
-	if c.BinaryBuild && c.BuildType == config.Snapshot && !c.ApplicationSpec.MavenGav.IsSnapshot() {
+	if c.BinaryBuild && c.BinaryBuildType == config.Snapshot && !c.ApplicationSpec.MavenGav.IsSnapshot() {
 		logrus.Fatalf("Can only build snapshots. Make version end with -SNAPSHOT")
 	}
 

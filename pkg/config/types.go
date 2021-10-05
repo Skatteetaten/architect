@@ -30,11 +30,11 @@ const (
 	Doozerleveransepakke Classifier = "Doozerleveransepakke"
 )
 
-type BuildType string
+type BinaryBuildType string
 
 const (
-	Snapshot BuildType = "Snapshot"
-	Release  BuildType = "Release"
+	Snapshot BinaryBuildType = "Snapshot"
+	Release  BinaryBuildType = "Release"
 )
 
 type Config struct {
@@ -50,7 +50,7 @@ type Config struct {
 	SporingsContext   string
 	Sporingstjeneste  string
 	OwnerReferenceUid string
-	BuildType         BuildType
+	BinaryBuildType   BinaryBuildType
 }
 
 type NexusAccess struct {

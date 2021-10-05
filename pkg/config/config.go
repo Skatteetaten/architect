@@ -331,7 +331,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 
 	buildType := Snapshot
 	if envBuildType, err := findEnv(env, "BUILD_TYPE"); err == nil {
-		buildType = BuildType(envBuildType)
+		buildType = BinaryBuildType(envBuildType)
 	}
 
 	builderSpec := BuilderSpec{}
@@ -409,7 +409,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		SporingsContext:   sporingscontext,
 		Sporingstjeneste:  sporingstjeneste,
 		OwnerReferenceUid: string(build.UID),
-		BuildType:         buildType,
+		BinaryBuildType:   buildType,
 	}
 	return c, nil
 }
