@@ -10,6 +10,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/tagger"
 	"github.com/skatteetaten/architect/pkg/trace"
+	"strings"
 )
 
 type Builder interface {
@@ -78,13 +79,13 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 			semanticVersion := buildConfig.AuroraVersion.GetGivenVersion()
 			completeVersion := buildConfig.AuroraVersion.GetCompleteVersion()
 			for _, tag := range tags.Tags {
-				if tag == completeVersion {
+				if strings.Compare(tag, completeVersion) == 0 {
 					return errors.Errorf("There are already a build with tag %s, overwrite not allowed", completeVersion)
 				}
-				if tag == semanticVersion {
+				if strings.Compare(tag, semanticVersion) == 0 {
 					return errors.Errorf("There are already a build with tag %s, overwrite not allowed", semanticVersion)
 				}
-				if tag == tagWith {
+				if strings.Compare(tag, tagWith) == 0 {
 					return errors.Errorf("Given value for TagWith=%s have already been build, overwrite not allowed", tagWith)
 				}
 			}
