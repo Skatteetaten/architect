@@ -80,13 +80,14 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 			completeVersion := buildConfig.AuroraVersion.GetCompleteVersion()
 			logrus.Infof("GivenVersion=%s, CompleteVersion=%s", semanticVersion, completeVersion)
 			for _, tag := range tags.Tags {
-				if strings.Compare(tag, completeVersion) == 0 {
+				logrus.Info(tag)
+				if strings.EqualFold(tag, completeVersion) {
 					return errors.Errorf("There are already a build with tag %s, overwrite not allowed", completeVersion)
 				}
-				if strings.Compare(tag, semanticVersion) == 0 {
+				if strings.EqualFold(tag, semanticVersion) {
 					return errors.Errorf("There are already a build with tag %s, overwrite not allowed", semanticVersion)
 				}
-				if strings.Compare(tag, tagWith) == 0 {
+				if strings.EqualFold(tag, tagWith) {
 					return errors.Errorf("Given value for TagWith=%s have already been build, overwrite not allowed", tagWith)
 				}
 			}
