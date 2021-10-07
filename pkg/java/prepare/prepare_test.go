@@ -23,7 +23,6 @@ func TestPrepareLayers(t *testing.T) {
 		ExternalDockerRegistry: "https://localhost:5000",
 		TagWith:                "latest",
 		RetagWith:              "",
-		TagOverwrite:           false,
 	}, runtime.NewAuroraVersion("", false, "", ""),
 		nexus.Deliverable{
 			Path: "testdata/minarch-1.2.22-Leveransepakke.zip",

@@ -30,6 +30,13 @@ const (
 	Doozerleveransepakke Classifier = "Doozerleveransepakke"
 )
 
+type BinaryBuildType string
+
+const (
+	Snapshot BinaryBuildType = "Snapshot"
+	Release  BinaryBuildType = "Release"
+)
+
 type Config struct {
 	ApplicationType   ApplicationType
 	ApplicationSpec   ApplicationSpec
@@ -43,6 +50,7 @@ type Config struct {
 	SporingsContext   string
 	Sporingstjeneste  string
 	OwnerReferenceUid string
+	BinaryBuildType   BinaryBuildType
 }
 
 type NexusAccess struct {
@@ -95,9 +103,8 @@ type DockerSpec struct {
 	//This is the external docker registry where we check versions.
 	ExternalDockerRegistry string
 	//The tag to push to. This is only used for ImageStreamTags (as for now) and RETAG functionality
-	TagWith      string
-	RetagWith    string
-	TagOverwrite bool
+	TagWith   string
+	RetagWith string
 }
 
 type BuilderSpec struct {

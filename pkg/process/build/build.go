@@ -10,6 +10,7 @@ import (
 	"github.com/skatteetaten/architect/pkg/nexus"
 	"github.com/skatteetaten/architect/pkg/process/tagger"
 	"github.com/skatteetaten/architect/pkg/trace"
+	"strings"
 )
 
 type Builder interface {
@@ -68,18 +69,27 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 		return errors.Wrap(err, "Error preparing image")
 	}
 
-	if !cfg.DockerSpec.TagOverwrite {
-		for _, buildConfig := range dockerBuildConfig {
-			if !buildConfig.AuroraVersion.Snapshot {
-				tags, err := pushRegistry.GetTags(ctx, cfg.DockerSpec.OutputRepository)
-				if err != nil {
-					return err
+	tagWith := cfg.DockerSpec.TagWith
+	for _, buildConfig := range dockerBuildConfig {
+		if !buildConfig.AuroraVersion.Snapshot {
+			tags, err := pushRegistry.GetTags(ctx, cfg.DockerSpec.OutputRepository)
+			if err != nil {
+				return err
+			}
+			semanticVersion := buildConfig.AuroraVersion.GetGivenVersion()
+			completeVersion := buildConfig.AuroraVersion.GetCompleteVersion()
+			logrus.Debugf("GivenVersion=%s, CompleteVersion=%s", semanticVersion, completeVersion)
+			for _, tag := range tags.Tags {
+				repoTag := docker.ConvertTagToRepositoryTag(tag)
+				logrus.Debug(repoTag)
+				if strings.EqualFold(repoTag, completeVersion) {
+					return errors.Errorf("There are already a build with tag %s, overwrite not allowed", completeVersion)
 				}
-				completeVersion := buildConfig.AuroraVersion.GetCompleteVersion()
-				for _, tag := range tags.Tags {
-					if tag == completeVersion {
-						return errors.Errorf("There are already a build with tag %s, consider TAG_OVERWRITE", completeVersion)
-					}
+				if strings.EqualFold(repoTag, semanticVersion) {
+					return errors.Errorf("There are already a build with tag %s, overwrite not allowed", semanticVersion)
+				}
+				if strings.EqualFold(repoTag, tagWith) {
+					return errors.Errorf("Given value for TagWith=%s have already been build, overwrite not allowed", tagWith)
 				}
 			}
 		}
@@ -106,7 +116,6 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 		var tagResolver tagger.TagResolver
 		if cfg.DockerSpec.TagWith == "" {
 			tagResolver = &tagger.NormalTagResolver{
-				Overwrite:      cfg.DockerSpec.TagOverwrite,
 				RegistryClient: pushRegistry,
 				Registry:       cfg.DockerSpec.OutputRegistry,
 				Repository:     buildConfig.DockerRepository,

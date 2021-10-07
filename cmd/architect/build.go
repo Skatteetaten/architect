@@ -87,12 +87,6 @@ var Bc = &cobra.Command{
 	Long:  "Build images from openshift build configurations",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if verbose {
-			logrus.SetLevel(logrus.DebugLevel)
-		} else {
-			logrus.SetLevel(logrus.InfoLevel)
-		}
-
 		var nexusDownloader nexus.Downloader
 		if verbose {
 			logrus.SetLevel(logrus.DebugLevel)

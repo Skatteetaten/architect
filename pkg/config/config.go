@@ -324,11 +324,14 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		dockerSpec.RetagWith = temporaryTag
 	}
 
-	dockerSpec.TagOverwrite = false
-	if tagOverwrite, err := findEnv(env, "TAG_OVERWRITE"); err == nil {
-		if strings.Contains(strings.ToLower(tagOverwrite), "true") {
-			dockerSpec.TagOverwrite = true
-		}
+	// TagOverwrite has been removed since 10.2021. Kept to logg usage
+	if _, err := findEnv(env, "TAG_OVERWRITE"); err == nil {
+		logrus.Warning("Functionality for TAG_OVERWRITE has been removed")
+	}
+
+	buildType := Snapshot
+	if envBuildType, err := findEnv(env, "BINARY_BUILD_TYPE"); err == nil {
+		buildType = BinaryBuildType(envBuildType)
 	}
 
 	builderSpec := BuilderSpec{}
@@ -406,6 +409,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		SporingsContext:   sporingscontext,
 		Sporingstjeneste:  sporingstjeneste,
 		OwnerReferenceUid: string(build.UID),
+		BinaryBuildType:   buildType,
 	}
 	return c, nil
 }

@@ -93,7 +93,6 @@ func (m *retagger) Retag(ctx context.Context) error {
 		Registry:   m.Config.DockerSpec.OutputRegistry,
 		//TODO: Fix signature.. We don't want to have to registries on retag...
 		RegistryClient: docker.NewRegistryClient(retagRegistry),
-		Overwrite:      m.Config.DockerSpec.TagOverwrite,
 	}
 	logrus.Debugf("Extract tag info, auroraVersion=%v, appVersion=%v, extraTags=%s", auroraVersion, appVersion, extratags)
 
