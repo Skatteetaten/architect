@@ -330,7 +330,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 
 	buildType := Snapshot
-	if envBuildType, err := findEnv(env, "BUILD_TYPE"); err == nil {
+	if envBuildType, err := findEnv(env, "BINARY_BUILD_TYPE"); err == nil {
 		buildType = BinaryBuildType(envBuildType)
 	}
 
