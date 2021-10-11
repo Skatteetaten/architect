@@ -59,9 +59,18 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.BuildConfig)
 		return nil, errors.Wrap(err, "Failed to fetch the container config")
 	}
 
-	var layers []Layer
-	for _, layer := range manifest.Layers {
+	//Include the container configuration blob
+	blobs := make([]docker.Layer, len(manifest.Layers))
+	copy(blobs, manifest.Layers)
+	blobs = append(blobs, docker.Layer{
+		MediaType: manifest.Config.MediaType,
+		Size:      manifest.Config.Size,
+		Digest:    manifest.Config.Digest,
+	})
 
+	//Handle blobs
+	var layers []Layer
+	for _, layer := range blobs {
 		ok, _ := l.pushRegistry.LayerExists(ctx, l.config.DockerSpec.OutputRepository, layer.Digest)
 		if !ok {
 			//Pull missing layers
