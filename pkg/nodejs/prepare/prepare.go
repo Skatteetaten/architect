@@ -86,6 +86,10 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed creating nodejs override script")
 		}
+		err = os.Chmod(buildPath+"/overrides/run_node", 0755)
+		if err != nil {
+			return nil, errors.Wrap(err, "Could not set file permissions")
+		}
 	}
 
 	//COPY ./{{.PackageDirectory}} /u01/application
