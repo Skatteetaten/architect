@@ -76,7 +76,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 		return nil, errors.Wrap(err, "Unable to create radish-nginx configuration")
 	}
 
-	err = addProbes(nginxData.HasNodeJSApplication, writer)
+	err = addProbes(buildPath, nginxData.HasNodeJSApplication, writer)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to write health check probes")
 	}
@@ -136,7 +136,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 
 }
 
-func addProbes(hasNodejsApplication bool, writer util.FileWriter) error {
+func addProbes(buildPath string, hasNodejsApplication bool, writer util.FileWriter) error {
 	nginxProbe := &probe{
 		Include: true,
 		Port:    8080,
@@ -150,20 +150,36 @@ func addProbes(hasNodejsApplication bool, writer util.FileWriter) error {
 	if err != nil {
 		return err
 	}
+	err = os.Chmod(buildPath+"/overrides/liveness_node.sh", 0755)
+	if err != nil {
+		return errors.Wrap(err, "Could not set file permissions")
+	}
 	err = writer(util.NewTemplateWriter(nginxProbe, "nginxliveness", ReadinessLivenessSH),
 		"overrides", "liveness_nginx.sh")
 	if err != nil {
 		return err
+	}
+	err = os.Chmod(buildPath+"/overrides/liveness_nginx.sh", 0755)
+	if err != nil {
+		return errors.Wrap(err, "Could not set file permissions")
 	}
 	err = writer(util.NewTemplateWriter(nodeProbe, "nodereadiness", ReadinessLivenessSH),
 		"overrides", "readiness_node.sh")
 	if err != nil {
 		return err
 	}
+	err = os.Chmod(buildPath+"/overrides/readiness_node.sh", 0755)
+	if err != nil {
+		return errors.Wrap(err, "Could not set file permissions")
+	}
 	err = writer(util.NewTemplateWriter(nginxProbe, "nginxreadiness", ReadinessLivenessSH),
 		"overrides", "readiness_nginx.sh")
 	if err != nil {
 		return err
+	}
+	err = os.Chmod(buildPath+"/overrides/readiness_nginx.sh", 0755)
+	if err != nil {
+		return errors.Wrap(err, "Could not set file permissions")
 	}
 	return nil
 }
