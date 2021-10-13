@@ -76,9 +76,12 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 		return nil, errors.Wrap(err, "Unable to create radish-nginx configuration")
 	}
 
-	err = addProbes(buildPath, nginxData.HasNodeJSApplication, writer)
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to write health check probes")
+	if err := addNginxProbes(buildPath, writer); err != nil {
+		return nil, errors.Wrap(err, "Nginx: Unable to write health check probes")
+	}
+
+	if err := addNodeProbes(buildPath, nginxData.HasNodeJSApplication, writer); err != nil {
+		return nil, errors.Wrap(err, "Node: Unable to write health check probes")
 	}
 
 	if !nginxData.HasNodeJSApplication {
@@ -136,11 +139,36 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 
 }
 
-func addProbes(buildPath string, hasNodejsApplication bool, writer util.FileWriter) error {
+func addNginxProbes(buildPath string, writer util.FileWriter) error {
+
 	nginxProbe := &probe{
 		Include: true,
 		Port:    8080,
 	}
+	err := writer(util.NewTemplateWriter(nginxProbe, "nginxreadiness", ReadinessLivenessSH),
+		"overrides", "readiness_nginx.sh")
+	if err != nil {
+		return err
+	}
+	err = os.Chmod(buildPath+"/overrides/readiness_nginx.sh", 0755)
+	if err != nil {
+		return errors.Wrap(err, "Could not set file permissions")
+	}
+
+	err = writer(util.NewTemplateWriter(nginxProbe, "nginxliveness", ReadinessLivenessSH),
+		"overrides", "liveness_nginx.sh")
+	if err != nil {
+		return err
+	}
+	err = os.Chmod(buildPath+"/overrides/liveness_nginx.sh", 0755)
+	if err != nil {
+		return errors.Wrap(err, "Could not set file permissions")
+	}
+
+	return nil
+}
+
+func addNodeProbes(buildPath string, hasNodejsApplication bool, writer util.FileWriter) error {
 	nodeProbe := &probe{
 		Include: hasNodejsApplication,
 		Port:    9090,
@@ -154,30 +182,13 @@ func addProbes(buildPath string, hasNodejsApplication bool, writer util.FileWrit
 	if err != nil {
 		return errors.Wrap(err, "Could not set file permissions")
 	}
-	err = writer(util.NewTemplateWriter(nginxProbe, "nginxliveness", ReadinessLivenessSH),
-		"overrides", "liveness_nginx.sh")
-	if err != nil {
-		return err
-	}
-	err = os.Chmod(buildPath+"/overrides/liveness_nginx.sh", 0755)
-	if err != nil {
-		return errors.Wrap(err, "Could not set file permissions")
-	}
+
 	err = writer(util.NewTemplateWriter(nodeProbe, "nodereadiness", ReadinessLivenessSH),
 		"overrides", "readiness_node.sh")
 	if err != nil {
 		return err
 	}
 	err = os.Chmod(buildPath+"/overrides/readiness_node.sh", 0755)
-	if err != nil {
-		return errors.Wrap(err, "Could not set file permissions")
-	}
-	err = writer(util.NewTemplateWriter(nginxProbe, "nginxreadiness", ReadinessLivenessSH),
-		"overrides", "readiness_nginx.sh")
-	if err != nil {
-		return err
-	}
-	err = os.Chmod(buildPath+"/overrides/readiness_nginx.sh", 0755)
 	if err != nil {
 		return errors.Wrap(err, "Could not set file permissions")
 	}
