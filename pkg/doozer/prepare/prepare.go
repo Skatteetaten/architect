@@ -116,13 +116,13 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 	fileinfo, err := os.Stat(filepath.Join(buildContext, strings.TrimSpace(imageMetadata.SrcPath), strings.TrimSpace(imageMetadata.FileName)))
 
 	if err == nil && fileinfo.IsDir() {
-		src := filepath.Join(buildContext, imageMetadata.SrcPath)
+		src := filepath.Join(buildContext, "app/application", imageMetadata.SrcPath)
 		dst := filepath.Join(buildContext, "layer", imageMetadata.DestPath)
 		if err := util.CopyDirectory(src, dst); err != nil {
 			return nil, errors.Wrapf(err, "Could not copy directory from src=%s to dst=%s", src, dst)
 		}
 		if len(cmd) > 0 && len(entrypoint) == 0 {
-			executable := filepath.Join(buildContext, "layer", cmd[0])
+			executable := filepath.Join(buildContext, "app/application", "layer", cmd[0])
 			err = os.Chmod(executable, 0755)
 			if err != nil {
 				return nil, errors.Wrap(err, "Could not set permission")
