@@ -6,5 +6,5 @@ const (
 	EnvSnapshotVersion = "SNAPSHOT_TAG"
 	EnvPushExtraTags   = "PUSH_EXTRA_TAGS"
 	TZ                 = "TZ"
-	ImageBuildTime     = "ImageBuildTime"
+	ImageBuildTime     = "IMAGE_BUILD_TIME"
 )

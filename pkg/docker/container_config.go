@@ -127,13 +127,13 @@ func (c *ContainerConfig) setEntrypoint(entrypoint []string) {
 
 func (c *ContainerConfig) setCreatedTimestamp() {
 	layout := "2006-01-02T15:04:05.000000000Z"
-	timestamp := time.Now().Format(layout)
+	timestamp := time.Now().UTC().Format(layout)
 	c.Created = timestamp
 }
 
 func (c *ContainerConfig) addHistoryEntry() {
 	layout := "2006-01-02T15:04:05.000000000Z"
-	timestamp := time.Now().Format(layout)
+	timestamp := time.Now().UTC().Format(layout)
 
 	c.History = append(c.History, History{
 		Created:   timestamp,
