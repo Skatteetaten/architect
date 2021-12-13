@@ -10,6 +10,10 @@ _______  _______  _______          __________________ _______  _______ _________
                                                                                  
 ```
 
+# Branch master is not the main branch !! 
+
+The branch used in GIT is 2-relese NOT master 
+
 # Introduction
 
 Architect is a tool for building Docker images. It accepts a software deliverable as input, 
