@@ -236,8 +236,13 @@ func (n *NexusDownloader) fileName(cfg *config.MavenGav, contentDisposition stri
 		if err != nil {
 			return "", errors.Wrap(err, "Failed to parse content-disposition")
 		}
-		return params["filename"], nil
-	} else if location != "" {
+		fName := params["filename"]
+		if fName != "" {
+			return fName, nil
+		}
+	}
+
+	if location != "" {
 		_, fileName := filepath.Split(location)
 		return fileName, nil
 	} else {
