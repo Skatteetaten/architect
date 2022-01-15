@@ -91,7 +91,7 @@ func TestTagInfoRelease(t *testing.T) {
 }
 
 func TestTagInfoSnapshot(t *testing.T) {
-	appVersion := runtime.NewAuroraVersion(SnapshotAppVersion, true, SnapshotGivenVersion, runtime.CompleteVersion(SnapshotAuroraVersion))
+	appVersion := runtime.NewAuroraVersion(SnapshotAppVersion, true, SnapshotGivenVersion, SnapshotAuroraVersion)
 	tags, err := tagger.ResolveTags(appVersion, config.ParseExtraTags(CfgPushExtraTags))
 	if err != nil {
 		t.Fatalf("Failed to create target VersionInfo %v", err)
@@ -106,7 +106,7 @@ func TestFilterTags(t *testing.T) {
 		tagResolver: &tagger,
 	}
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.1.1", false, "1.1.1", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.1.1", false, "1.1.1", "COMPLETE"),
 		[]string{"1.1.1", "COMPLETE"})
 
 	r.testTagFiltering(
@@ -368,5 +368,5 @@ func verifyTagListContent(t *testing.T, actualList []string, expectedList []stri
 	}
 	sort.StringSlice(expectedListExpanded).Sort()
 	sort.StringSlice(actualList).Sort()
-	assert.Equal(t, actualList, expectedListExpanded)
+	assert.Equal(t, expectedListExpanded, actualList)
 }
