@@ -147,7 +147,6 @@ func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 		return deliverable, errors.Wrapf(err, "Error when downloading artifact from %s", u.String())
 	}
 
-	location := resp.Header.Get("Location")
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -155,10 +154,7 @@ func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 			". Status code %s , Location %s", resp.Status, resp.Request.URL)
 	}
 
-	fileName, err := fileName(c, resp.Header.Get("content-disposition"), location)
-	if err != nil {
-		return deliverable, errors.Wrapf(err, "Could not create filename for temporary file")
-	}
+	fileName := n.fileName(c, mavenManifest)
 
 	dir, err := ioutil.TempDir("", "package")
 	if err != nil {
@@ -184,6 +180,15 @@ func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 
 	return deliverable, nil
 
+}
+
+func (n *MavenDownloader) fileName(c *config.MavenGav, manifest MavenManifest) string {
+	versionWithoutSnapshot := strings.ReplaceAll(c.Version, "SNAPSHOT", "")
+	if c.IsSnapshot() {
+		return fmt.Sprintf("%s-%s%s-%d%s", c.ArtifactId, versionWithoutSnapshot, manifest.Versioning.Snapshot.Timestamp, manifest.Versioning.Snapshot.BuildNumber, getClassifierExt(c))
+	} else {
+		return fmt.Sprintf("%s-%s%s", c.ArtifactId, c.Version, getClassifierExt(c))
+	}
 }
 
 type MavenManifest struct {
@@ -298,7 +303,7 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 			". Status code %s , Location %s", httpResponse.Status, httpResponse.Request.URL)
 	}
 
-	fileName, err := fileName(c, httpResponse.Header.Get("content-disposition"), location)
+	fileName, err := n.fileName(c, httpResponse.Header.Get("content-disposition"), location)
 	if err != nil {
 		return deliverable, errors.Wrapf(err, "Could not create filename for temporary file")
 	}
@@ -394,7 +399,7 @@ func (n *NexusDownloader) createNexus3URL(gav *config.MavenGav) (string, error) 
 	return tmpURL.String(), nil
 }
 
-func fileName(cfg *config.MavenGav, contentDisposition string, location string) (string, error) {
+func (n *NexusDownloader) fileName(cfg *config.MavenGav, contentDisposition string, location string) (string, error) {
 	if len(contentDisposition) > 0 {
 		_, params, err := mime.ParseMediaType(contentDisposition)
 		if err != nil {
