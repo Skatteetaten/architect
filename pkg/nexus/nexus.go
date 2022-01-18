@@ -201,22 +201,20 @@ type Snapshot struct {
 
 func createMavenManifestPath(c *config.MavenGav) string {
 	groupId := strings.ReplaceAll(c.GroupId, ".", "/")
-	version := strings.ReplaceAll(c.Version, "-", "_")
-	return fmt.Sprintf("/repository/maven/intern/%s/%s/%s/maven-metadata.xml", groupId, c.ArtifactId, version)
+	return fmt.Sprintf("/repository/maven-intern/%s/%s/%s/maven-metadata.xml", groupId, c.ArtifactId, c.Version)
 }
 
 func createDownloadPath(manifest MavenManifest, c *config.MavenGav) string {
 	groupId := strings.ReplaceAll(c.GroupId, ".", "/")
-	version := strings.ReplaceAll(c.Version, "-", "_")
 	versionWithoutSnapshot := strings.ReplaceAll(c.Version, "SNAPSHOT", "")
 
 	var artifact string
 	if c.IsSnapshot() {
 		artifact = fmt.Sprintf("%s%s-%d%s", versionWithoutSnapshot, manifest.Versioning.Snapshot.Timestamp, manifest.Versioning.Snapshot.BuildNumber, getClassifierExt(c))
 	} else {
-		artifact = fmt.Sprintf("%s%s", version, getClassifierExt(c))
+		artifact = fmt.Sprintf("%s%s", c.Version, getClassifierExt(c))
 	}
-	return fmt.Sprintf("/repository/maven/intern/%s/%s/%s/%s", groupId, c.ArtifactId, version, artifact)
+	return fmt.Sprintf("/repository/maven-intern/%s/%s/%s/%s", groupId, c.ArtifactId, c.Version, artifact)
 }
 
 func getClassifierExt(c *config.MavenGav) string {
