@@ -40,7 +40,6 @@ func initializeAndRunOnOpenShift() {
 		logrus.SetLevel(logrus.DebugLevel)
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)
-
 	}
 	for _, env := range os.Environ() {
 		logrus.Debugf("Environment %s", env)
@@ -70,7 +69,7 @@ func initializeAndRunOnOpenShift() {
 			logrus.Fatalf("Error reading NexusAccess, and build is not binary: %s", errors.Unwrap(err))
 		}
 		logrus.Debugf("Using Maven repo on %s", nexusAccess.NexusURL)
-		nexusDownloader = nexus.NewNexusDownloader(nexusAccess.NexusURL, nexusAccess.Username, nexusAccess.Password)
+		nexusDownloader = nexus.NewMavenDownloader(nexusAccess.NexusURL, nexusAccess.Username, nexusAccess.Password)
 	}
 	runConfig := architect.RunConfiguration{
 		Config:                  c,

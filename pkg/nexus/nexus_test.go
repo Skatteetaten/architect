@@ -3,84 +3,14 @@ package nexus
 import (
 	"archive/zip"
 	"bytes"
-	"fmt"
 	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/stretchr/testify/assert"
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"strings"
+	"os"
 	"testing"
 )
-
-func TestDownloadFromNexus2Server(t *testing.T) {
-	b, err := createZipFile()
-	if err != nil {
-		t.Error(err.Error())
-	}
-	zipFileName := "my-test-package-1.0.0-Leveransepakke.zip"
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(b.Bytes())))
-		w.Header().Set("Content-Disposition", "attachment; filename=\""+zipFileName+"\"")
-		w.Header().Set("Content-Type", "application/zip")
-		w.Write(b.Bytes())
-	}))
-	defer ts.Close()
-
-	n := NewNexusDownloader(ts.URL, "", "")
-	m := config.MavenGav{
-		ArtifactId: "openshift-resource-monitor",
-		GroupId:    "ske.fellesplattform.monitor",
-		Version:    "1.1.4",
-	}
-
-	r, err := n.DownloadArtifact(&m)
-	if err != nil {
-		t.Error(err.Error())
-	}
-
-	if strings.Contains(r.Path, zipFileName) == false {
-		t.Error(
-			"excpected", zipFileName,
-			"got", r)
-	}
-}
-
-func TestDownloadFromNexus3Server(t *testing.T) {
-	b, err := createZipFile()
-	if err != nil {
-		t.Error(err.Error())
-	}
-	zipFileName := "leveransepakke.zip"
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(b.Bytes())))
-		w.Header().Set("Content-Type", "application/zip")
-		w.Header().Set("Server", "Nexus/3.18.1-01 (PRO)")
-		w.Write(b.Bytes())
-	}))
-	defer ts.Close()
-
-	n := NewNexusDownloader(ts.URL, "", "")
-	m := config.MavenGav{
-		ArtifactId: "openshift-resource-monitor",
-		GroupId:    "ske.fellesplattform.monitor",
-		Version:    "1.1.4",
-		Type:       "zip",
-		Classifier: "leveransepakke",
-	}
-
-	r, err := n.DownloadArtifact(&m)
-	if err != nil {
-		t.Error(err.Error())
-	}
-
-	if strings.Contains(r.Path, zipFileName) == false {
-		t.Error(
-			"expected", zipFileName,
-			"got", r)
-	}
-}
 
 func TestNewLocalDownloader(t *testing.T) {
 	d := NewBinaryDownloader("test")
@@ -146,4 +76,68 @@ func createZipFile() (bytes.Buffer, error) {
 		log.Fatal(err)
 	}
 	return *buf, nil
+}
+
+func TestMavenDownloaderOnSnapshot(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if "/repository/maven-intern/no/skatteetaten/aurora/architect/test_build-SNAPSHOT/maven-metadata.xml" == r.RequestURI {
+
+			data, err := os.ReadFile("testdata/manifest.xml")
+			assert.NoError(t, err)
+
+			w.WriteHeader(200)
+			w.Write(data)
+			return
+		} else if "/repository/maven-intern/no/skatteetaten/aurora/architect/test_build-SNAPSHOT/architect-test_build-20220112.075052-2-Leveransepakke.zip" == r.RequestURI {
+			data, err := createZipFile()
+			assert.NoError(t, err)
+			w.WriteHeader(200)
+			w.Write(data.Bytes())
+			return
+		} else {
+			t.Errorf("Unexpected call %s", r.RequestURI)
+		}
+	}))
+	defer srv.Close()
+
+	mavenDownloader := NewMavenDownloader(srv.URL, "username", "password")
+
+	maven := config.MavenGav{
+		ArtifactId: "architect",
+		GroupId:    "no.skatteetaten.aurora",
+		Version:    "test_build-SNAPSHOT",
+		Classifier: "Leveransepakke",
+		Type:       "zip",
+	}
+
+	_, err := mavenDownloader.DownloadArtifact(&maven)
+	assert.NoError(t, err)
+}
+
+func TestMavenDownloaderOnRelease(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if "/repository/maven-intern/no/skatteetaten/aurora/architect/1.0.0/architect-1.0.0-Leveransepakke.zip" == r.RequestURI {
+			data, err := createZipFile()
+			assert.NoError(t, err)
+			w.WriteHeader(200)
+			w.Write(data.Bytes())
+			return
+		} else {
+			t.Errorf("Unexpected call %s", r.RequestURI)
+		}
+	}))
+	defer srv.Close()
+
+	mavenDownloader := NewMavenDownloader(srv.URL, "username", "password")
+
+	maven := config.MavenGav{
+		ArtifactId: "architect",
+		GroupId:    "no.skatteetaten.aurora",
+		Version:    "1.0.0",
+		Classifier: "Leveransepakke",
+		Type:       "zip",
+	}
+
+	_, err := mavenDownloader.DownloadArtifact(&maven)
+	assert.NoError(t, err)
 }
