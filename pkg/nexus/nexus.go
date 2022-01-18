@@ -100,6 +100,8 @@ func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 			return deliverable, errors.Wrap(err, "Could no create path from gav")
 		}
 
+		logrus.Debugf("Fetch maven manifest from %s", u.String())
+
 		req, err := http.NewRequest("GET", u.String(), nil)
 		req.Header.Set("Accept", "application/xml")
 		if err != nil {
