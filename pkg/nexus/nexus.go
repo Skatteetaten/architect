@@ -68,6 +68,16 @@ func NewBinaryDownloader(path string) Downloader {
 	}
 }
 
+func (n *BinaryDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, error) {
+	deliverable := Deliverable{
+		Path: n.Path,
+	}
+	if _, err := os.Stat(n.Path); err != nil {
+		return deliverable, errors.Wrapf(err, "Failed to stat local artifact %s", n.Path)
+	}
+	return deliverable, nil
+}
+
 //NewMavenDownloader MavenDownloader of type Downloader
 func NewMavenDownloader(baseURL string, username string, password string) Downloader {
 	return &MavenDownloader{
@@ -216,16 +226,6 @@ func getClassifierExt(c *config.MavenGav) string {
 	} else {
 		return fmt.Sprintf(".%s", c.Type)
 	}
-}
-
-func (n *BinaryDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, error) {
-	deliverable := Deliverable{
-		Path: n.Path,
-	}
-	if _, err := os.Stat(n.Path); err != nil {
-		return deliverable, errors.Wrapf(err, "Failed to stat local artifact %s", n.Path)
-	}
-	return deliverable, nil
 }
 
 /*

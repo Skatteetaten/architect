@@ -3,7 +3,6 @@ package nexus
 import (
 	"archive/zip"
 	"bytes"
-	"fmt"
 	"github.com/skatteetaten/architect/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"log"
@@ -111,10 +110,8 @@ func TestMavenDownloaderOnSnapshot(t *testing.T) {
 		Type:       "zip",
 	}
 
-	deliverable, err := mavenDownloader.DownloadArtifact(&maven)
+	_, err := mavenDownloader.DownloadArtifact(&maven)
 	assert.NoError(t, err)
-	fmt.Println(deliverable.Path)
-
 }
 
 func TestMavenDownloaderOnRelease(t *testing.T) {
@@ -141,7 +138,6 @@ func TestMavenDownloaderOnRelease(t *testing.T) {
 		Type:       "zip",
 	}
 
-	deliverable, err := mavenDownloader.DownloadArtifact(&maven)
+	_, err := mavenDownloader.DownloadArtifact(&maven)
 	assert.NoError(t, err)
-	fmt.Println(deliverable.Path)
 }
