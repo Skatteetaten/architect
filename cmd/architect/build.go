@@ -113,7 +113,7 @@ var Bc = &cobra.Command{
 			logrus.Fatalf("Unable to get Nexus credentials: %s", err)
 		}
 
-		nexusDownloader = nexus.NewNexusDownloader(nexusAccess.NexusURL, nexusAccess.Username, nexusAccess.Password)
+		nexusDownloader = nexus.NewMavenDownloader(nexusAccess.NexusURL, nexusAccess.Username, nexusAccess.Password)
 
 		RunArchitect(RunConfiguration{
 			NexusDownloader:         nexusDownloader,
