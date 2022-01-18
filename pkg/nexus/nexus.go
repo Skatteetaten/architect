@@ -210,9 +210,9 @@ func createDownloadPath(manifest MavenManifest, c *config.MavenGav) string {
 
 	var artifact string
 	if c.IsSnapshot() {
-		artifact = fmt.Sprintf("%s%s-%d%s", versionWithoutSnapshot, manifest.Versioning.Snapshot.Timestamp, manifest.Versioning.Snapshot.BuildNumber, getClassifierExt(c))
+		artifact = fmt.Sprintf("%s-%s%s-%d%s", c.ArtifactId, versionWithoutSnapshot, manifest.Versioning.Snapshot.Timestamp, manifest.Versioning.Snapshot.BuildNumber, getClassifierExt(c))
 	} else {
-		artifact = fmt.Sprintf("%s%s", c.Version, getClassifierExt(c))
+		artifact = fmt.Sprintf("%s-%s%s", c.ArtifactId, c.Version, getClassifierExt(c))
 	}
 	return fmt.Sprintf("/repository/maven-intern/%s/%s/%s/%s", groupId, c.ArtifactId, c.Version, artifact)
 }

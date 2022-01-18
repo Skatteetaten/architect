@@ -161,7 +161,7 @@ func TestMavenDownloaderOnSnapshot(t *testing.T) {
 			w.WriteHeader(200)
 			w.Write(data)
 			return
-		} else if "/repository/maven-intern/no/skatteetaten/fastsetting/avgift/motorvogn/part3Klient/PTMAF_3298_nullpointer_i_kjregister_ved_henting_av_adr-SNAPSHOT/PTMAF_3298_nullpointer_i_kjregister_ved_henting_av_adr-20220112.075052-2-Leveransepakke.zip" == r.RequestURI {
+		} else if "/repository/maven-intern/no/skatteetaten/fastsetting/avgift/motorvogn/part3Klient/PTMAF_3298_nullpointer_i_kjregister_ved_henting_av_adr-SNAPSHOT/part3Klient-PTMAF_3298_nullpointer_i_kjregister_ved_henting_av_adr-20220112.075052-2-Leveransepakke.zip" == r.RequestURI {
 			data, err := createZipFile()
 			assert.NoError(t, err)
 			w.WriteHeader(200)
