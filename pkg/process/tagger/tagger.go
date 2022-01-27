@@ -80,10 +80,13 @@ func findCandidateTags(appVersion *runtime.AuroraVersion, outputRepository strin
 		}
 		return filteredTags, nil
 	} else {
-		versions := make([]string, 0, 10)
 		logrus.Debug("Is not semantic version. Append only complete version and given version")
+		var versions []string
 		versions = append(versions, appVersion.GetCompleteSnapshotVersion())
 		if appVersion.Snapshot {
+			if appVersion.GetUniqueSnapshotVersion() != "" {
+				versions = append(versions, appVersion.GetUniqueSnapshotVersion())
+			}
 			versions = append(versions, appVersion.GetGivenVersion())
 		}
 		return versions, nil

@@ -268,5 +268,5 @@ func mapObject(openshiftJSON *openshiftJSON) (*NginxfileData, *ImageMetadata, er
 	dockerSpec := config.DockerSpec{
 		PushExtraTags: config.ParseExtraTags("major"),
 	}
-	return mapOpenShiftJSONToTemplateInput(dockerSpec, openshiftJSON, "name", "name", runtime.NewAuroraVersion("version", false, "version", runtime.CompleteVersion("version-b--baseimageversion")))
+	return mapOpenShiftJSONToTemplateInput(dockerSpec, openshiftJSON, "name", "name", runtime.NewAuroraVersion("version", false, "version", "version-b--baseimageversion"))
 }

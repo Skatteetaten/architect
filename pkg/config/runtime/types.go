@@ -85,6 +85,7 @@ type AuroraVersion struct {
 	givenVersion            GivenVersion // The version set in the build config
 	completeVersion         CompleteVersion
 	completeSnapshotVersion CompleteVersion
+	hash                    string
 }
 
 func NewAuroraVersion(appVersion string, snapshot bool, givenVersion string, completeVersion CompleteVersion) *AuroraVersion {
@@ -99,13 +100,14 @@ func NewAuroraVersion(appVersion string, snapshot bool, givenVersion string, com
 
 func NewAuroraVersionFromBuilderAndBase(
 	appVersion string, snapshot bool,
-	givenVersion string, buildImage *ArchitectImage, baseImage DockerImage) *AuroraVersion {
+	givenVersion string, buildImage *ArchitectImage, baseImage DockerImage, hash string) *AuroraVersion {
 	return &AuroraVersion{
 		appVersion:              AppVersion(appVersion),
 		Snapshot:                snapshot,
 		givenVersion:            GivenVersion(givenVersion),
 		completeVersion:         CompleteVersion(getCompleteVersion(AppVersion(appVersion), buildImage, baseImage)),
 		completeSnapshotVersion: CompleteVersion(getCompleteVersion(AppVersion(givenVersion), buildImage, baseImage)),
+		hash:                    hash,
 	}
 }
 
@@ -123,6 +125,13 @@ func (m *AuroraVersion) GetCompleteSnapshotVersion() string {
 
 func (m *AuroraVersion) GetAppVersion() AppVersion {
 	return m.appVersion
+}
+
+func (m *AuroraVersion) GetUniqueSnapshotVersion() string {
+	if m.hash == "" || len(m.hash) < 8 {
+		return ""
+	}
+	return fmt.Sprintf("%s-%s", m.GetGivenVersion(), m.hash[len(m.hash)-8:])
 }
 
 //TODO: Snapshot / Semantic? Whats the difference?

@@ -62,7 +62,7 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 	snapshot := application.MavenGav.IsSnapshot()
 	appVersion := nexus.GetSnapshotTimestampVersion(application.MavenGav, deliverable)
 	auroraVersion := runtime.NewAuroraVersionFromBuilderAndBase(appVersion, snapshot,
-		application.MavenGav.Version, buildImage, baseImage.DockerImage)
+		application.MavenGav.Version, buildImage, baseImage.DockerImage, deliverable.SHA1)
 
 	dockerBuildConfig, err := prepper(cfg, auroraVersion, deliverable, baseImage)
 	if err != nil {
