@@ -52,6 +52,29 @@ func TestGetSnapshotTimestampVersion(t *testing.T) {
 	}
 }
 
+func TestGetSnapshotTimestampVersionBinaryBuild(t *testing.T) {
+	expectedVersion := "SNAPSHOT-feature_baz-20170701.103015-1"
+
+	gav := config.MavenGav{
+		ArtifactId: "myapp",
+		GroupId:    "ske.foo.bar",
+		Version:    "feature-baz-SNAPSHOT",
+		Classifier: config.Leveransepakke,
+		Type:       config.ZipPackaging,
+	}
+
+	deliverable := Deliverable{
+		Path: "/tmp/package917376626/myapp-feature_baz-20170701.103015-1-Leveransepakke.zip",
+	}
+
+	actualVersion := GetSnapshotTimestampVersion(gav, deliverable)
+
+	if actualVersion != expectedVersion {
+		t.Errorf("Expexted version %s, actual version was %s", expectedVersion, actualVersion)
+	}
+
+}
+
 func createZipFile() (bytes.Buffer, error) {
 	buf := new(bytes.Buffer)
 

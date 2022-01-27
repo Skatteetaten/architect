@@ -75,6 +75,9 @@ func (n *BinaryDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, er
 	if _, err := os.Stat(n.Path); err != nil {
 		return deliverable, errors.Wrapf(err, "Failed to stat local artifact %s", n.Path)
 	}
+	hash, _ := hashFileSHA1(deliverable.Path)
+	deliverable.SHA1 = hash
+
 	return deliverable, nil
 }
 
