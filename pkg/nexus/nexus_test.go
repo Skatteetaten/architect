@@ -164,3 +164,61 @@ func TestMavenDownloaderOnRelease(t *testing.T) {
 	_, err := mavenDownloader.DownloadArtifact(&maven)
 	assert.NoError(t, err)
 }
+
+func TestFileName(t *testing.T) {
+	mavenDownloader := &MavenDownloader{}
+
+	// case 1 - release
+	gav := config.MavenGav{
+		ArtifactId: "artifact",
+		GroupId:    "no.skatteetaten.aurora",
+		Version:    "1.0.0",
+		Classifier: "Leveransepakke",
+		Type:       "zip",
+	}
+	dummyManifest := MavenManifest{}
+
+	fileName := mavenDownloader.fileName(&gav, dummyManifest)
+
+	expected := "artifact-1.0.0-Leveransepakke.zip"
+	assert.Equal(t, expected, fileName, "release filename")
+
+	// case 2 - SNAPSHOT with full manifest
+	gav = config.MavenGav{
+		ArtifactId: "myapp",
+		GroupId:    "ske.foo.bar",
+		Version:    "feature-baz-SNAPSHOT",
+		Classifier: config.Leveransepakke,
+		Type:       config.ZipPackaging,
+	}
+	manifest := MavenManifest{
+		Versioning: Versioning{
+			Snapshot: Snapshot{Timestamp: "20220128.090348", BuildNumber: 1},
+		},
+	}
+
+	fileName = mavenDownloader.fileName(&gav, manifest)
+
+	expected = "myapp-feature-baz-20220128.090348-1-Leveransepakke.zip"
+	assert.Equal(t, expected, fileName, "standard snapshot filename")
+
+	// case 3 - SNAPSHOT with manifest without timestamp
+	gav = config.MavenGav{
+		ArtifactId: "myapp",
+		GroupId:    "ske.foo.bar",
+		Version:    "feature_ABC_1234_test-SNAPSHOT",
+		Classifier: config.Webleveransepakke,
+		Type:       config.TgzPackaging,
+	}
+	manifest = MavenManifest{
+		Versioning: Versioning{
+			Snapshot: Snapshot{Timestamp: "", BuildNumber: 0},
+		},
+	}
+
+	fileName = mavenDownloader.fileName(&gav, manifest)
+
+	expected = "myapp-feature_ABC_1234_test-SNAPSHOT-Webleveransepakke.tgz"
+	assert.Equal(t, expected, fileName, "SNAPSHOT snapshot filename")
+
+}
