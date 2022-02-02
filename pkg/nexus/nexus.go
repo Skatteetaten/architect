@@ -167,7 +167,7 @@ func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 			". Status code %s , Location %s", resp.Status, resp.Request.URL)
 	}
 
-	fileName := n.fileName(c, mavenManifest)
+	fileName := createFileName(c, mavenManifest)
 
 	dir, err := ioutil.TempDir("", "package")
 	if err != nil {
@@ -195,15 +195,6 @@ func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 
 }
 
-func (n *MavenDownloader) fileName(c *config.MavenGav, manifest MavenManifest) string {
-	versionWithoutSnapshot := strings.ReplaceAll(c.Version, "SNAPSHOT", "")
-	if c.IsSnapshot() && (len(manifest.Versioning.Snapshot.Timestamp) > 0 && manifest.Versioning.Snapshot.BuildNumber > 0) {
-		return fmt.Sprintf("%s-%s%s-%d%s", c.ArtifactId, versionWithoutSnapshot, manifest.Versioning.Snapshot.Timestamp, manifest.Versioning.Snapshot.BuildNumber, getClassifierExt(c))
-	} else {
-		return fmt.Sprintf("%s-%s%s", c.ArtifactId, c.Version, getClassifierExt(c))
-	}
-}
-
 func createMavenManifestPath(c *config.MavenGav) string {
 	groupId := strings.ReplaceAll(c.GroupId, ".", "/")
 	return fmt.Sprintf("/repository/maven-intern/%s/%s/%s/maven-metadata.xml", groupId, c.ArtifactId, c.Version)
@@ -211,19 +202,20 @@ func createMavenManifestPath(c *config.MavenGav) string {
 
 func createDownloadPath(manifest MavenManifest, c *config.MavenGav) string {
 	groupId := strings.ReplaceAll(c.GroupId, ".", "/")
-	versionWithoutSnapshot := strings.ReplaceAll(c.Version, "SNAPSHOT", "")
-
-	var artifact string
-	if c.IsSnapshot() {
-		artifact = fmt.Sprintf("%s-%s%s-%d%s", c.ArtifactId, versionWithoutSnapshot, manifest.Versioning.Snapshot.Timestamp, manifest.Versioning.Snapshot.BuildNumber, getClassifierExt(c))
-	} else {
-		artifact = fmt.Sprintf("%s-%s%s", c.ArtifactId, c.Version, getClassifierExt(c))
-	}
+	artifact := createFileName(c, manifest)
 	return fmt.Sprintf("/repository/maven-intern/%s/%s/%s/%s", groupId, c.ArtifactId, c.Version, artifact)
 }
 
-func getClassifierExt(c *config.MavenGav) string {
+func createFileName(gav *config.MavenGav, manifest MavenManifest) string {
+	versionWithoutSnapshot := strings.ReplaceAll(gav.Version, "SNAPSHOT", "")
+	if gav.IsSnapshot() && (len(manifest.Versioning.Snapshot.Timestamp) > 0 && manifest.Versioning.Snapshot.BuildNumber > 0) {
+		return fmt.Sprintf("%s-%s%s-%d%s", gav.ArtifactId, versionWithoutSnapshot, manifest.Versioning.Snapshot.Timestamp, manifest.Versioning.Snapshot.BuildNumber, getClassifierExt(gav))
+	} else {
+		return fmt.Sprintf("%s-%s%s", gav.ArtifactId, gav.Version, getClassifierExt(gav))
+	}
+}
 
+func getClassifierExt(c *config.MavenGav) string {
 	if c.Classifier != "" {
 		return fmt.Sprintf("-%s.%s", c.Classifier, c.Type)
 	} else {
