@@ -197,7 +197,7 @@ func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 
 func (n *MavenDownloader) fileName(c *config.MavenGav, manifest MavenManifest) string {
 	versionWithoutSnapshot := strings.ReplaceAll(c.Version, "SNAPSHOT", "")
-	if c.IsSnapshot() {
+	if c.IsSnapshot() && (len(manifest.Versioning.Snapshot.Timestamp) > 0 && manifest.Versioning.Snapshot.BuildNumber > 0) {
 		return fmt.Sprintf("%s-%s%s-%d%s", c.ArtifactId, versionWithoutSnapshot, manifest.Versioning.Snapshot.Timestamp, manifest.Versioning.Snapshot.BuildNumber, getClassifierExt(c))
 	} else {
 		return fmt.Sprintf("%s-%s%s", c.ArtifactId, c.Version, getClassifierExt(c))
