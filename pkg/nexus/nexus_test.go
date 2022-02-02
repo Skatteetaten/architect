@@ -165,9 +165,7 @@ func TestMavenDownloaderOnRelease(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestFileName(t *testing.T) {
-	mavenDownloader := &MavenDownloader{}
-
+func TestCreateFileName(t *testing.T) {
 	// case 1 - release
 	gav := config.MavenGav{
 		ArtifactId: "artifact",
@@ -178,7 +176,7 @@ func TestFileName(t *testing.T) {
 	}
 	dummyManifest := MavenManifest{}
 
-	fileName := mavenDownloader.fileName(&gav, dummyManifest)
+	fileName := createFileName(&gav, dummyManifest)
 
 	expected := "artifact-1.0.0-Leveransepakke.zip"
 	assert.Equal(t, expected, fileName, "release filename")
@@ -197,7 +195,7 @@ func TestFileName(t *testing.T) {
 		},
 	}
 
-	fileName = mavenDownloader.fileName(&gav, manifest)
+	fileName = createFileName(&gav, manifest)
 
 	expected = "myapp-feature-baz-20220128.090348-1-Leveransepakke.zip"
 	assert.Equal(t, expected, fileName, "standard snapshot filename")
@@ -216,9 +214,8 @@ func TestFileName(t *testing.T) {
 		},
 	}
 
-	fileName = mavenDownloader.fileName(&gav, manifest)
+	fileName = createFileName(&gav, manifest)
 
 	expected = "myapp-feature_ABC_1234_test-SNAPSHOT-Webleveransepakke.tgz"
 	assert.Equal(t, expected, fileName, "SNAPSHOT snapshot filename")
-
 }
