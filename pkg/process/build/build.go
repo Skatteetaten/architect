@@ -69,9 +69,9 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 		return errors.Wrap(err, "Error preparing image")
 	}
 
-	overrideError := checkAllTagsForOverwrite(ctx, dockerBuildConfigArray, pushRegistry, cfg)
-	if overrideError != nil {
-		return overrideError
+	err = checkAllTagsForOverwrite(ctx, dockerBuildConfigArray, pushRegistry, cfg)
+	if err != nil {
+		return err
 	}
 
 	for _, buildConfig := range dockerBuildConfigArray {
