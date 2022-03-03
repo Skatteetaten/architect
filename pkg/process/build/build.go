@@ -64,38 +64,17 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 	auroraVersion := runtime.NewAuroraVersionFromBuilderAndBase(appVersion, snapshot,
 		application.MavenGav.Version, buildImage, baseImage.DockerImage, deliverable.SHA1)
 
-	dockerBuildConfig, err := prepper(cfg, auroraVersion, deliverable, baseImage)
+	dockerBuildConfigArray, err := prepper(cfg, auroraVersion, deliverable, baseImage)
 	if err != nil {
 		return errors.Wrap(err, "Error preparing image")
 	}
 
-	tagWith := cfg.DockerSpec.TagWith
-	for _, buildConfig := range dockerBuildConfig {
-		if !buildConfig.AuroraVersion.Snapshot {
-			tags, err := pushRegistry.GetTags(ctx, cfg.DockerSpec.OutputRepository)
-			if err != nil {
-				return err
-			}
-			semanticVersion := buildConfig.AuroraVersion.GetGivenVersion()
-			completeVersion := buildConfig.AuroraVersion.GetCompleteVersion()
-			logrus.Debugf("GivenVersion=%s, CompleteVersion=%s", semanticVersion, completeVersion)
-			for _, tag := range tags.Tags {
-				repoTag := docker.ConvertTagToRepositoryTag(tag)
-				logrus.Debug(repoTag)
-				if strings.EqualFold(repoTag, completeVersion) {
-					return errors.Errorf("There are already a build with tag %s, overwrite not allowed", completeVersion)
-				}
-				if strings.EqualFold(repoTag, semanticVersion) {
-					return errors.Errorf("There are already a build with tag %s, overwrite not allowed", semanticVersion)
-				}
-				if strings.EqualFold(repoTag, tagWith) {
-					return errors.Errorf("Given value for TagWith=%s have already been build, overwrite not allowed", tagWith)
-				}
-			}
-		}
+	err = checkAllTagsForOverwrite(ctx, dockerBuildConfigArray, pushRegistry, cfg)
+	if err != nil {
+		return err
 	}
 
-	for _, buildConfig := range dockerBuildConfig {
+	for _, buildConfig := range dockerBuildConfigArray {
 
 		baseimageLayers, err := builder.Pull(ctx, buildConfig)
 		if err != nil {
@@ -162,6 +141,52 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 			}
 		}
 		return err
+	}
+	return nil
+}
+
+func checkAllTagsForOverwrite(ctx context.Context, dockerBuildConfigArray []docker.BuildConfig, pushRegistry docker.Registry, cfg *config.Config) error {
+	tagsAPIResponse, err := pushRegistry.GetTags(ctx, cfg.DockerSpec.OutputRepository)
+	if err != nil {
+		return err
+	}
+	for _, buildConfig := range dockerBuildConfigArray {
+		isSnapshot := buildConfig.AuroraVersion.Snapshot
+		tagWith := cfg.DockerSpec.TagWith
+		semanticVersion := buildConfig.AuroraVersion.GetGivenVersion()
+		completeVersion := buildConfig.AuroraVersion.GetCompleteVersion()
+		err = checkTagsForOverwrite(isSnapshot, tagsAPIResponse.Tags, tagWith, semanticVersion, completeVersion)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+/**
+Check that we do not overwrite existing TAGS
+ 	SNAPSHOT tags can be overwritten
+*/
+func checkTagsForOverwrite(isSnapshot bool, tags []string, tagWith string, semanticVersion string, completeVersion string) error {
+	if isSnapshot {
+		return nil
+	}
+	if tagWith != "" && strings.Contains(tagWith, "-SNAPSHOT") {
+		return nil
+	}
+	logrus.Debugf("GivenVersion=%s, CompleteVersion=%s", semanticVersion, completeVersion)
+	for _, tag := range tags {
+		repoTag := docker.ConvertTagToRepositoryTag(tag)
+		logrus.Debug(repoTag)
+		if strings.EqualFold(repoTag, completeVersion) {
+			return errors.Errorf("There is already a build with tag %s, overwrite not allowed", completeVersion)
+		}
+		if strings.EqualFold(repoTag, semanticVersion) {
+			return errors.Errorf("There is already a build with tag %s, overwrite not allowed", semanticVersion)
+		}
+		if strings.EqualFold(repoTag, tagWith) {
+			return errors.Errorf("Given value for TagWith=%s have already been build, overwrite not allowed", tagWith)
+		}
 	}
 	return nil
 }
