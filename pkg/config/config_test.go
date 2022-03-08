@@ -1,7 +1,7 @@
 package config_test
 
 import (
-	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

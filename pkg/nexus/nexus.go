@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config"
 	"io"
 	"io/ioutil"
 	"net/http"

@@ -3,7 +3,7 @@ package nexus
 import (
 	"archive/zip"
 	"bytes"
-	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"net/http"

@@ -1,6 +1,6 @@
 package prepare
 
-import "github.com/skatteetaten/architect/pkg/config/runtime"
+import "github.com/skatteetaten/architect/v2/pkg/config/runtime"
 
 //We copy this over the script in wrench if we don't have a nodejs app
 const BlockingRunNodeJS string = `#!/bin/sh

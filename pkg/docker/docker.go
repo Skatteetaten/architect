@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/skatteetaten/architect/pkg/config/runtime"
+	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
 	"os"
 	"os/user"
 	"path/filepath"

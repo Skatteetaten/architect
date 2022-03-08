@@ -1,4 +1,4 @@
-module github.com/skatteetaten/architect
+module github.com/skatteetaten/architect/v2
 
 go 1.16
 
@@ -9,7 +9,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1.0.20200206005728-dd78d7521eee // indirect
-	github.com/openshift/api v0.0.0-20200306192528-e5737622441f
+	github.com/openshift/api v3.9.0+incompatible // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.3

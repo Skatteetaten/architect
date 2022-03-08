@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/skatteetaten/architect/pkg/config/runtime"
+	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
 	"io"
 	"io/ioutil"
 	"net/http"
