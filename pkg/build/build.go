@@ -43,7 +43,7 @@ func BuildBinary(c Configuration) {
 }
 
 func generateArchitectConfig(c Configuration) *config.Config {
-	const internalPullRegistry = "container-registry-internal-private-pull.aurora.skead.no"
+	const internalPullRegistry = "https://container-registry-internal-private-pull.aurora.skead.no"
 	return &config.Config{
 		ApplicationType: c.ApplicationType,
 		ApplicationSpec: config.ApplicationSpec{
