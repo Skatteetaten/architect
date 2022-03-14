@@ -105,15 +105,11 @@ func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 		//Handle snapshot
 		u, err := url.Parse(n.baseURL)
 		if err != nil {
-			return deliverable, errors.Wrap(err, "Unable to parse nexus url")
+			return deliverable, errors.Wrapf(err, "Unable to parse nexus url %s", n.baseURL)
 		}
 		//Set path
 		u.Path = createMavenManifestPath(c)
-		if err != nil {
-			return deliverable, errors.Wrap(err, "Could no create path from gav")
-		}
-
-		logrus.Debugf("Fetch maven manifest from %s", u.String())
+		logrus.Infof("Downloading artifact from %s", u.String())
 
 		req, err := http.NewRequest("GET", u.String(), nil)
 		req.Header.Set("Accept", "application/xml")
@@ -132,20 +128,17 @@ func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 
 		err = xml.NewDecoder(resp.Body).Decode(&mavenManifest)
 		if err != nil {
-			return deliverable, errors.Wrap(err, "XML decode failed")
+			return deliverable, errors.Wrapf(err, "Requested resource %s. XML decode failed", u.String())
 		}
 	}
 
 	//Create download url
 	u, err := url.Parse(n.baseURL)
 	if err != nil {
-		return deliverable, errors.Wrap(err, "Unable to parse nexus url")
+		return deliverable, errors.Wrapf(err, "Unable to parse nexus url %s", n.baseURL)
 	}
 	//Set path
 	u.Path = createDownloadPath(mavenManifest, c)
-	if err != nil {
-		return deliverable, errors.Wrap(err, "Could no create path from gav")
-	}
 	logrus.Infof("Downloading artifact from %s", u.String())
 
 	req, err := http.NewRequest("GET", u.String(), nil)
@@ -177,13 +170,13 @@ func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 
 	fileCreated, err := os.Create(filePath)
 	if err != nil {
-		return deliverable, errors.Wrap(err, "Failed to create artifact file")
+		return deliverable, errors.Wrapf(err, "Failed to create artifact file. Filepath=%s", filePath)
 	}
 	defer fileCreated.Close()
 
 	_, err = io.Copy(fileCreated, resp.Body)
 	if err != nil {
-		return deliverable, errors.Wrap(err, "Failed to write to artifact file")
+		return deliverable, errors.Wrapf(err, "Failed to write to artifact file. Filepath=%s", filePath)
 	}
 	deliverable.Path = filePath
 	logrus.Debugf("Downloaded artifact to %s", deliverable.Path)

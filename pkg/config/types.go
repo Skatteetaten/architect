@@ -82,7 +82,7 @@ type MavenGav struct {
 
 //Check if GAV is snapshot
 func (m *MavenGav) IsSnapshot() bool {
-	return strings.Contains(m.Version, "SNAPSHOT")
+	return strings.HasSuffix(m.Version, "SNAPSHOT")
 }
 
 //Get name
