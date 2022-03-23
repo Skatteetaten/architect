@@ -23,7 +23,6 @@ type Configuration struct {
 func BuildBinary(c Configuration) {
 	var nexusDownloader nexus.Downloader
 
-	// Should we validate args are not empty strings?
 	architectConfig := generateArchitectConfig(c)
 
 	var binaryInput string
