@@ -51,6 +51,7 @@ type Config struct {
 	Sporingstjeneste  string
 	OwnerReferenceUid string
 	BinaryBuildType   BinaryBuildType
+	NexusIQReportUrl  string
 }
 
 type NexusAccess struct {

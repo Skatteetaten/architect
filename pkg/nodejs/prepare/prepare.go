@@ -30,6 +30,10 @@ func Prepper() process.Prepper {
 			return nil, errors.Wrap(err, "Error while preparing layers")
 		}
 
+		if cfg.NexusIQReportUrl != "" {
+			buildConfiguration.Labels["NEXUS_IQ_REPORT_URL"] = cfg.NexusIQReportUrl
+		}
+
 		return []docker.BuildConfig{{
 			AuroraVersion:    auroraVersion,
 			DockerRepository: cfg.DockerSpec.OutputRepository,
