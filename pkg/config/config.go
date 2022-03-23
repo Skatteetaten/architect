@@ -335,7 +335,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 
 	var iqNexusReportUrl string
-	if envIqNexusReportUrl, err := findEnv(env, "IMAGE_LABEL_NEXUS_IQ_RAPPORT_URL"); err == nil {
+	if envIqNexusReportUrl, err := findEnv(env, "IMAGE_LABEL_NEXUS_IQ_REPORT_URL"); err == nil {
 		iqNexusReportUrl = envIqNexusReportUrl
 	}
 
