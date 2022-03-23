@@ -31,7 +31,7 @@ func Prepper() process.Prepper {
 		}
 
 		if cfg.NexusIQReportUrl != "" {
-			buildConfiguration.Labels["NEXUS_IQ_REPORT_URL"] = cfg.NexusIQReportUrl
+			buildConfiguration.Labels["no.skatteetaten.nexus-iq-report-url"] = cfg.NexusIQReportUrl
 		}
 
 		return []docker.BuildConfig{{
