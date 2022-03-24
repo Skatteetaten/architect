@@ -1,6 +1,6 @@
 module github.com/skatteetaten/architect/v2
 
-go 1.16
+go 1.18
 
 require (
 	github.com/docker/distribution v2.8.1+incompatible
