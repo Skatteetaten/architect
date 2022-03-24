@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/hashicorp/go-version v1.4.0
-	github.com/openshift/api v3.9.0+incompatible
+	github.com/openshift/api v0.0.0-20200306192528-e5737622441f
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
