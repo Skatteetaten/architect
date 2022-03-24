@@ -39,4 +39,7 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 )
 
-replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
+replace (
+	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
+	golang.org/x/text => golang.org/x/text v0.3.4
+)
