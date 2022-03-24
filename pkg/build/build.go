@@ -1,12 +1,9 @@
 package build
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/v2/cmd/architect"
 	"github.com/skatteetaten/architect/v2/pkg/config"
 	"github.com/skatteetaten/architect/v2/pkg/docker"
-	"github.com/skatteetaten/architect/v2/pkg/nexus"
-	"github.com/skatteetaten/architect/v2/pkg/util"
 )
 
 type Configuration struct {
@@ -21,21 +18,9 @@ type Configuration struct {
 }
 
 func BuildBinary(c Configuration) {
-	var nexusDownloader nexus.Downloader
-
 	architectConfig := generateArchitectConfig(c)
 
-	var binaryInput string
-
-	binaryInput, err := util.ExtractBinaryFromFile(c.File)
-	if err != nil {
-		logrus.Fatalf("Could not read binary input: %s", err)
-	}
-
-	nexusDownloader = nexus.NewBinaryDownloader(binaryInput)
-
 	architect.RunArchitect(architect.RunConfiguration{
-		NexusDownloader:         nexusDownloader,
 		Config:                  architectConfig,
 		RegistryCredentialsFunc: docker.LocalRegistryCredentials(),
 	})
