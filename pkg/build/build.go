@@ -17,6 +17,7 @@ type Configuration struct {
 	BaseImageName    string
 	BaseImageVersion string
 	PushRegistry     string
+	PullRegistry     string
 	Version          string
 }
 
@@ -36,7 +37,6 @@ func BuildBinary(c Configuration) {
 }
 
 func generateArchitectConfig(c Configuration) *config.Config {
-	const internalPullRegistry = "https://container-registry-internal-private-pull.aurora.skead.no"
 	return &config.Config{
 		ApplicationType: c.ApplicationType,
 		ApplicationSpec: config.ApplicationSpec{
@@ -51,7 +51,7 @@ func generateArchitectConfig(c Configuration) *config.Config {
 		DockerSpec: config.DockerSpec{
 			OutputRegistry:         c.PushRegistry,
 			ExternalDockerRegistry: c.PushRegistry,
-			InternalPullRegistry:   internalPullRegistry,
+			InternalPullRegistry:   c.PullRegistry,
 			OutputRepository:       c.OutputRepository,
 			TagWith:                c.TagWith,
 		},
