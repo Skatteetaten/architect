@@ -3,8 +3,8 @@ package docker
 import (
 	"context"
 	"github.com/pkg/errors"
-	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/config/runtime"
+	"github.com/skatteetaten/architect/v2/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
 	"io/ioutil"
 	"net/http"
 	"strings"

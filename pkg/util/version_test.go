@@ -2,7 +2,7 @@ package util_test
 
 import (
 	"github.com/sirupsen/logrus"
-	"github.com/skatteetaten/architect/pkg/util"
+	"github.com/skatteetaten/architect/v2/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

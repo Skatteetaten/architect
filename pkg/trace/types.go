@@ -1,8 +1,8 @@
 package trace
 
 import (
-	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/nexus"
+	"github.com/skatteetaten/architect/v2/pkg/docker"
+	"github.com/skatteetaten/architect/v2/pkg/nexus"
 )
 
 type BaseImage struct {

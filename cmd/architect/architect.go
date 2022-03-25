@@ -9,14 +9,14 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/docker"
-	doozer "github.com/skatteetaten/architect/pkg/doozer/prepare"
-	java "github.com/skatteetaten/architect/pkg/java/prepare"
-	"github.com/skatteetaten/architect/pkg/nexus"
-	nodejs "github.com/skatteetaten/architect/pkg/nodejs/prepare"
-	process "github.com/skatteetaten/architect/pkg/process/build"
-	"github.com/skatteetaten/architect/pkg/process/retag"
+	"github.com/skatteetaten/architect/v2/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/docker"
+	doozer "github.com/skatteetaten/architect/v2/pkg/doozer/prepare"
+	java "github.com/skatteetaten/architect/v2/pkg/java/prepare"
+	"github.com/skatteetaten/architect/v2/pkg/nexus"
+	nodejs "github.com/skatteetaten/architect/v2/pkg/nodejs/prepare"
+	process "github.com/skatteetaten/architect/v2/pkg/process/build"
+	"github.com/skatteetaten/architect/v2/pkg/process/retag"
 )
 
 var verbose bool

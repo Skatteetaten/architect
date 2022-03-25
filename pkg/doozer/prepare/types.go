@@ -3,10 +3,10 @@ package prepare
 import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	global "github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/config/runtime"
-	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/doozer/config"
+	global "github.com/skatteetaten/architect/v2/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
+	"github.com/skatteetaten/architect/v2/pkg/docker"
+	"github.com/skatteetaten/architect/v2/pkg/doozer/config"
 )
 
 type ImageMetaData struct {

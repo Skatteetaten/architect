@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/config/runtime"
+	"github.com/skatteetaten/architect/v2/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
 	"github.com/stretchr/testify/assert"
 )
 

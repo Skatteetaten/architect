@@ -17,12 +17,12 @@ package main
 import (
 	"errors"
 	"github.com/sirupsen/logrus"
-	"github.com/skatteetaten/architect/cmd"
-	"github.com/skatteetaten/architect/cmd/architect"
-	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/nexus"
-	"github.com/skatteetaten/architect/pkg/util"
+	"github.com/skatteetaten/architect/v2/cmd"
+	"github.com/skatteetaten/architect/v2/cmd/architect"
+	"github.com/skatteetaten/architect/v2/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/docker"
+	"github.com/skatteetaten/architect/v2/pkg/nexus"
+	"github.com/skatteetaten/architect/v2/pkg/util"
 	"os"
 	"strings"
 )

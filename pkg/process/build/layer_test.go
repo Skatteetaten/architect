@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"github.com/sirupsen/logrus"
-	"github.com/skatteetaten/architect/pkg/util"
+	"github.com/skatteetaten/architect/v2/pkg/util"
 	"io/ioutil"
 	"os"
 	"testing"

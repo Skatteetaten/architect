@@ -4,12 +4,12 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/config/runtime"
-	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/nexus"
-	"github.com/skatteetaten/architect/pkg/process/tagger"
-	"github.com/skatteetaten/architect/pkg/trace"
+	"github.com/skatteetaten/architect/v2/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
+	"github.com/skatteetaten/architect/v2/pkg/docker"
+	"github.com/skatteetaten/architect/v2/pkg/nexus"
+	"github.com/skatteetaten/architect/v2/pkg/process/tagger"
+	"github.com/skatteetaten/architect/v2/pkg/trace"
 	"strings"
 )
 

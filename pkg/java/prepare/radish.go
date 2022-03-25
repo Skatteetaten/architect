@@ -2,8 +2,8 @@ package prepare
 
 import (
 	"encoding/json"
-	"github.com/skatteetaten/architect/pkg/java/config"
-	"github.com/skatteetaten/architect/pkg/util"
+	"github.com/skatteetaten/architect/v2/pkg/java/config"
+	"github.com/skatteetaten/architect/v2/pkg/util"
 	"io"
 )
 

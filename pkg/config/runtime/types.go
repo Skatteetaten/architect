@@ -2,7 +2,7 @@ package runtime
 
 import (
 	"fmt"
-	"github.com/skatteetaten/architect/pkg/util"
+	"github.com/skatteetaten/architect/v2/pkg/util"
 	"strings"
 )
 

@@ -3,9 +3,9 @@ package prepare
 import (
 	"encoding/json"
 	"github.com/sirupsen/logrus"
-	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/config/runtime"
-	"github.com/skatteetaten/architect/pkg/nexus"
+	"github.com/skatteetaten/architect/v2/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
+	"github.com/skatteetaten/architect/v2/pkg/nexus"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
