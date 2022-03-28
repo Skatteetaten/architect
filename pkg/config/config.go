@@ -334,6 +334,11 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		buildType = BinaryBuildType(envBuildType)
 	}
 
+	var nexusIqReportUrl string
+	if envNexusIqReportUrl, err := findEnv(env, "IMAGE_LABEL_NEXUS_IQ_REPORT_URL"); err == nil {
+		nexusIqReportUrl = envNexusIqReportUrl
+	}
+
 	builderSpec := BuilderSpec{}
 
 	if builderVersion, present := os.LookupEnv("APP_VERSION"); present {
@@ -410,6 +415,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		Sporingstjeneste:  sporingstjeneste,
 		OwnerReferenceUid: string(build.UID),
 		BinaryBuildType:   buildType,
+		NexusIQReportUrl:  nexusIqReportUrl,
 	}
 	return c, nil
 }

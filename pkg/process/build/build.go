@@ -76,6 +76,10 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 
 	for _, buildConfig := range dockerBuildConfigArray {
 
+		if cfg.NexusIQReportUrl != "" {
+			buildConfig.Labels["no.skatteetaten.aurora.nexus-iq-report-url"] = cfg.NexusIQReportUrl
+		}
+
 		baseimageLayers, err := builder.Pull(ctx, buildConfig)
 		if err != nil {
 			return errors.Wrap(err, "There was an error with the pull operation.")
