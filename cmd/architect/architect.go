@@ -26,6 +26,9 @@ type RunConfiguration struct {
 	NexusDownloader         nexus.Downloader
 	Config                  *config.Config
 	RegistryCredentialsFunc func(string) (*docker.RegistryCredentials, error)
+	// TODO: maybe put this in config
+	PushUsername string
+	PushToken    string
 }
 
 //RunArchitect main
@@ -36,21 +39,16 @@ func RunArchitect(configuration RunConfiguration) {
 	logrus.Debugf("Config %+v", c)
 	logrus.Infof("ARCHITECT_APP_VERSION=%s,ARCHITECT_AURORA_VERSION=%s", os.Getenv("APP_VERSION"), os.Getenv("AURORA_VERSION"))
 
-	registryCredentials, err := configuration.RegistryCredentialsFunc(c.DockerSpec.OutputRegistry)
-
-	if err != nil {
-		logrus.Fatalf("Could not parse registry credentials %s", err)
-	}
+	registryCredentials := configuration.getRegistryCredentials()
 
 	logrus.Infof("Output registry %s", c.DockerSpec.OutputRegistry)
 
+	// NOTE: should this be parsed? I removed unused error handling
 	pushRegistryUrl := url.URL{
 		Host:   c.DockerSpec.OutputRegistry,
 		Scheme: "https",
 	}
-	if err != nil {
-		logrus.Fatalf("Unable to parse URL %s", c.DockerSpec.OutputRegistry)
-	}
+
 	pullRegistryUrl, err := url.Parse(c.DockerSpec.InternalPullRegistry)
 	if err != nil {
 		logrus.Fatalf("Unable to parse URL %s", c.DockerSpec.InternalPullRegistry)
@@ -125,4 +123,23 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 	defer cancel()
 
 	return process.Build(ctx, pullRegistry, pushRegistry, c, configuration.NexusDownloader, prepper, builder)
+}
+
+func (c RunConfiguration) getRegistryCredentials() *docker.RegistryCredentials {
+	registry := c.Config.DockerSpec.OutputRegistry
+
+	if c.PushToken != "" && c.PushUsername != "" {
+		return &docker.RegistryCredentials{
+			Username:      c.PushUsername,
+			Password:      c.PushToken,
+			Serveraddress: registry,
+		}
+	} else {
+		creds, err := c.RegistryCredentialsFunc(registry)
+		if err != nil {
+			logrus.Fatalf("Could not parse registry credentials %s", err)
+		}
+
+		return creds
+	}
 }

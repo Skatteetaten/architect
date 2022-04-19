@@ -19,6 +19,8 @@ type Configuration struct {
 	PushRegistry     string
 	PullRegistry     string
 	Version          string
+	PushToken        string
+	PushUsername     string
 }
 
 func BuildBinary(c Configuration) {
@@ -33,6 +35,8 @@ func BuildBinary(c Configuration) {
 		NexusDownloader:         nexusDownloader,
 		Config:                  architectConfig,
 		RegistryCredentialsFunc: docker.LocalRegistryCredentials(),
+		PushUsername:            c.PushUsername,
+		PushToken:               c.PushToken,
 	})
 }
 
