@@ -26,9 +26,8 @@ type RunConfiguration struct {
 	NexusDownloader         nexus.Downloader
 	Config                  *config.Config
 	RegistryCredentialsFunc func(string) (*docker.RegistryCredentials, error)
-	// TODO: maybe put this in config
-	PushUsername string
-	PushToken    string
+	PushUsername            string
+	PushToken               string
 }
 
 //RunArchitect main
