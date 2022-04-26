@@ -38,7 +38,10 @@ func RunArchitect(configuration RunConfiguration) {
 	logrus.Debugf("Config %+v", c)
 	logrus.Infof("ARCHITECT_APP_VERSION=%s,ARCHITECT_AURORA_VERSION=%s", os.Getenv("APP_VERSION"), os.Getenv("AURORA_VERSION"))
 
-	registryCredentials := configuration.getRegistryCredentials()
+	registryCredentials, err := configuration.getRegistryCredentials()
+	if err != nil {
+		logrus.Fatalf("Could not parse registry credentials %s", err)
+	}
 
 	logrus.Infof("Output registry %s", c.DockerSpec.OutputRegistry)
 
@@ -124,7 +127,7 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 	return process.Build(ctx, pullRegistry, pushRegistry, c, configuration.NexusDownloader, prepper, builder)
 }
 
-func (c RunConfiguration) getRegistryCredentials() *docker.RegistryCredentials {
+func (c RunConfiguration) getRegistryCredentials() (*docker.RegistryCredentials, error) {
 	registry := c.Config.DockerSpec.OutputRegistry
 
 	if c.PushToken != "" && c.PushUsername != "" {
@@ -132,13 +135,13 @@ func (c RunConfiguration) getRegistryCredentials() *docker.RegistryCredentials {
 			Username:      c.PushUsername,
 			Password:      c.PushToken,
 			Serveraddress: registry,
-		}
+		}, nil
 	} else {
 		creds, err := c.RegistryCredentialsFunc(registry)
 		if err != nil {
-			logrus.Fatalf("Could not parse registry credentials %s", err)
+			return nil, err
 		}
 
-		return creds
+		return creds, nil
 	}
 }
