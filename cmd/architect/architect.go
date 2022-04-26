@@ -137,11 +137,6 @@ func (c RunConfiguration) getRegistryCredentials() (*docker.RegistryCredentials,
 			Serveraddress: registry,
 		}, nil
 	} else {
-		creds, err := c.RegistryCredentialsFunc(registry)
-		if err != nil {
-			return nil, err
-		}
-
-		return creds, nil
+		return c.RegistryCredentialsFunc(registry)
 	}
 }
