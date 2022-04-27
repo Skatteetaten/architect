@@ -45,7 +45,6 @@ func RunArchitect(configuration RunConfiguration) {
 
 	logrus.Infof("Output registry %s", c.DockerSpec.OutputRegistry)
 
-	// NOTE: should this be parsed? I removed unused error handling
 	pushRegistryUrl := url.URL{
 		Host:   c.DockerSpec.OutputRegistry,
 		Scheme: "https",
