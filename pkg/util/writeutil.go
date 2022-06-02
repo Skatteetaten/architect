@@ -3,6 +3,7 @@ package util
 import (
 	"github.com/pkg/errors"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -30,7 +31,19 @@ func NewTemplateWriter(input interface{}, templatename string, templateString st
 	}
 }
 
-//NewByteWriter wrapper
+// MkdirAllWithPermissions works like os.MkdirAll, but will set permissions even if the folder already exists.
+func MkdirAllWithPermissions(path string, perm fs.FileMode) error {
+	if err := os.MkdirAll(path, perm); err != nil {
+		return errors.Wrapf(err, "Failed to create folder %s", path)
+	}
+	// In case the directory already existed, we adjust the permissions:
+	if err := os.Chmod(path, perm); err != nil {
+		return errors.Wrapf(err, "Failed to set permissions for folder %s", path)
+	}
+	return nil
+}
+
+// NewByteWriter wrapper
 func NewByteWriter(data []byte) WriterFunc {
 	return func(writer io.Writer) error {
 		n, err := writer.Write(data)
@@ -48,7 +61,7 @@ func NewFileWriter(targetFolder string) FileWriter {
 		copy(fileAsPath[1:], fileAsPath[0:])
 		fileAsPath[0] = targetFolder
 		fp := filepath.Join(fileAsPath...)
-		os.MkdirAll(path.Dir(fp), os.ModeDir|0755)
+		MkdirAllWithPermissions(path.Dir(fp), os.ModeDir|0755)
 		fileToWriteTo, err := os.Create(fp)
 		if err != nil {
 			return errors.Wrapf(err, "Error creating %v", fileAsPath)

@@ -27,7 +27,7 @@ func ExtractAndRenameDeliverable(dockerBuildFolder string, deliverablePath strin
 
 	applicationRoot := filepath.Join(dockerBuildFolder, DockerfileApplicationFolder)
 	renamedApplicationFolder := filepath.Join(dockerBuildFolder, ApplicationBuildFolder)
-	if err := os.MkdirAll(dockerBuildFolder, 0755); err != nil {
+	if err := MkdirAllWithPermissions(dockerBuildFolder, 0755); err != nil {
 		return errors.Wrap(err, "Failed to create application directory in Docker context")
 	}
 
@@ -71,7 +71,7 @@ func ExtractDeliverable(archivePath string, extractedDirPath string) error {
 }
 
 func extractDirectory(extractedPath string, zipEntry *zip.File) error {
-	return os.MkdirAll(extractedPath, zipEntry.Mode())
+	return MkdirAllWithPermissions(extractedPath, zipEntry.Mode())
 }
 
 func extractRegular(extractedPath string, zipEntry *zip.File) error {
@@ -121,7 +121,7 @@ func fillPathGap(path string) error {
 		return errors.Wrapf(err, "Failed to check if directory %s exists", dirPath)
 	}
 
-	if err = os.MkdirAll(dirPath, 0755); err != nil {
+	if err = MkdirAllWithPermissions(dirPath, 0755); err != nil {
 		return errors.Wrapf(err, "Failed to create directory")
 	}
 

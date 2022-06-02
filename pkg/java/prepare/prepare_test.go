@@ -82,6 +82,11 @@ func TestPrepareLayers(t *testing.T) {
 		isSymlink := fi.Mode()&os.ModeSymlink == os.ModeSymlink
 		assert.NotEqual(t, isSymlink, "true", "Expected .../logs to be a symlink")
 
+		logFolder, err := os.Lstat(path + "/layer/u01/logs")
+		if err != nil {
+			t.Fatal("Lstat failed")
+		}
+		assert.Equal(t, "drwxrwxrwx", logFolder.Mode().String())
 	})
 
 	t.Run("Check radish.json", func(t *testing.T) {
@@ -100,7 +105,7 @@ func TestPrepareLayers(t *testing.T) {
 
 	})
 
-	//Delete temp directory
+	// Delete temp directory
 	os.RemoveAll(path)
 
 }

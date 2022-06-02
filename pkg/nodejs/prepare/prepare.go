@@ -57,11 +57,11 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 
 	writer := util.NewFileWriter(buildPath)
 
-	if err := os.MkdirAll(buildPath+"/layer/u01", 0755); err != nil {
+	if err := util.MkdirAllWithPermissions(buildPath+"/layer/u01", 0755); err != nil {
 		return nil, errors.Wrap(err, "Failed to create base layer structure")
 	}
 
-	if err := os.MkdirAll(buildPath+"/layer/u01/logs", 0777); err != nil {
+	if err := util.MkdirAllWithPermissions(buildPath+"/layer/u01/logs", 0777); err != nil {
 		return nil, errors.Wrap(err, "Failed to create log folder")
 	}
 
@@ -96,7 +96,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 	}
 
 	//COPY ./{{.PackageDirectory}} /u01/application
-	if err := os.MkdirAll(buildPath+"/layer/u01/application", 0755); err != nil {
+	if err := util.MkdirAllWithPermissions(buildPath+"/layer/u01/application", 0755); err != nil {
 		return nil, errors.Wrap(err, "Failed to create application folder")
 	}
 
@@ -106,7 +106,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 	}
 
 	//COPY ./overrides /u01/bin/
-	if err := os.MkdirAll(buildPath+"/layer/u01/bin", 0755); err != nil {
+	if err := util.MkdirAllWithPermissions(buildPath+"/layer/u01/bin", 0755); err != nil {
 		return nil, errors.Wrap(err, "Failed to create bin folder")
 	}
 	err = util.CopyDirectory(buildPath+"/overrides", buildPath+"/layer/u01/bin")
@@ -121,7 +121,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 	}
 	//	COPY ./{{.PackageDirectory}}/{{.Static}} /u01/static{{.Path}}
 
-	if err := os.MkdirAll(buildPath+"/layer/u01/static"+dockerData.Path, 0755); err != nil {
+	if err := util.MkdirAllWithPermissions(buildPath+"/layer/u01/static"+dockerData.Path, 0755); err != nil {
 		return nil, errors.Wrap(err, "Failed to create static folder")
 	}
 

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/skatteetaten/architect/v2/pkg/util"
 	"io"
 	"io/ioutil"
 	"os"
@@ -48,14 +49,14 @@ func extractTarball(pathToTarball string) (string, error) {
 		switch header.Typeflag {
 		case tar.TypeDir:
 			if _, err := os.Stat(target); err != nil {
-				if err := os.MkdirAll(target, 0755); err != nil {
+				if err := util.MkdirAllWithPermissions(target, 0755); err != nil {
 					return tmpdir, errors.Wrapf(err, "Error writing file %s", name)
 				}
 			}
 		case tar.TypeReg: // = regular file
 			ret, err := writeInternal(func() (string, error) {
 				if _, err := os.Stat(dirname); err != nil {
-					if err := os.MkdirAll(dirname, 0755); err != nil {
+					if err := util.MkdirAllWithPermissions(dirname, 0755); err != nil {
 						return tmpdir, errors.Wrapf(err, "Error writing file %s", name)
 					}
 				}
