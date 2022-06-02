@@ -11,7 +11,7 @@ def config = [
     iqOrganizationName       : 'Team APS',
     openShiftBaseImage       : 'builder',
     openShiftBaseImageVersion: 'latest',
-    goVersion                : '1.16',
+    goVersion                : '1.18',
     artifactPath             : 'bin/',
     chatRoom                 : "#sitj-build",
     credentialsId: "github",
