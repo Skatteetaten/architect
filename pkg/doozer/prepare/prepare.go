@@ -68,11 +68,11 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 		return nil, errors.Wrap(err, "Failed to create root folder for build context")
 	}
 
-	if err := os.MkdirAll(buildContext+"/layer/u01/application", 0755); err != nil {
+	if err := util.MkdirAllWithPermissions(buildContext+"/layer/u01/application", 0755); err != nil {
 		return nil, errors.Wrap(err, "Failed to create layer structure")
 	}
 
-	if err := os.MkdirAll(buildContext+"/layer/u01/logs", 0777); err != nil {
+	if err := util.MkdirAllWithPermissions(buildContext+"/layer/u01/logs", 0777); err != nil {
 		return nil, errors.Wrap(err, "Failed to create log folder")
 	}
 
@@ -131,7 +131,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 	} else {
 		srcFile := filepath.Join(buildContext, "app/application", strings.TrimSpace(imageMetadata.SrcPath), strings.TrimSpace(imageMetadata.FileName))
 		dstPath := filepath.Join(buildContext, "layer", imageMetadata.DestPath)
-		err = os.MkdirAll(dstPath, 0755)
+		err = util.MkdirAllWithPermissions(dstPath, 0755)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Could not create destination path: %s", dstPath)
 		}

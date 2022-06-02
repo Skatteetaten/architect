@@ -82,6 +82,12 @@ func TestPrepareLayers(t *testing.T) {
 	t.Run("Check application structure", func(t *testing.T) {
 		assert.DirExists(t, path+"/layer/u01")
 		assert.FileExists(t, path+"/layer/usr/local/tomcat/webapps/emptywar.war")
+
+		logFolder, err := os.Lstat(path + "/layer/u01/logs")
+		if err != nil {
+			t.Fatal("Lstat failed")
+		}
+		assert.Equal(t, "drwxrwxrwx", logFolder.Mode().String())
 	})
 
 	os.RemoveAll(path)

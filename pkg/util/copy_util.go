@@ -98,7 +98,7 @@ func createIfNotExists(dir string, perm os.FileMode) error {
 		return nil
 	}
 
-	if err := os.MkdirAll(dir, perm); err != nil {
+	if err := MkdirAllWithPermissions(dir, perm); err != nil {
 		return fmt.Errorf("failed to create directory: '%s', error: '%s'", dir, err.Error())
 	}
 
