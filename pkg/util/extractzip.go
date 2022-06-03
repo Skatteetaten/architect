@@ -15,31 +15,35 @@ const (
 	// Where in the build folder the application is put
 	DockerfileApplicationFolder = "app"
 	ApplicationFolder           = "application"
+	LayerFolder                 = "layer"
 	// The directory where the application is prepared
 	ApplicationBuildFolder = DockerfileApplicationFolder + "/" + ApplicationFolder
+	ApplicationLayerFolder = DockerBasedir + "/" + ApplicationFolder
 	DeliveryMetadataPath   = "metadata/openshift.json"
 )
 
+//ExtractAndRenameDeliverable extract and rename
 func ExtractAndRenameDeliverable(dockerBuildFolder string, deliverablePath string) error {
 
 	applicationRoot := filepath.Join(dockerBuildFolder, DockerfileApplicationFolder)
 	renamedApplicationFolder := filepath.Join(dockerBuildFolder, ApplicationBuildFolder)
-	if err := os.MkdirAll(dockerBuildFolder, 0755); err != nil {
+	if err := MkdirAllWithPermissions(dockerBuildFolder, 0755); err != nil {
 		return errors.Wrap(err, "Failed to create application directory in Docker context")
 	}
 
-	if err := extractDeliverable(deliverablePath, applicationRoot); err != nil {
+	if err := ExtractDeliverable(deliverablePath, applicationRoot); err != nil {
 		return errors.Wrapf(err, "Failed to extract application archive")
 	}
 
-	if err := renameSingleFolderInDirectory(applicationRoot, renamedApplicationFolder); err != nil {
+	if err := RenameSingleFolderInDirectory(applicationRoot, renamedApplicationFolder); err != nil {
 		return errors.Wrap(err, "Failed to rename application directory in Docker context")
-	} else {
-		return nil
 	}
+	return nil
+
 }
 
-func extractDeliverable(archivePath string, extractedDirPath string) error {
+//ExtractDeliverable extract archive to dest
+func ExtractDeliverable(archivePath string, extractedDirPath string) error {
 
 	zipReader, err := zip.OpenReader(archivePath)
 
@@ -63,12 +67,11 @@ func extractDeliverable(archivePath string, extractedDirPath string) error {
 			}
 		}
 	}
-
 	return nil
 }
 
 func extractDirectory(extractedPath string, zipEntry *zip.File) error {
-	return os.MkdirAll(extractedPath, zipEntry.Mode())
+	return MkdirAllWithPermissions(extractedPath, zipEntry.Mode())
 }
 
 func extractRegular(extractedPath string, zipEntry *zip.File) error {
@@ -118,7 +121,7 @@ func fillPathGap(path string) error {
 		return errors.Wrapf(err, "Failed to check if directory %s exists", dirPath)
 	}
 
-	if err = os.MkdirAll(dirPath, 0755); err != nil {
+	if err = MkdirAllWithPermissions(dirPath, 0755); err != nil {
 		return errors.Wrapf(err, "Failed to create directory")
 	}
 
@@ -127,7 +130,7 @@ func fillPathGap(path string) error {
 
 // When we unzip the delivery, it will have an additional level.
 // eg. app/myapplication-LEVERANSEPAKKE-SNAPSHOT -> app/application
-func renameSingleFolderInDirectory(base string, newName string) error {
+func RenameSingleFolderInDirectory(base string, newName string) error {
 	list, err := ioutil.ReadDir(base)
 
 	if err != nil {
@@ -139,21 +142,6 @@ func renameSingleFolderInDirectory(base string, newName string) error {
 	folderToBeRenamed := filepath.Join(base, list[0].Name())
 	if err = os.Rename(folderToBeRenamed, newName); err != nil {
 		return errors.Wrapf(err, "Rename from %s to %s failed", folderToBeRenamed, newName)
-	} else {
-		return nil
 	}
-}
-
-func Exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-
-		return false, errors.Wrap(err, "Failed to stat file")
-	}
-
-	return true, nil
+	return nil
 }

@@ -11,12 +11,12 @@ def config = [
     iqOrganizationName       : 'Team APS',
     openShiftBaseImage       : 'builder',
     openShiftBaseImageVersion: 'latest',
-    goVersion                : '1.13',
-    artifactPath             : 'bin/amd64/',
+    goVersion                : '1.18',
+    artifactPath             : 'bin/',
     chatRoom                 : "#sitj-build",
     credentialsId: "github",
     versionStrategy          : [
-        [branch: 'master', versionHint: '1']
+        [branch: 'master', versionHint: '2']
         ]
     ]
 

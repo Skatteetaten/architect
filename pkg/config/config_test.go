@@ -1,7 +1,7 @@
 package config_test
 
 import (
-	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -50,7 +50,7 @@ func TestHidingPasswordWhenGettingNExusAccessString(t *testing.T) {
 	nexusAccess := config.NexusAccess{}
 	nexusAccess.Username = "username"
 	nexusAccess.Password = "password1"
-	nexusAccess.NexusUrl = "http://testurl"
+	nexusAccess.NexusURL = "http://testurl"
 
 	assert.Contains(t, nexusAccess.String(), "username")
 	assert.Contains(t, nexusAccess.String(), "http://testurl")

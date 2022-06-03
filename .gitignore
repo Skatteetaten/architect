@@ -22,6 +22,7 @@ _testmain.go
 *.exe
 *.test
 *.prof
+*.iml
 .idea
 vendor
 bin
@@ -32,3 +33,5 @@ binary
 .go
 .vscode
 run/
+test/
+TEST-junit.xml

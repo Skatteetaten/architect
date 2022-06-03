@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/skatteetaten/architect/v2/pkg/util"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
+//TODO: Kan vi bruke den fra utils ?
 func extractTarball(pathToTarball string) (string, error) {
 	tmpdir, err := ioutil.TempDir("", "nodejs-architect")
 	tarball, err := os.Open(pathToTarball)
@@ -47,14 +49,14 @@ func extractTarball(pathToTarball string) (string, error) {
 		switch header.Typeflag {
 		case tar.TypeDir:
 			if _, err := os.Stat(target); err != nil {
-				if err := os.MkdirAll(target, 0755); err != nil {
+				if err := util.MkdirAllWithPermissions(target, 0755); err != nil {
 					return tmpdir, errors.Wrapf(err, "Error writing file %s", name)
 				}
 			}
 		case tar.TypeReg: // = regular file
 			ret, err := writeInternal(func() (string, error) {
 				if _, err := os.Stat(dirname); err != nil {
-					if err := os.MkdirAll(dirname, 0755); err != nil {
+					if err := util.MkdirAllWithPermissions(dirname, 0755); err != nil {
 						return tmpdir, errors.Wrapf(err, "Error writing file %s", name)
 					}
 				}
@@ -87,7 +89,7 @@ func writeInternal(deferrerd func() (string, error)) (string, error) {
 	return deferrerd()
 }
 
-func findOpenshiftJsonInTarball(pathToTarball string) (*openshiftJson, error) {
+func findOpenshiftJsonInTarball(pathToTarball string) (*openshiftJSON, error) {
 	tarball, err := os.Open(pathToTarball)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error opening tarball")
@@ -114,7 +116,7 @@ func findOpenshiftJsonInTarball(pathToTarball string) (*openshiftJson, error) {
 		}
 
 		if header.Typeflag == tar.TypeReg && header.Name == "package/metadata/openshift.json" {
-			v := &openshiftJson{}
+			v := &openshiftJSON{}
 			err := json.NewDecoder(tarReader).Decode(v)
 			if err != nil {
 				return nil, errors.Wrap(err, "Error reading openshift.json")

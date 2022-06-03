@@ -32,7 +32,7 @@
                     },
                     {
                       "name": "ARTIFACT_ID",
-                      "value": "openshift-referanse-react"
+                      "value": "aurora-konsoll"
                     },
                     {
                       "name": "GROUP_ID",
@@ -40,7 +40,7 @@
                     },
                     {
                       "name": "VERSION",
-                      "value": "0.2.1"
+                      "value": "0.50.1"
                     },
                     {
                       "name": "TAG_WITH",
@@ -64,7 +64,7 @@
                     },
                     {
                       "name": "INTERNAL_PULL_REGISTRY",
-                      "value": "container-registry-internal.aurora.skead.no"
+                      "value": "container-registry-internal-private-pull.aurora.skead.no"
                     }
                 ],
                 "exposeDockerSocket": true

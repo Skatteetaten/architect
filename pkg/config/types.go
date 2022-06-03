@@ -30,9 +30,11 @@ const (
 	Doozerleveransepakke Classifier = "Doozerleveransepakke"
 )
 
+type BinaryBuildType string
+
 const (
-	Docker  = "docker"
-	Buildah = "buildah"
+	Snapshot BinaryBuildType = "Snapshot"
+	Release  BinaryBuildType = "Release"
 )
 
 type Config struct {
@@ -40,26 +42,29 @@ type Config struct {
 	ApplicationSpec   ApplicationSpec
 	DockerSpec        DockerSpec
 	BuilderSpec       BuilderSpec
-	NexusAccess       NexusAccess
 	BinaryBuild       bool
 	LocalBuild        bool
-	BuildStrategy     string
-	TlsVerify         bool
+	TLSVerify         bool
 	BuildTimeout      time.Duration
 	NoPush            bool
 	SporingsContext   string
 	Sporingstjeneste  string
 	OwnerReferenceUid string
+	BinaryBuildType   BinaryBuildType
+	NexusIQReportUrl  string
 }
 
 type NexusAccess struct {
 	Username string
 	Password string
-	NexusUrl string
+	NexusURL string
 }
 
+func (n NexusAccess) IsValid() bool {
+	return len(n.Username) > 0 && len(n.Password) > 0 && len(n.NexusURL) > 0
+}
 func (n NexusAccess) String() string {
-	return "{Username:" + n.Username + " Password:****** NexusUrl:" + n.NexusUrl + "}"
+	return "{Username:" + n.Username + " Password:****** NexusURL:" + n.NexusURL + "}"
 }
 
 type ApplicationSpec struct {
@@ -67,6 +72,7 @@ type ApplicationSpec struct {
 	BaseImageSpec DockerBaseImageSpec
 }
 
+//GAV parametersclear
 type MavenGav struct {
 	ArtifactId string
 	GroupId    string
@@ -75,10 +81,12 @@ type MavenGav struct {
 	Type       PackageType
 }
 
+//Check if GAV is snapshot
 func (m *MavenGav) IsSnapshot() bool {
-	return strings.Contains(m.Version, "SNAPSHOT")
+	return strings.HasSuffix(m.Version, "SNAPSHOT")
 }
 
+//Get name
 func (m *MavenGav) Name() string {
 	return strings.Join([]string{m.GroupId, m.ArtifactId, m.ArtifactId}, ":")
 }
@@ -96,9 +104,8 @@ type DockerSpec struct {
 	//This is the external docker registry where we check versions.
 	ExternalDockerRegistry string
 	//The tag to push to. This is only used for ImageStreamTags (as for now) and RETAG functionality
-	TagWith      string
-	RetagWith    string
-	TagOverwrite bool
+	TagWith   string
+	RetagWith string
 }
 
 type BuilderSpec struct {
@@ -130,14 +137,17 @@ func (m *PushExtraTags) ToStringValue() string {
 	return strings.Join(str, ",")
 }
 
+//Get external registry url without protocol
 func (m DockerSpec) GetExternalRegistryWithoutProtocol() string {
 	return strings.TrimPrefix(m.ExternalDockerRegistry, "https://")
 }
 
+//Get internal registry url without protocol
 func (m DockerSpec) GetInternalPullRegistryWithoutProtocol() string {
 	return strings.TrimPrefix(m.InternalPullRegistry, "https://")
 }
 
+//Parse extra tags
 func ParseExtraTags(i string) PushExtraTags {
 	p := PushExtraTags{}
 	if strings.Contains(i, "major") {

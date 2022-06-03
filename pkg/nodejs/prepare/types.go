@@ -1,6 +1,18 @@
 package prepare
 
-import "github.com/skatteetaten/architect/pkg/config/runtime"
+import "github.com/skatteetaten/architect/v2/pkg/config/runtime"
+
+//We copy this over the script in wrench if we don't have a nodejs app
+const BlockingRunNodeJS string = `#!/bin/sh
+echo "Use of node.js was not configured in openshift.json. Blocking run script."
+while true; do sleep 100d; done;
+`
+
+const ReadinessLivenessSH = `#!/bin/sh
+{{if .Include}}
+wget --spider localhost:{{.Port}} > /dev/null 2>&1
+{{end}}
+`
 
 type auroraApplication struct {
 	NodeJS *nodeJSApplication `json:"nodejs"`
@@ -29,7 +41,7 @@ type nodeJSApplication struct {
 	Overrides map[string]string `json:"overrides"`
 }
 
-type openshiftJson struct {
+type openshiftJSON struct {
 	Aurora         auroraApplication `json:"web"`
 	DockerMetadata dockerMetadata    `json:"docker"`
 }
@@ -60,16 +72,13 @@ type nginxGzip struct {
 	UseStatic string `json:"use_static"`
 }
 
-type templateInput struct {
-	Baseimage            string
-	HasNodeJSApplication bool
-	NginxOverrides       map[string]string
-	ConfigurableProxy    bool
-	Static               string
-	SPA                  bool
-	ExtraStaticHeaders   map[string]string
-	Path                 string
-	Labels               map[string]string
-	Env                  map[string]string
-	PackageDirectory     string
+type ImageMetadata struct {
+	Main             string
+	Maintainer       string
+	Baseimage        string
+	PackageDirectory string
+	Static           string
+	Path             string
+	Labels           map[string]string
+	Env              map[string]string
 }

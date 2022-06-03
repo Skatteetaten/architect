@@ -1,14 +1,15 @@
 package tagger
 
 import (
+	"context"
 	"fmt"
 	extVersion "github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/config/runtime"
-	"github.com/skatteetaten/architect/pkg/docker"
-	"github.com/skatteetaten/architect/pkg/util"
+	"github.com/skatteetaten/architect/v2/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
+	"github.com/skatteetaten/architect/v2/pkg/docker"
+	"github.com/skatteetaten/architect/v2/pkg/util"
 	"regexp"
 	"sort"
 	"strings"
@@ -34,14 +35,13 @@ func (m *SingleTagTagResolver) ResolveShortTag(appVersion *runtime.AuroraVersion
 }
 
 type NormalTagResolver struct {
-	Registry   string
-	Repository string
-	Overwrite  bool
-	Provider   docker.ImageInfoProvider
+	Registry       string
+	Repository     string
+	RegistryClient docker.Registry
 }
 
 func (m *NormalTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
-	tags, err := findCandidateTags(appVersion, m.Overwrite, m.Repository, pushExtratags, m.Provider)
+	tags, err := findCandidateTags(appVersion, m.Repository, pushExtratags, m.RegistryClient)
 	if err != nil {
 		return nil, err
 	}
@@ -50,45 +50,46 @@ func (m *NormalTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushE
 }
 
 func (m *NormalTagResolver) ResolveShortTag(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
-	tags, err := findCandidateTags(appVersion, m.Overwrite, m.Repository, pushExtratags, m.Provider)
+	tags, err := findCandidateTags(appVersion, m.Repository, pushExtratags, m.RegistryClient)
 	if err != nil {
 		return nil, err
 	}
 	return tags, nil
 }
 
-func findCandidateTags(appVersion *runtime.AuroraVersion, tagOverwrite bool, outputRepository string,
-	pushExtraTags config.PushExtraTags, provider docker.ImageInfoProvider) ([]string, error) {
-	var repositoryTags []string
+func findCandidateTags(appVersion *runtime.AuroraVersion, outputRepository string, pushExtraTags config.PushExtraTags, provider docker.Registry) ([]string, error) {
 	logrus.Debugf("Version is:%s, meta is:%s", appVersion.GetCompleteVersion(), util.GetVersionMetadata(string(appVersion.GetAppVersion())))
-	if !tagOverwrite {
 
-		tagsInRepo, err := provider.GetTags(outputRepository)
+	if appVersion.IsSemanticReleaseVersion() {
+		tagsInRepo, err := provider.GetTags(context.Background(), outputRepository)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error in ResolveShortTag, repository=%s", outputRepository)
 		}
 		logrus.Debug("Tags in repository ", tagsInRepo.Tags)
-		repositoryTags = tagsInRepo.Tags
-	}
-	if appVersion.IsSemanticReleaseVersion() {
+
 		logrus.Debugf("%s is semantic version. Filter tags", string(appVersion.GetAppVersion()))
 		candidateTags, err := getSemanticVersionTags(appVersion, pushExtraTags)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error in FilterVersionTags, app_version=%v, repositoryTags=%v",
-				appVersion, repositoryTags)
+				appVersion, tagsInRepo.Tags)
 		}
-		filteredTags, err := filterTagsFromRepository(appVersion, candidateTags, repositoryTags)
+		filteredTags, err := filterTagsFromRepository(appVersion, candidateTags, tagsInRepo.Tags)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error in FilterVersionTags, app_version=%v, "+
-				"candidateTags=%v, repositoryTags=%v", appVersion, candidateTags, repositoryTags)
+				"candidateTags=%v, repositoryTags=%v", appVersion, candidateTags, tagsInRepo.Tags)
 		}
 		return filteredTags, nil
 	} else {
-		versions := make([]string, 0, 10)
 		logrus.Debug("Is not semantic version. Append only complete version and given version")
-		versions = append(versions, string(appVersion.GetCompleteVersion()))
+		var versions []string
 		if appVersion.Snapshot {
-			versions = append(versions, string(appVersion.GetGivenVersion()))
+			if appVersion.GetUniqueSnapshotVersion() != "" {
+				versions = append(versions, appVersion.GetUniqueSnapshotVersion())
+			}
+			versions = append(versions, appVersion.GetGivenVersion())
+			versions = append(versions, appVersion.GetCompleteSnapshotVersion())
+		} else {
+			versions = append(versions, appVersion.GetCompleteVersion())
 		}
 		return versions, nil
 	}
@@ -211,17 +212,17 @@ func getSemanticVersionTags(version *runtime.AuroraVersion, extraTags config.Pus
 }
 
 func getMajor(version string, increment bool) (string, error) {
-	build_version, err := extVersion.NewVersion(version)
+	buildVersion, err := extVersion.NewVersion(version)
 
 	if err != nil {
 		return "", errors.Wrap(err, "Error in parsing major version: "+version)
 	}
-	versionMajor := build_version.Segments()[0]
+	versionMajor := buildVersion.Segments()[0]
 	if increment {
 		versionMajor++
 	}
-	if len(build_version.Metadata()) > 0 {
-		return fmt.Sprintf("%d+%s", versionMajor, build_version.Metadata()), nil
+	if len(buildVersion.Metadata()) > 0 {
+		return fmt.Sprintf("%d+%s", versionMajor, buildVersion.Metadata()), nil
 	}
 	return fmt.Sprintf("%d", versionMajor), nil
 }

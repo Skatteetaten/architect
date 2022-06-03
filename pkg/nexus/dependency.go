@@ -1,7 +1,6 @@
 package nexus
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,7 +16,7 @@ func ExtractDependecyMetadata(buildFolder string) ([]Dependency, error) {
 	})
 
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed when traversing folder %s", buildFolder))
+		return nil, fmt.Errorf("Failed when traversing folder %s", buildFolder)
 	}
 
 	for _, file := range fileList {

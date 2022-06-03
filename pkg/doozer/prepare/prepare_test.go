@@ -1,60 +1,95 @@
-package prepare_test
+package prepare
 
 import (
-	global "github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/config/runtime"
-	"github.com/skatteetaten/architect/pkg/doozer/prepare"
-	"github.com/skatteetaten/architect/pkg/nexus"
-	"github.com/skatteetaten/architect/pkg/util"
+	"github.com/skatteetaten/architect/v2/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
+	"github.com/skatteetaten/architect/v2/pkg/nexus"
 	"github.com/stretchr/testify/assert"
 	"os"
-	"path/filepath"
+	"strings"
 	"testing"
 )
 
-func TestPrepare(t *testing.T) {
-	auroraVersions := runtime.NewAuroraVersion(
-		"0.0.1",
-		true,
-		"0.0.1",
-		"0.0.1-b1.11.0-oracle8-1.0.2")
-
-	dockerBuildPath, err := prepare.Prepare(global.DockerSpec{}, auroraVersions,
-		nexus.Deliverable{Path: "testdata/test-war-0.0.1-SNAPSHOT-DoozerLeveranse.zip"},
+func TestArchitectPrepareLayers(t *testing.T) {
+	buildconfiguration, err := prepareLayers(config.DockerSpec{
+		OutputRegistry:         "",
+		OutputRepository:       "",
+		InternalPullRegistry:   "",
+		PushExtraTags:          config.PushExtraTags{},
+		ExternalDockerRegistry: "",
+		TagWith:                "",
+		RetagWith:              "",
+	}, runtime.NewAuroraVersion("", false, "", ""),
+		nexus.Deliverable{
+			Path: "testdata/architect-1.25.14-Doozerleveransepakke.zip",
+		},
 		runtime.BaseImage{
 			DockerImage: runtime.DockerImage{
-				Repository: "test",
-				Tag:        "1",
+				Tag:        "",
+				Repository: "",
+				Registry:   "",
 			},
 			ImageInfo: &runtime.ImageInfo{
-				CompleteBaseImageVersion: "hei",
-				Enviroment:               make(map[string]string),
-				Labels:                   make(map[string]string),
+				CompleteBaseImageVersion: "",
+				Labels:                   map[string]string{},
+				Enviroment:               nil,
+				Digest:                   "",
 			},
 		})
 
-	assert.NoError(t, err)
+	assert.NoError(t, err, "prepareLayers failed")
 
-	// Dockerfile
-	filePath := filepath.Join(dockerBuildPath, "Dockerfile")
-	fileExists, err := util.Exists(filePath)
+	path := buildconfiguration.BuildContext
 
-	if err != nil {
-		t.Error(err)
-	} else if !fileExists {
-		t.Errorf("Expected file %s not found", filePath)
-	}
+	assert.FileExists(t, path+"/layer/u01/bin/architect")
+	assert.Equal(t, "/u01/bin/architect", strings.Join(buildconfiguration.Cmd, " "))
 
-	// Application
-	applicationPath := filepath.Join(dockerBuildPath, "app", "application")
-	applicationExists, err := util.Exists(applicationPath)
+	defer os.RemoveAll(path)
 
-	if err != nil {
-		t.Error(err)
-	} else if !applicationExists {
-		t.Errorf("Expected file %s not found", filePath)
-	}
+}
 
-	os.RemoveAll(dockerBuildPath)
+func TestPrepareLayers(t *testing.T) {
+	buildconfiguration, err := prepareLayers(config.DockerSpec{
+		OutputRegistry:         "",
+		OutputRepository:       "",
+		InternalPullRegistry:   "",
+		PushExtraTags:          config.PushExtraTags{},
+		ExternalDockerRegistry: "",
+		TagWith:                "",
+		RetagWith:              "",
+	}, runtime.NewAuroraVersion("", false, "", ""),
+		nexus.Deliverable{
+			Path: "testdata/test-war-0.0.1-SNAPSHOT-DoozerLeveranse.zip",
+		},
+		runtime.BaseImage{
+			DockerImage: runtime.DockerImage{
+				Tag:        "",
+				Repository: "",
+				Registry:   "",
+			},
+			ImageInfo: &runtime.ImageInfo{
+				CompleteBaseImageVersion: "",
+				Labels:                   map[string]string{},
+				Enviroment:               nil,
+				Digest:                   "",
+			},
+		})
+
+	assert.NoError(t, err, "prepareLayers failed")
+
+	path := buildconfiguration.BuildContext
+
+	t.Run("Check application structure", func(t *testing.T) {
+		assert.DirExists(t, path+"/layer/u01")
+		assert.FileExists(t, path+"/layer/usr/local/tomcat/webapps/emptywar.war")
+
+		logFolder, err := os.Lstat(path + "/layer/u01/logs")
+		if err != nil {
+			t.Fatal("Lstat failed")
+		}
+		assert.Equal(t, "drwxrwxrwx", logFolder.Mode().String())
+	})
+
+	os.RemoveAll(path)
 
 }

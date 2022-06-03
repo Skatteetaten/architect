@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/skatteetaten/architect/cmd/architect"
+	"github.com/skatteetaten/architect/v2/cmd/architect"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -33,6 +33,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	architect.Build.AddCommand(architect.Bc)
 	RootCmd.AddCommand(architect.Build)
 	// Here you will define your flags and configuration settings.
 	// Cobra supports Persistent Flags, which, if defined here,

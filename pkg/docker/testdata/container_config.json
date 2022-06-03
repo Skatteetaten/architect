@@ -1,0 +1,169 @@
+{
+  "architecture": "amd64",
+  "config": {
+    "Hostname": "df3d5f2a2b98",
+    "Domainname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": false,
+    "AttachStderr": false,
+    "Tty": false,
+    "OpenStdin": false,
+    "StdinOnce": false,
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "container=oci",
+      "LANG=en_US.UTF-8",
+      "TZ=Europe/Oslo",
+      "HOME=/u01",
+      "BASE_IMAGE_VERSION=2.3.3",
+      "UBI_VERSION=7.9"
+    ],
+    "Cmd": [
+      "/bin/bash"
+    ],
+    "ArgsEscaped": true,
+    "Image": "sha256:46bf5f76fec79917d6c2b3058e8af91e1de7c61e69eb1ad4a7f1008935fed185",
+    "Volumes": null,
+    "WorkingDir": "",
+    "Entrypoint": null,
+    "OnBuild": [],
+    "Labels": {
+      "architecture": "x86_64",
+      "build-date": "2021-08-24T10:14:13.479966",
+      "com.redhat.build-host": "cpt-1002.osbs.prod.upshift.rdu2.redhat.com",
+      "com.redhat.component": "ubi7-minimal-container",
+      "com.redhat.license_terms": "https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI",
+      "description": "The Universal Base Image Minimal is a stripped down image that uses microdnf as a package manager. This base image is freely redistributable, but Red Hat only supports Red Hat technologies through subscriptions for Red Hat products. This image is maintained by Red Hat and updated regularly.",
+      "distribution-scope": "public",
+      "io.k8s.description": "The Universal Base Image Minimal is a stripped down image that uses microdnf as a package manager. This base image is freely redistributable, but Red Hat only supports Red Hat technologies through subscriptions for Red Hat products. This image is maintained by Red Hat and updated regularly.",
+      "io.k8s.display-name": "Red Hat Universal Base Image 7 Minimal",
+      "io.openshift.tags": "minimal rhel7",
+      "maintainer": "The Norwegian Tax Administration \u003cutvpaas@skatteetaten.no\u003e",
+      "name": "ubi7-minimal",
+      "release": "471",
+      "summary": "Provides the latest release of the minimal Red Hat Universal Base Image 7.",
+      "ubi": "7.9",
+      "url": "https://access.redhat.com/containers/#/registry.access.redhat.com/ubi7-minimal/images/7.9-471",
+      "vcs-ref": "8c60d5a9644707e7c4939980a221ec2927d9a88a",
+      "vcs-type": "git",
+      "vendor": "Red Hat, Inc.",
+      "version": ""
+    }
+  },
+  "container": "dcbf020809b7b94fc431f6d41d2b9d6fa080811acabd88243b9edaa93ea04a5e",
+  "container_config": {
+    "Hostname": "df3d5f2a2b98",
+    "Domainname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": false,
+    "AttachStderr": false,
+    "Tty": false,
+    "OpenStdin": false,
+    "StdinOnce": false,
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "container=oci",
+      "LANG=en_US.UTF-8",
+      "TZ=Europe/Oslo",
+      "HOME=/u01",
+      "BASE_IMAGE_VERSION=2.3.3",
+      "UBI_VERSION=7.9"
+    ],
+    "Cmd": [
+      "|1",
+      "baseImageVersion=2.3.3",
+      "/bin/sh",
+      "-c",
+      "update-ca-trust extract \u0026\u0026     microdnf update --nodocs \u0026\u0026     microdnf install --nodocs --enablerepo rhel-7-server-rpms --enablerepo epel       ldns procps-ng \u0026\u0026     microdnf clean all \u0026\u0026     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \u0026\u0026     echo $TZ \u003e /etc/timezone \u0026\u0026     mkdir ${HOME}"
+    ],
+    "ArgsEscaped": true,
+    "Image": "sha256:46bf5f76fec79917d6c2b3058e8af91e1de7c61e69eb1ad4a7f1008935fed185",
+    "Volumes": null,
+    "WorkingDir": "",
+    "Entrypoint": null,
+    "OnBuild": [],
+    "Labels": {
+      "architecture": "x86_64",
+      "build-date": "2021-08-24T10:14:13.479966",
+      "com.redhat.build-host": "cpt-1002.osbs.prod.upshift.rdu2.redhat.com",
+      "com.redhat.component": "ubi7-minimal-container",
+      "com.redhat.license_terms": "https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI",
+      "description": "The Universal Base Image Minimal is a stripped down image that uses microdnf as a package manager. This base image is freely redistributable, but Red Hat only supports Red Hat technologies through subscriptions for Red Hat products. This image is maintained by Red Hat and updated regularly.",
+      "distribution-scope": "public",
+      "io.k8s.description": "The Universal Base Image Minimal is a stripped down image that uses microdnf as a package manager. This base image is freely redistributable, but Red Hat only supports Red Hat technologies through subscriptions for Red Hat products. This image is maintained by Red Hat and updated regularly.",
+      "io.k8s.display-name": "Red Hat Universal Base Image 7 Minimal",
+      "io.openshift.tags": "minimal rhel7",
+      "maintainer": "The Norwegian Tax Administration \u003cutvpaas@skatteetaten.no\u003e",
+      "name": "ubi7-minimal",
+      "release": "471",
+      "summary": "Provides the latest release of the minimal Red Hat Universal Base Image 7.",
+      "ubi": "7.9",
+      "url": "https://access.redhat.com/containers/#/registry.access.redhat.com/ubi7-minimal/images/7.9-471",
+      "vcs-ref": "8c60d5a9644707e7c4939980a221ec2927d9a88a",
+      "vcs-type": "git",
+      "vendor": "Red Hat, Inc.",
+      "version": ""
+    }
+  },
+  "created": "2021-09-02T12:10:11.204068949Z",
+  "docker_version": "1.13.1",
+  "history": [
+    {
+      "created": "2021-08-24T10:14:23.720068769Z",
+      "comment": "Imported from -"
+    },
+    {
+      "created": "2021-08-24T10:14:34.312145Z"
+    },
+    {
+      "created": "2021-09-02T10:47:45.028137586Z",
+      "created_by": "/bin/sh -c #(nop)  ARG baseImageVersion",
+      "empty_layer": true
+    },
+    {
+      "created": "2021-09-02T10:47:46.341883129Z",
+      "created_by": "/bin/sh -c #(nop)  LABEL maintainer=The Norwegian Tax Administration \u003cutvpaas@skatteetaten.no\u003e ubi=7.9 version=",
+      "empty_layer": true
+    },
+    {
+      "created": "2021-09-02T12:07:42.422985438Z",
+      "created_by": "/bin/sh -c #(nop)  ENV LANG=en_US.UTF-8 TZ=Europe/Oslo HOME=/u01 BASE_IMAGE_VERSION=2.3.3 UBI_VERSION=7.9",
+      "empty_layer": true
+    },
+    {
+      "created": "2021-09-02T12:07:42.639989433Z",
+      "created_by": "/bin/sh -c #(nop) COPY dir:7fd8650c28f1ef3842cc70912887034a130068f11615c61f02c1dff431b211be in /etc/pki/ca-trust/source/anchors/ "
+    },
+    {
+      "created": "2021-09-02T12:07:42.847286991Z",
+      "created_by": "/bin/sh -c #(nop) COPY dir:a279bff32d3c0542be4572c6bacd975a557e6b4056830d599466e2d49b4832cf in /etc/yum.repos.d/ "
+    },
+    {
+      "created": "2021-09-02T12:07:43.018169796Z",
+      "created_by": "/bin/sh -c #(nop) COPY dir:eb740121e659ec8d23b2f9f5ded805ffceff301be0d5607c52c2f249a53f0a4f in /etc/pki/rpm-gpg/ "
+    },
+    {
+      "created": "2021-09-02T12:07:43.226485152Z",
+      "created_by": "/bin/sh -c #(nop) COPY dir:25e38bcc5605d8a371ea75687b6d31f7f94718d2129827f1b99dc03b6c9bab8f in /usr/share/zoneinfo/ "
+    },
+    {
+      "created": "2021-09-02T12:10:11.204068949Z",
+      "created_by": "|1 baseImageVersion=2.3.3 /bin/sh -c update-ca-trust extract \u0026\u0026     microdnf update --nodocs \u0026\u0026     microdnf install --nodocs --enablerepo rhel-7-server-rpms --enablerepo epel       ldns procps-ng \u0026\u0026     microdnf clean all \u0026\u0026     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \u0026\u0026     echo $TZ \u003e /etc/timezone \u0026\u0026     mkdir ${HOME}"
+    }
+  ],
+  "os": "linux",
+  "rootfs": {
+    "type": "layers",
+    "diff_ids": [
+      "sha256:d9c62e2cfb6d127d74842759996b7930fb0b176b5cfd358157d8ed2f62ccce48",
+      "sha256:1749aef87be7fb6137116af6b3c935b631e9a4fd4053b17b9de2f831c900259e",
+      "sha256:6e498e621dbb01d843886c0212ba6f5b813e71819a14e3e05af505813ae05c17",
+      "sha256:c741c631ec670263ba6ab5e7a964ea2d8a7752bbecc3eee25c2e55e68101d195",
+      "sha256:5a73b8d5db583a568c1c55d7122ffc04c2615a8ac1b6d90710f9b0fab39fa2ed",
+      "sha256:3c451d425fd686cf0b210ffea832d41159fc536a616234ca0ba0c50834caae0f",
+      "sha256:5591ade8ef82ebbfbb377c64aac992c5c6e1309d2ec3f19ac3e7a5974e49f107"
+    ]
+  }
+}

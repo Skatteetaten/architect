@@ -1,86 +1,98 @@
 package nexus
 
 import (
+	"encoding/xml"
+	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/skatteetaten/architect/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config"
 	"io"
 	"io/ioutil"
-	"mime"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
+//Downloader interface
 type Downloader interface {
-	DownloadArtifact(c *config.MavenGav, ns *config.NexusAccess) (Deliverable, error)
+	DownloadArtifact(c *config.MavenGav) (Deliverable, error)
 }
 
-type NexusDownloader struct {
-	baseUrl string
+type MavenDownloader struct {
+	baseURL  string
+	username string
+	password string
 }
 
+//BinaryDownloader struct
 type BinaryDownloader struct {
 	Path string
 }
 
+//Deliverable struct
 type Deliverable struct {
 	Path string
 	SHA1 string
 }
 
+//Dependency struct
 type Dependency struct {
 	Name string
 	SHA1 string
 	Size int64
 }
 
-func NewNexusDownloader(baseUrl string) Downloader {
-	return &NexusDownloader{
-		baseUrl: baseUrl,
-	}
+//MavenManifest minimal representation of maven-metadata.xml
+type MavenManifest struct {
+	Versioning Versioning `xml:"versioning"`
 }
 
+//Versioning ...
+type Versioning struct {
+	Snapshot Snapshot `xml:"snapshot"`
+}
+
+//Snapshot ...
+type Snapshot struct {
+	Timestamp   string `xml:"timestamp"`
+	BuildNumber int    `xml:"buildNumber"`
+}
+
+//NewBinaryLoader new BinaryDownloader of type Downloader
 func NewBinaryDownloader(path string) Downloader {
 	return &BinaryDownloader{
 		Path: path,
 	}
 }
 
-func (n *BinaryDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusAccess) (Deliverable, error) {
+func (n *BinaryDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, error) {
 	deliverable := Deliverable{
 		Path: n.Path,
 	}
 	if _, err := os.Stat(n.Path); err != nil {
 		return deliverable, errors.Wrapf(err, "Failed to stat local artifact %s", n.Path)
 	}
+	hash, _ := hashFileSHA1(deliverable.Path)
+	deliverable.SHA1 = hash
+
 	return deliverable, nil
 }
 
-func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusAccess) (Deliverable, error) {
+//NewMavenDownloader MavenDownloader of type Downloader
+func NewMavenDownloader(baseURL string, username string, password string) Downloader {
+	return &MavenDownloader{
+		baseURL:  baseURL,
+		username: username,
+		password: password,
+	}
+}
 
+//DownloadArtifact downloads a maven artifact
+func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, error) {
 	deliverable := Deliverable{}
-
-	// Detect API version
-	useNexus3 := false
-	resp, err := http.Get(n.baseUrl)
-	if err != nil {
-		logrus.Fatalf("Failed response from %s, error: %s", n.baseUrl, err)
-	} else {
-		useNexus3, _ = regexp.MatchString(`^Nexus/3\..*$`, resp.Header.Get("Server"))
-		logrus.Infof("Use nexus 3: %t", useNexus3)
-	}
-	defer resp.Body.Close()
-
-	resourceUrl, err := n.resourceURL(c, useNexus3)
-	if err != nil {
-		return deliverable, errors.Wrap(err, "Failed to create resource url")
-	}
-	logrus.Infof("Downloading artifact from %s", resourceUrl)
 
 	httpClient := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -88,40 +100,67 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 		},
 	}
 
-	var location = ""
-	var httpResponse *http.Response
-	var nextURL = resourceUrl
-	for { // repeat until no 302 redirect
-		req, err := http.NewRequest("GET", nextURL, nil)
+	mavenManifest := MavenManifest{}
+	if c.IsSnapshot() {
+		//Handle snapshot
+		u, err := url.Parse(n.baseURL)
 		if err != nil {
-			return deliverable, errors.Wrapf(err, "Failed to create request for Nexus url %s", resourceUrl)
+			return deliverable, errors.Wrapf(err, "Unable to parse nexus url %s", n.baseURL)
 		}
-		if na != nil && na.Username != "" && na.Password != "" {
-			req.SetBasicAuth(na.Username, na.Password)
+		//Set path
+		u.Path = createMavenManifestPath(c)
+		logrus.Infof("Downloading artifact from %s", u.String())
+
+		req, err := http.NewRequest("GET", u.String(), nil)
+		req.Header.Set("Accept", "application/xml")
+		if err != nil {
+			return deliverable, errors.Wrapf(err, "Failed to create request for Nexus url %s", u.String())
 		}
-		httpResponse, err = httpClient.Do(req)
-		if httpResponse.StatusCode == http.StatusFound {
-			location = httpResponse.Header.Get("Location")
-			logrus.Infof("Got redirect to location: %s", location)
-			nextURL = location
-			httpResponse.Body.Close()
-		} else if err != nil {
-			return deliverable, errors.Wrapf(err, "Failed to get artifact from Nexus %s", resourceUrl)
-		} else {
-			break
+		if n.username != "" && n.password != "" {
+			req.SetBasicAuth(n.username, n.password)
+		}
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			return deliverable, errors.Wrapf(err, "Error when downloading manifest from %s", u.String())
+		}
+
+		defer resp.Body.Close()
+
+		err = xml.NewDecoder(resp.Body).Decode(&mavenManifest)
+		if err != nil {
+			return deliverable, errors.Wrapf(err, "Requested resource %s. XML decode failed", u.String())
 		}
 	}
-	defer httpResponse.Body.Close()
 
-	if httpResponse.StatusCode != http.StatusOK {
-		return deliverable, errors.Errorf("Could not download artifact (Make sure you have deployed it!)"+
-			". Status code %s ", httpResponse.Status)
-	}
-
-	fileName, err := n.fileName(c, httpResponse.Header.Get("content-disposition"), location)
+	//Create download url
+	u, err := url.Parse(n.baseURL)
 	if err != nil {
-		return deliverable, errors.Wrapf(err, "Could not create filename for temporary file")
+		return deliverable, errors.Wrapf(err, "Unable to parse nexus url %s", n.baseURL)
 	}
+	//Set path
+	u.Path = createDownloadPath(mavenManifest, c)
+	logrus.Infof("Downloading artifact from %s", u.String())
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return deliverable, errors.Wrapf(err, "Failed to create request for Nexus url %s", u.String())
+	}
+	if n.username != "" && n.password != "" {
+		req.SetBasicAuth(n.username, n.password)
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return deliverable, errors.Wrapf(err, "Error when downloading artifact from %s", u.String())
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return deliverable, errors.Errorf("Could not download artifact (Make sure you have deployed it!)"+
+			". Status code %s , Location %s", resp.Status, resp.Request.URL)
+	}
+
+	fileName := createFileName(c, mavenManifest)
 
 	dir, err := ioutil.TempDir("", "package")
 	if err != nil {
@@ -131,13 +170,13 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 
 	fileCreated, err := os.Create(filePath)
 	if err != nil {
-		return deliverable, errors.Wrap(err, "Failed to create artifact file")
+		return deliverable, errors.Wrapf(err, "Failed to create artifact file. Filepath=%s", filePath)
 	}
 	defer fileCreated.Close()
 
-	_, err = io.Copy(fileCreated, httpResponse.Body)
+	_, err = io.Copy(fileCreated, resp.Body)
 	if err != nil {
-		return deliverable, errors.Wrap(err, "Failed to write to artifact file")
+		return deliverable, errors.Wrapf(err, "Failed to write to artifact file. Filepath=%s", filePath)
 	}
 	deliverable.Path = filePath
 	logrus.Debugf("Downloaded artifact to %s", deliverable.Path)
@@ -146,17 +185,35 @@ func (n *NexusDownloader) DownloadArtifact(c *config.MavenGav, na *config.NexusA
 	deliverable.SHA1 = hash
 
 	return deliverable, nil
+
 }
 
-func FilePathWalkDir(root string) ([]string, error) {
-	var files []string
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			files = append(files, path)
-		}
-		return nil
-	})
-	return files, err
+func createMavenManifestPath(c *config.MavenGav) string {
+	groupId := strings.ReplaceAll(c.GroupId, ".", "/")
+	return fmt.Sprintf("/repository/maven-intern/%s/%s/%s/maven-metadata.xml", groupId, c.ArtifactId, c.Version)
+}
+
+func createDownloadPath(manifest MavenManifest, c *config.MavenGav) string {
+	groupId := strings.ReplaceAll(c.GroupId, ".", "/")
+	artifact := createFileName(c, manifest)
+	return fmt.Sprintf("/repository/maven-intern/%s/%s/%s/%s", groupId, c.ArtifactId, c.Version, artifact)
+}
+
+func createFileName(gav *config.MavenGav, manifest MavenManifest) string {
+	versionWithoutSnapshot := strings.ReplaceAll(gav.Version, "SNAPSHOT", "")
+	if gav.IsSnapshot() && (len(manifest.Versioning.Snapshot.Timestamp) > 0 && manifest.Versioning.Snapshot.BuildNumber > 0) {
+		return fmt.Sprintf("%s-%s%s-%d%s", gav.ArtifactId, versionWithoutSnapshot, manifest.Versioning.Snapshot.Timestamp, manifest.Versioning.Snapshot.BuildNumber, getClassifierExt(gav))
+	} else {
+		return fmt.Sprintf("%s-%s%s", gav.ArtifactId, gav.Version, getClassifierExt(gav))
+	}
+}
+
+func getClassifierExt(c *config.MavenGav) string {
+	if c.Classifier != "" {
+		return fmt.Sprintf("-%s.%s", c.Classifier, c.Type)
+	} else {
+		return fmt.Sprintf(".%s", c.Type)
+	}
 }
 
 /*
@@ -170,80 +227,4 @@ func GetSnapshotTimestampVersion(gav config.MavenGav, deliverable Deliverable) s
 		return version
 	}
 	return gav.Version
-}
-
-func (m *NexusDownloader) resourceURL(cfg *config.MavenGav, useNexus3 bool) (string, error) {
-	if useNexus3 {
-		resourceUrl, err := m.createNexus3URL(cfg)
-		if err != nil {
-			return resourceUrl, errors.Wrapf(err, "Failed to create Nexus 3 url for GAV %+v", cfg)
-		}
-		return resourceUrl, nil
-	} else {
-		resourceUrl, err := m.createURL(cfg)
-		if err != nil {
-			return resourceUrl, errors.Wrapf(err, "Failed to create Nexus url for GAV %+v", cfg)
-		}
-		return resourceUrl, nil
-	}
-}
-
-func (m *NexusDownloader) createURL(n *config.MavenGav) (string, error) {
-	tmpUrl, err := url.Parse(m.baseUrl)
-	if err != nil {
-		return "", errors.Wrapf(err, "Failed to parse url")
-	}
-	query := tmpUrl.Query()
-	query.Set("g", n.GroupId)
-	query.Set("a", n.ArtifactId)
-	query.Set("v", n.Version)
-	query.Set("e", string(n.Type))
-	query.Set("c", string(n.Classifier))
-	query.Set("r", "public-with-staging")
-	tmpUrl.RawQuery = query.Encode()
-	return tmpUrl.String(), nil
-}
-
-func (m *NexusDownloader) createNexus3URL(n *config.MavenGav) (string, error) {
-	tmpUrl, err := url.Parse(m.baseUrl + "/service/rest/v1/search/assets/download")
-	if err != nil {
-		return "", errors.Wrapf(err, "Failed to parse url")
-	}
-	query := tmpUrl.Query()
-	query.Set("sort", "version")
-	query.Set("repository", "maven-intern")
-	query.Set("maven.groupId", n.GroupId)
-	query.Set("maven.artifactId", n.ArtifactId)
-	query.Set("maven.extension", string(n.Type))
-	query.Set("maven.classifier", string(n.Classifier))
-	if n.IsSnapshot() {
-		query.Set("maven.baseVersion", n.Version)
-	} else {
-		query.Set("version", n.Version)
-	}
-	tmpUrl.RawQuery = query.Encode()
-	return tmpUrl.String(), nil
-}
-
-func (m *NexusDownloader) fileName(cfg *config.MavenGav, contentDisposition string, location string) (string, error) {
-	if len(contentDisposition) > 0 {
-		_, params, err := mime.ParseMediaType(contentDisposition)
-		if err != nil {
-			return "", errors.Wrap(err, "Failed to parse content-disposition")
-		}
-		return params["filename"], nil
-	} else if location != "" {
-		_, fileName := filepath.Split(location)
-		return fileName, nil
-	} else {
-		// No content-disposition or location - using alternate filename composition
-		if string(cfg.Classifier) == "" {
-			return "", errors.Errorf("Missing maven Classifier")
-		}
-		if string(cfg.Type) == "" {
-			return "", errors.Errorf("Missing maven Type")
-		}
-		logrus.Warn("Using generic filename for temp file")
-		return string(cfg.Classifier) + "." + string(cfg.Type), nil
-	}
 }

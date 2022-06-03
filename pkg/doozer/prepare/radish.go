@@ -2,8 +2,8 @@ package prepare
 
 import (
 	"encoding/json"
-	"github.com/skatteetaten/architect/pkg/doozer/config"
-	"github.com/skatteetaten/architect/pkg/util"
+	"github.com/skatteetaten/architect/v2/pkg/doozer/config"
+	"github.com/skatteetaten/architect/v2/pkg/util"
 	"io"
 )
 
@@ -12,7 +12,7 @@ type Type struct {
 	Version string `json:"Version"`
 }
 
-type JavaDescriptorData struct {
+type javaDescriptorData struct {
 	Basedir               string   `json:"Basedir"`
 	PathsToClassLibraries []string `json:"PathsToClassLibraries"`
 	MainClass             string   `json:"MainClass"`
@@ -20,24 +20,24 @@ type JavaDescriptorData struct {
 	JavaOptions           string   `json:"JavaOptions"`
 }
 
-type JavaDescriptor struct {
+type javaDescriptor struct {
 	Type
-	Data JavaDescriptorData
+	Data javaDescriptorData
 }
 
-type GeneralDescriptor struct {
+type generalDescriptor struct {
 	Type
 }
 
 func newRadishDescriptor(meta *config.DeliverableMetadata, basedir string) util.WriterFunc {
 	return func(writer io.Writer) error {
 		if meta.Java != nil {
-			desc := JavaDescriptor{
+			desc := javaDescriptor{
 				Type: Type{
 					Type:    "Java",
 					Version: "1",
 				},
-				Data: JavaDescriptorData{
+				Data: javaDescriptorData{
 					Basedir:               basedir,
 					PathsToClassLibraries: []string{"lib", "repo"},
 					MainClass:             meta.Java.MainClass,
@@ -47,15 +47,15 @@ func newRadishDescriptor(meta *config.DeliverableMetadata, basedir string) util.
 			}
 			err := json.NewEncoder(writer).Encode(desc)
 			return err
-		} else {
-			desc := GeneralDescriptor{
-				Type: Type{
-					Type:    "General",
-					Version: "1",
-				},
-			}
-			err := json.NewEncoder(writer).Encode(desc)
-			return err
 		}
+		desc := generalDescriptor{
+			Type: Type{
+				Type:    "General",
+				Version: "1",
+			},
+		}
+		err := json.NewEncoder(writer).Encode(desc)
+		return err
+
 	}
 }

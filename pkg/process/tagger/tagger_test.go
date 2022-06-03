@@ -2,10 +2,12 @@ package tagger
 
 import (
 	"bufio"
-	"github.com/skatteetaten/architect/pkg/config"
-	"github.com/skatteetaten/architect/pkg/config/runtime"
-	"github.com/skatteetaten/architect/pkg/docker"
+	"context"
+	"github.com/skatteetaten/architect/v2/pkg/config"
+	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
+	"github.com/skatteetaten/architect/v2/pkg/docker"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"log"
 	"os"
 	"sort"
@@ -14,26 +16,27 @@ import (
 )
 
 const (
-	CFG_PUSH_EXTRA_TAGS = "major minor patch latest"
+	CfgPushExtraTags = "major minor patch latest"
 )
 
 const (
-	APP_VERSION    = "2.4.5"
-	AURORA_VERSION = "2.4.5-b1.11.0-oracle8-1.2.3"
+	AppVersion    = "2.4.5"
+	AuroraVersion = "2.4.5-b1.11.0-oracle8-1.2.3"
 )
 
 const (
-	TAG_MAJOR    = "2"
-	TAG_MINOR    = "2.4"
-	TAG_PATCH    = "2.4.5"
-	TAG_COMPLETE = "2.4.5-b1.11.0-oracle8-1.2.3"
+	TagMajor    = "2"
+	TagMinor    = "2.4"
+	TagPatch    = "2.4.5"
+	TagComplete = "2.4.5-b1.11.0-oracle8-1.2.3"
 )
 
 const (
-	SNAPSHOT_GIVEN_VERSION  = "branch_test-SNAPSHOT"
-	SNAPSHOT_APP_VERSION    = "branch_test-201703929219"
-	SNAPSHOT_AURORA_VERSION = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
-	SNAPSHOT_TAG_COMPLETE   = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
+	SnapshotGivenVersion       = "branch_test-SNAPSHOT"
+	SnapshotGivenVersionUnique = "branch_test-SNAPSHOT-12345678"
+	SnapshotAppVersion         = "branch_test-201703929219"
+	SnapshotAuroraVersion      = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
+	SnapshotTagComplete        = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
 )
 
 type RegistryMock struct {
@@ -43,7 +46,7 @@ type RegistryMock struct {
 var supertagger = NormalTagResolver{
 	Registry:   "testregistry",
 	Repository: "aurora/test",
-	Provider: &RegistryMock{
+	RegistryClient: &RegistryMock{
 		tagsFromRegistry: readTags(),
 	},
 }
@@ -70,32 +73,32 @@ func readTags() []string {
 var tagger = NormalTagResolver{
 	Registry:   "testregistry",
 	Repository: "aurora/test",
-	Provider: &RegistryMock{
+	RegistryClient: &RegistryMock{
 		tagsFromRegistry: []string{"latest", "1.1.2", "1.1", "1", "1.2.1", "1.2", "1.3.0",
 			"1.3", "1.1.0", "2.0.0", "2.0", "2", "3+metadata", "3.2+metadata", "3.2.1+metadata"},
 	},
 }
 
 func TestTagInfoRelease(t *testing.T) {
-	appVersion := runtime.NewAuroraVersion(APP_VERSION, false, APP_VERSION, runtime.CompleteVersion(AURORA_VERSION))
-	tags, err := tagger.ResolveTags(appVersion, config.ParseExtraTags(CFG_PUSH_EXTRA_TAGS))
+	appVersion := runtime.NewAuroraVersion(AppVersion, false, AppVersion, AuroraVersion)
+	tags, err := tagger.ResolveTags(appVersion, config.ParseExtraTags(CfgPushExtraTags))
 	if err != nil {
 		t.Fatalf("Failed to create target VersionInfo %v", err)
 	}
 
 	//TODO: Add the test for complete tag, but it should not be a part of appversion
-	expectedTags := []string{"latest", TAG_MAJOR, TAG_MINOR, TAG_PATCH, TAG_COMPLETE}
+	expectedTags := []string{"latest", TagMajor, TagMinor, TagPatch, TagComplete}
 	verifyTagListContent(t, tags, expectedTags)
 }
 
 func TestTagInfoSnapshot(t *testing.T) {
-	appVersion := runtime.NewAuroraVersion(SNAPSHOT_APP_VERSION, true, SNAPSHOT_GIVEN_VERSION, runtime.CompleteVersion(SNAPSHOT_AURORA_VERSION))
-	tags, err := tagger.ResolveTags(appVersion, config.ParseExtraTags(CFG_PUSH_EXTRA_TAGS))
+	appVersion := runtime.NewAuroraVersion(SnapshotAppVersion, true, SnapshotGivenVersion, SnapshotAuroraVersion)
+	tags, err := tagger.ResolveTags(appVersion, config.ParseExtraTags(CfgPushExtraTags))
 	if err != nil {
 		t.Fatalf("Failed to create target VersionInfo %v", err)
 	}
 
-	verifyTagListContent(t, tags, []string{SNAPSHOT_GIVEN_VERSION, SNAPSHOT_TAG_COMPLETE})
+	verifyTagListContent(t, tags, []string{SnapshotGivenVersion, SnapshotTagComplete})
 }
 
 func TestFilterTags(t *testing.T) {
@@ -103,49 +106,41 @@ func TestFilterTags(t *testing.T) {
 		t:           t,
 		tagResolver: &tagger,
 	}
+
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.1.1", false, "1.1.1", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.1.1", false, "1.1.1", "COMPLETE"),
 		[]string{"1.1.1", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.2.0", false, "1.2.0", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.2.0", false, "1.2.0", "COMPLETE"),
 		[]string{"1.2.0", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.2.2", false, "1.2.2", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.2.2", false, "1.2.2", "COMPLETE"),
 		[]string{"1.2.2", "1.2", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.3.1", false, "1.3.1", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.3.1", false, "1.3.1", "COMPLETE"),
 		[]string{"1.3.1", "1.3", "1", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("2.0.1", false, "2.0.1", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("2.0.1", false, "2.0.1", "COMPLETE"),
 		[]string{"2.0.1", "2.0", "2", "latest", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.1.1-SNAPSHOT", true, "1.1.1-SNAPSHOT", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.1.1-SNAPSHOT", true, "1.1.1-SNAPSHOT", "COMPLETE"),
 		[]string{"1.1.1-SNAPSHOT", "COMPLETE"})
 }
 
 var taggerWithMeta = NormalTagResolver{
 	Registry:   "testregistry",
 	Repository: "aurora/test",
-	Provider: &RegistryMock{
+	RegistryClient: &RegistryMock{
 		tagsFromRegistry: []string{"latest", "1.1.2", "1.1", "1", "1.2.1", "1.2", "1.3.0",
 			"1.3", "1.1.0", "2.0.0", "2.0", "2", "3+metadata", "3.2+metadata", "3.2.1+metadata",
 			"2+meta2", "2.0+meta2", "2.0.0+meta2"},
 	},
 }
-
-/*
-type NormalTagResolver struct {
-	Registry   string
-	Repository string
-	Overwrite  bool
-	Provider   docker.ImageInfoProvider
-}
-*/
 
 func TestFilterTagsWithMeta(t *testing.T) {
 	r := repositoryTester{
@@ -154,47 +149,47 @@ func TestFilterTagsWithMeta(t *testing.T) {
 	}
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.3.1", false, "1.3.1", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.3.1", false, "1.3.1", "COMPLETE"),
 		[]string{"1.3.1", "1.3", "1", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.3.0", false, "1.3.0", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.3.0", false, "1.3.0", "COMPLETE"),
 		[]string{"1.3.0", "1.3", "1", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.1.1", false, "1.1.1", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.1.1", false, "1.1.1", "COMPLETE"),
 		[]string{"1.1.1", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.2.1", false, "1.2.1", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.2.1", false, "1.2.1", "COMPLETE"),
 		[]string{"1.2.1", "1.2", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.1.1+metadata", false, "1.1.1+metadata", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.1.1+metadata", false, "1.1.1+metadata", "COMPLETE"),
 		[]string{"1.1.1_metadata", "1.1_metadata", "1_metadata", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.3.0+metadata", false, "1.3.0+metadata", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.3.0+metadata", false, "1.3.0+metadata", "COMPLETE"),
 		[]string{"1.3.0_metadata", "1.3_metadata", "1_metadata", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("3.2.0+metadata", false, "3.2.0+metadata", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("3.2.0+metadata", false, "3.2.0+metadata", "COMPLETE"),
 		[]string{"3.2.0_metadata", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("3.2.2+metadata", false, "3.2.2+metadata", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("3.2.2+metadata", false, "3.2.2+metadata", "COMPLETE"),
 		[]string{"3.2.2_metadata", "3.2_metadata", "3_metadata", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("3.2.1+metadata", false, "3.2.1+metadata", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("3.2.1+metadata", false, "3.2.1+metadata", "COMPLETE"),
 		[]string{"3.2.1_metadata", "3.2_metadata", "3_metadata", "COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("3.2.1+meta+data", false, "3.2.1+meta+data", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("3.2.1+meta+data", false, "3.2.1+meta+data", "COMPLETE"),
 		[]string{"COMPLETE"})
 
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("3.2.1+meta+data", false, "3.2.1+meta+data", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("3.2.1+meta+data", false, "3.2.1+meta+data", "COMPLETE"),
 		[]string{"COMPLETE"})
 }
 
@@ -204,7 +199,7 @@ func TestFilterTagsWithWeirdTagsInRepo(t *testing.T) {
 		tagResolver: &supertagger,
 	}
 	r.testTagFiltering(
-		runtime.NewAuroraVersion("1.106.1", false, "1.106.1", runtime.CompleteVersion("COMPLETE")),
+		runtime.NewAuroraVersion("1.106.1", false, "1.106.1", "COMPLETE"),
 		[]string{"1.106.1", "1.106", "1", "latest", "COMPLETE"})
 }
 
@@ -229,7 +224,7 @@ var tagsAppend = []string{""}
 var taggerAppend = NormalTagResolver{
 	Registry:   "testregistry",
 	Repository: "aurora/test",
-	Provider: &RegistryMockAppend{
+	RegistryClient: &RegistryMockAppend{
 		tagsFromRegistry: tagsAppend,
 	},
 }
@@ -283,27 +278,79 @@ func (m repositoryTester) testTagFilteringAppend(appversion string, completevers
 	return tagsOnly
 }
 
-func (registry *RegistryMock) GetTags(repository string) (*docker.TagsAPIResponse, error) {
+func (registry *RegistryMock) GetTags(ctx context.Context, repository string) (*docker.TagsAPIResponse, error) {
 	return &docker.TagsAPIResponse{Name: "jalla", Tags: registry.tagsFromRegistry}, nil
 }
 
-func (registry *RegistryMockAppend) GetTags(repository string) (*docker.TagsAPIResponse, error) {
-	return &docker.TagsAPIResponse{Name: "jalla", Tags: docker.ConvertRepositoryTagsToTags(tagsAppend)}, nil
-}
-
-func (registry *RegistryMock) GetImageInfo(repository string, tag string) (*runtime.ImageInfo, error) {
-	return &runtime.ImageInfo{}, nil
-}
-
-func (registry *RegistryMockAppend) GetImageInfo(repository string, tag string) (*runtime.ImageInfo, error) {
-	return &runtime.ImageInfo{}, nil
-}
-
-func (registry *RegistryMock) GetImageConfig(repository string, digest string) (map[string]interface{}, error) {
+func (registry *RegistryMock) GetManifest(ctx context.Context, repository string, digest string) (*docker.ManifestV2, error) {
 	return nil, nil
 }
 
-func (registry *RegistryMockAppend) GetImageConfig(repository string, digest string) (map[string]interface{}, error) {
+func (registry *RegistryMock) LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error) {
+	return false, nil
+}
+func (registry *RegistryMock) MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error {
+	return nil
+}
+func (registry *RegistryMock) PushLayer(ctx context.Context, layer io.Reader, dstRepository string, layerDigest string) error {
+	return nil
+}
+
+func (registry *RegistryMock) PullLayer(ctx context.Context, repository string, layerDigest string) (string, error) {
+	return "", nil
+}
+
+func (registry *RegistryMock) PushManifest(ctx context.Context, manifest []byte, repository string, tag string) error {
+	return nil
+}
+
+func (registry *RegistryMockAppend) GetManifest(ctx context.Context, repository string, digest string) (*docker.ManifestV2, error) {
+	return nil, nil
+}
+
+func (registry *RegistryMockAppend) LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error) {
+	return false, nil
+}
+func (registry *RegistryMockAppend) MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error {
+	return nil
+}
+func (registry *RegistryMockAppend) PushLayer(ctx context.Context, layer io.Reader, dstRepository string, layerDigest string) error {
+	return nil
+}
+
+func (registry *RegistryMockAppend) PullLayer(ctx context.Context, repository string, layerDigest string) (string, error) {
+	return "", nil
+}
+
+func (registry *RegistryMockAppend) PushManifest(ctx context.Context, manifest []byte, repository string, tag string) error {
+	return nil
+}
+
+func (registry *RegistryMock) GetContainerConfig(ctx context.Context, repository string, digest string) (*docker.ContainerConfig, error) {
+	return nil, nil
+}
+
+func (registry *RegistryMockAppend) GetContainerConfig(ctx context.Context, repository string, digest string) (*docker.ContainerConfig, error) {
+	return nil, nil
+}
+
+func (registry *RegistryMockAppend) GetTags(ctx context.Context, repository string) (*docker.TagsAPIResponse, error) {
+	return &docker.TagsAPIResponse{Name: "jalla", Tags: docker.ConvertRepositoryTagsToTags(tagsAppend)}, nil
+}
+
+func (registry *RegistryMock) GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error) {
+	return &runtime.ImageInfo{}, nil
+}
+
+func (registry *RegistryMockAppend) GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error) {
+	return &runtime.ImageInfo{}, nil
+}
+
+func (registry *RegistryMock) GetImageConfig(ctx context.Context, repository string, digest string) (map[string]interface{}, error) {
+	return nil, nil
+}
+
+func (registry *RegistryMockAppend) GetImageConfig(ctx context.Context, repository string, digest string) (map[string]interface{}, error) {
 	return nil, nil
 }
 
@@ -314,5 +361,5 @@ func verifyTagListContent(t *testing.T, actualList []string, expectedList []stri
 	}
 	sort.StringSlice(expectedListExpanded).Sort()
 	sort.StringSlice(actualList).Sort()
-	assert.Equal(t, actualList, expectedListExpanded)
+	assert.Equal(t, expectedListExpanded, actualList)
 }

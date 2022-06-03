@@ -32,15 +32,15 @@
           },
           {
             "name": "ARTIFACT_ID",
-            "value": "architect-doozer-test"
+            "value": "architect"
           },
           {
             "name": "GROUP_ID",
-            "value": "no.skatteetaten.aurora.demo"
+            "value": "aurora"
           },
           {
             "name": "VERSION",
-            "value": "0.0.1-SNAPSHOT"
+            "value": "2.2.1"
           },
           {
             "name": "DOCKER_BASE_VERSION",
@@ -48,7 +48,7 @@
           },
           {
             "name": "DOCKER_BASE_NAME",
-            "value": "aurora/builder"
+            "value": "aurora/turbo"
           },
           {
             "name": "TAG_OVERWRITE",
@@ -60,7 +60,7 @@
           },
           {
             "name": "INTERNAL_PULL_REGISTRY",
-            "value": "container-registry-internal.aurora.skead.no"
+            "value": "container-registry-internal-private-pull.aurora.skead.no"
           },
           {
             "name": "DEBUG",
