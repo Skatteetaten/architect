@@ -29,7 +29,7 @@ type Tracer struct {
 func (t *Tracer) AddImageMetadata(data interface{}) {
 	if t.enabled {
 		ctx := context.Background()
-		timeoutIn := time.Now().Add(30 * time.Millisecond)
+		timeoutIn := time.Now().Add(5 * time.Second)
 		ctx, cancelFunc := context.WithDeadline(ctx, timeoutIn)
 		defer cancelFunc()
 
