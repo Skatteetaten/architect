@@ -73,9 +73,9 @@ func getHTTPRequest(client *http.Client, ctx context.Context, headers map[string
 			return nil, errors.Wrapf(err, "Failed to read requested body for url %s with header %s", url, headers)
 		}
 		return body, nil
-	} else {
-		return nil, errors.Errorf("Unabled to read manifest. From registry: %s", res.Status)
 	}
+
+	return nil, errors.Errorf("Unabled to read manifest. From registry: %s", res.Status)
 }
 
 func GetPortOrDefault(port string) string {

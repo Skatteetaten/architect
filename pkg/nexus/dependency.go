@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-func ExtractDependecyMetadata(buildFolder string) ([]Dependency, error) {
+func ExtractDependencyMetadata(buildFolder string) ([]Dependency, error) {
 
 	metadata := []Dependency{}
 	fileList := []string{}

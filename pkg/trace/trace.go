@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// NewTracer returns a new Tracer
 func NewTracer(sporingsURL string, context string) *Tracer {
 	return &Tracer{
 		url:     sporingsURL,
@@ -20,6 +21,7 @@ func NewTracer(sporingsURL string, context string) *Tracer {
 	}
 }
 
+// Tracer struct
 type Tracer struct {
 	url     string
 	context string

@@ -2,13 +2,13 @@ package prepare
 
 import "github.com/skatteetaten/architect/v2/pkg/config/runtime"
 
-//We copy this over the script in wrench if we don't have a nodejs app
-const BlockingRunNodeJS string = `#!/bin/sh
+// We copy this over the script in wrench if we don't have a nodejs app
+const blockingRunNodeJS string = `#!/bin/sh
 echo "Use of node.js was not configured in openshift.json. Blocking run script."
 while true; do sleep 100d; done;
 `
 
-const ReadinessLivenessSH = `#!/bin/sh
+const readinessLivenessSH = `#!/bin/sh
 {{if .Include}}
 wget --spider localhost:{{.Port}} > /dev/null 2>&1
 {{end}}
@@ -72,6 +72,7 @@ type nginxGzip struct {
 	UseStatic string `json:"use_static"`
 }
 
+// ImageMetadata utility struct containing image metadata
 type ImageMetadata struct {
 	Main             string
 	Maintainer       string

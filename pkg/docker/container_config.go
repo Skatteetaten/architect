@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-//
+// ContainerConfig go representation of the ContainerConfig schema
 type ContainerConfig struct {
 	Architecture    string                `json:"architecture"`
 	Config          DockerContainerConfig `json:"config"`
@@ -20,6 +20,7 @@ type ContainerConfig struct {
 	RootFs          RootFs                `json:"rootfs"`
 }
 
+// DockerContainerConfig go reprsentation of the DockerContainerConfig schema
 type DockerContainerConfig struct {
 	Hostname     string
 	DomainName   string
@@ -41,6 +42,7 @@ type DockerContainerConfig struct {
 	Labels       map[string]string
 }
 
+// OCIContainerConfig go reprsentation of the OCIContainerConfig schema
 type OCIContainerConfig struct {
 	Hostname     string
 	Domainname   string

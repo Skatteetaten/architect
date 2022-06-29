@@ -8,7 +8,7 @@ import (
 func TestNewFromJson(t *testing.T) {
 
 	const maintainer string = "Aurora OpenShift Utvikling <utvpaas@skatteetaten.no>"
-	const readinessUrl = "/health"
+	const readinessURL = "/health"
 	const ioK8sDescription = "Demo application with spring boot on Openshift."
 
 	const openshiftJson string = `{
@@ -36,7 +36,7 @@ func TestNewFromJson(t *testing.T) {
 	}
 
 	assertEquals(t, maintainer, meta.Docker.Maintainer)
-	assertEquals(t, readinessUrl, meta.Openshift.ReadinessURL)
+	assertEquals(t, readinessURL, meta.Openshift.ReadinessURL)
 	assertEquals(t, ioK8sDescription, meta.Docker.Labels["io.k8s.description"])
 }
 

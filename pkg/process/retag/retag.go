@@ -33,7 +33,6 @@ func Retag(ctx context.Context, cfg *config.Config, credentials *docker.Registry
 	return r.Retag(ctx)
 }
 
-//TODO: Rewrite this.. This is moving between registries. Check if we need to use the pull registry
 func (m *retagger) Retag(ctx context.Context) error {
 	tag := m.Config.DockerSpec.RetagWith
 	repository := m.Config.DockerSpec.OutputRepository
@@ -46,7 +45,7 @@ func (m *retagger) Retag(ctx context.Context) error {
 		return errors.Wrap(err, "Failed to retag image")
 	}
 
-	envMap := imageInfo.Enviroment
+	envMap := imageInfo.Environment
 
 	// Get AURORA_VERSION
 	auroraVersion, ok := envMap[docker.EnvAuroraVersion]
@@ -89,9 +88,8 @@ func (m *retagger) Retag(ctx context.Context) error {
 		Credentials: m.Credentials,
 	}
 	t := tagger.NormalTagResolver{
-		Repository: m.Config.DockerSpec.OutputRepository,
-		Registry:   m.Config.DockerSpec.OutputRegistry,
-		//TODO: Fix signature.. We don't want to have to registries on retag...
+		Repository:     m.Config.DockerSpec.OutputRepository,
+		Registry:       m.Config.DockerSpec.OutputRegistry,
 		RegistryClient: docker.NewRegistryClient(retagRegistry),
 	}
 	logrus.Debugf("Extract tag info, auroraVersion=%v, appVersion=%v, extraTags=%s", auroraVersion, appVersion, extratags)

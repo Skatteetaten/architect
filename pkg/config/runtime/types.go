@@ -6,13 +6,15 @@ import (
 	"strings"
 )
 
+// ImageInfo struct containing image metadata
 type ImageInfo struct {
 	CompleteBaseImageVersion string
 	Labels                   map[string]string
-	Enviroment               map[string]string
+	Environment              map[string]string
 	Digest                   string
 }
 
+// BaseImage struct containing base image metadata
 type BaseImage struct {
 	DockerImage
 	ImageInfo *ImageInfo
@@ -57,7 +59,6 @@ func (m *DockerImage) AuroraVersionComponent() string {
 }
 
 func (m *ArchitectImage) AuroraVersionComponent() string {
-	//TODO: Should we include image name?
 	return "b" + m.Tag
 }
 

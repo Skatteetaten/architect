@@ -1,7 +1,6 @@
-package docker_test
+package docker
 
 import (
-	"github.com/skatteetaten/architect/v2/pkg/docker"
 	"strings"
 	"testing"
 )
@@ -17,7 +16,7 @@ func TestReadConfigSingleRegistry(t *testing.T) {
 	}
 }`
 
-	cfg, err := docker.ReadConfig(strings.NewReader(config_json))
+	cfg, err := readConfig(strings.NewReader(config_json))
 
 	if err != nil || cfg == nil {
 		t.Errorf("Failed to read valid json config: %v", err)
@@ -48,7 +47,7 @@ func TestReadConfigMultipleRegistries(t *testing.T) {
 	}
 }`
 
-	cfg, err := docker.ReadConfig(strings.NewReader(config_json))
+	cfg, err := readConfig(strings.NewReader(config_json))
 
 	if err != nil || cfg == nil {
 		t.Errorf("Failed to read valid json config: %v", err)
@@ -78,13 +77,13 @@ func TestGetCredentials(t *testing.T) {
 	expected_user := "foo"
 	expected_password := "barpw"
 
-	cfg, err := docker.ReadConfig(strings.NewReader(config_json))
+	cfg, err := readConfig(strings.NewReader(config_json))
 
 	if err != nil || cfg == nil {
 		t.Errorf("Failed to read valid json config: %v", err)
 	}
 
-	cred, err := cfg.GetCredentials("the-registry")
+	cred, err := cfg.getCredentials("the-registry")
 
 	if err != nil {
 		t.Errorf("Failed to extract credentials: %v", err)
@@ -112,7 +111,7 @@ func TestMultipleCredentialsInOldFormat(t *testing.T) {
 		}
 	}`
 
-	cfg, err := docker.ReadConfig(strings.NewReader(config_json))
+	cfg, err := readConfig(strings.NewReader(config_json))
 
 	if err != nil || cfg == nil {
 		t.Errorf("Failed to read valid json config: %v", err)
@@ -121,7 +120,7 @@ func TestMultipleCredentialsInOldFormat(t *testing.T) {
 	expected_user := "foo"
 	expected_password := "barpw"
 
-	cred, err := cfg.GetCredentials("the-registry")
+	cred, err := cfg.getCredentials("the-registry")
 
 	if err != nil {
 		t.Errorf("Failed to extract credentials: %v", err)
@@ -138,7 +137,7 @@ func TestMultipleCredentialsInOldFormat(t *testing.T) {
 	expected_user = "my"
 	expected_password = "pass"
 
-	cred, err = cfg.GetCredentials("the-other-registry")
+	cred, err = cfg.getCredentials("the-other-registry")
 
 	if err != nil {
 		t.Errorf("Failed to extract credentials: %v", err)

@@ -11,12 +11,14 @@ import (
 	"path/filepath"
 )
 
+// RegistryCredentials registry access url and credentials
 type RegistryCredentials struct {
 	Username      string `json:"username,omitempty"`
 	Password      string `json:"password,omitempty"`
 	Serveraddress string `json:"serveraddress,omitempty"`
 }
 
+// BuildConfig
 type BuildConfig struct {
 	AuroraVersion    *runtime.AuroraVersion
 	DockerRepository string
@@ -85,13 +87,13 @@ func readRegistryCredentials(outputRegistry string, dockerConfigPath string) (*R
 		return nil, err
 	}
 
-	dockerConfig, err := ReadConfig(dockerConfigReader)
+	dockerConfig, err := readConfig(dockerConfigReader)
 
 	if err != nil {
 		return nil, err
 	}
 
-	basicCredentials, err := dockerConfig.GetCredentials(outputRegistry)
+	basicCredentials, err := dockerConfig.getCredentials(outputRegistry)
 
 	if err != nil {
 		return nil, err

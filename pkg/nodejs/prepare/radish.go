@@ -35,13 +35,7 @@ type OpenshiftConfig struct {
 	Web Web `json:"web"`
 }
 
-func UnmarshallOpenshiftConfig(buffer io.Reader) (OpenshiftConfig, error) {
-	var data OpenshiftConfig
-	err := json.NewDecoder(buffer).Decode(&data)
-	return data, err
-}
-
-func newRadishNginxConfig(docker *ImageMetadata, nginx *NginxfileData) util.WriterFunc {
+func newRadishNginxConfig(docker *ImageMetadata, nginx *nginxfileData) util.WriterFunc {
 	return func(writer io.Writer) error {
 		data := OpenshiftConfig{
 			Web: Web{

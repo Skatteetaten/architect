@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 )
 
+// LayerBuilder configuration
 type LayerBuilder struct {
 	config       *config.Config
 	pushRegistry docker.Registry
@@ -29,13 +30,14 @@ type LayerProvider struct {
 	Layers          []Layer
 }
 
+// Layer represent an image blob
 type Layer struct {
-	Digest string
-	Size   int
-	//TODO: Vi kan vurdere å lage et eget interface for bedre lesbarhet
+	Digest  string
+	Size    int
 	Content func(cxt context.Context) (io.ReadCloser, error)
 }
 
+// NewLayerBuilder return Builder of type LayerBuilder
 func NewLayerBuilder(config *config.Config, pushregistry docker.Registry, pullregistry docker.Registry) Builder {
 	return &LayerBuilder{
 		config:       config,
@@ -44,6 +46,7 @@ func NewLayerBuilder(config *config.Config, pushregistry docker.Registry, pullre
 	}
 }
 
+// Pull layers
 func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.BuildConfig) (*LayerProvider, error) {
 	baseImage := buildConfig.Image
 
@@ -59,7 +62,7 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.BuildConfig)
 		return nil, errors.Wrap(err, "Failed to fetch the container config")
 	}
 
-	//Include the container configuration blob
+	// Include the container configuration blob
 	blobs := make([]docker.Layer, len(manifest.Layers))
 	copy(blobs, manifest.Layers)
 	blobs = append(blobs, docker.Layer{
@@ -68,12 +71,11 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.BuildConfig)
 		Digest:    manifest.Config.Digest,
 	})
 
-	//Handle blobs
 	var layers []Layer
 	for _, layer := range blobs {
 		ok, _ := l.pushRegistry.LayerExists(ctx, l.config.DockerSpec.OutputRepository, layer.Digest)
 		if !ok {
-			//Pull missing layers
+			// Pull missing layers
 			ok, err := l.pushRegistry.LayerExists(ctx, baseImage.Repository, layer.Digest)
 			if err != nil || !ok {
 
@@ -104,6 +106,7 @@ func (l *LayerBuilder) Pull(ctx context.Context, buildConfig docker.BuildConfig)
 	}, nil
 }
 
+// Build container image
 func (l *LayerBuilder) Build(buildConfig docker.BuildConfig, baseImageLayerProvider *LayerProvider) (*LayerProvider, error) {
 	buildFolder := buildConfig.BuildFolder
 	layerFolder := filepath.Join(buildFolder, util.LayerFolder)
@@ -162,10 +165,10 @@ func (l *LayerBuilder) Build(buildConfig docker.BuildConfig, baseImageLayerProvi
 				},
 			})
 
-			//Add content digest to RootFS
+			// Add content digest to RootFS
 			containerConfig = containerConfig.AddLayer(contentDigest)
 
-			//Add to manifest
+			// Add to manifest
 			manifest.Layers = append(manifest.Layers, docker.Layer{
 				MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
 				Size:      size,
@@ -179,7 +182,7 @@ func (l *LayerBuilder) Build(buildConfig docker.BuildConfig, baseImageLayerProvi
 		return nil, err
 	}
 
-	//Create the container configration layer
+	// Create the container configuration layer
 	containerConfigDigest := util.CalculateDigest(cc)
 	layers = append(layers, Layer{
 		Digest: containerConfigDigest,
@@ -189,11 +192,11 @@ func (l *LayerBuilder) Build(buildConfig docker.BuildConfig, baseImageLayerProvi
 		},
 	})
 
-	//Add container configuration to the manifest
+	// Add container configuration to the manifest
 	manifest.Config.Size = len(cc)
 	manifest.Config.Digest = containerConfigDigest
 
-	//Add base layers
+	// Add base layers
 	layers = append(layers, baseImageLayerProvider.Layers...)
 
 	return &LayerProvider{
@@ -204,9 +207,10 @@ func (l *LayerBuilder) Build(buildConfig docker.BuildConfig, baseImageLayerProvi
 	}, nil
 }
 
+// Push layers and tags
 func (l *LayerBuilder) Push(ctx context.Context, layers *LayerProvider, tag []string) error {
 
-	//Push layers
+	// Push layers
 	for _, layer := range layers.Layers {
 		if layer.Content != nil {
 			contentReader, err := layer.Content(ctx)
@@ -222,7 +226,7 @@ func (l *LayerBuilder) Push(ctx context.Context, layers *LayerProvider, tag []st
 		}
 	}
 
-	//Push tags
+	// Push tags
 	for _, t := range tag {
 		shortTag, err := util.FindOutputTagOrHash(t)
 		if err != nil {

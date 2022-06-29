@@ -67,7 +67,6 @@ func extractTarball(pathToTarball string) (string, error) {
 				defer f.Close()
 
 				// copy over contents
-
 				if _, err := io.Copy(f, tarReader); err != nil {
 					return tmpdir, errors.Wrapf(err, "Error writing file %s", name)
 				}

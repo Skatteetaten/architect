@@ -15,8 +15,8 @@ import (
 func TestNewLocalDownloader(t *testing.T) {
 	d := NewBinaryDownloader("test")
 	m := config.MavenGav{
-		ArtifactId: "dontexist",
-		GroupId:    "ske",
+		ArtifactID: "dontexist",
+		GroupID:    "ske",
 		Version:    "develop-SNAPSHOT",
 	}
 	l, err := d.DownloadArtifact(&m)
@@ -34,8 +34,8 @@ func TestGetSnapshotTimestampVersion(t *testing.T) {
 	expectedVersion := "SNAPSHOT-feature_baz-20170701.103015-1"
 
 	gav := config.MavenGav{
-		ArtifactId: "myapp",
-		GroupId:    "ske.foo.bar",
+		ArtifactID: "myapp",
+		GroupID:    "ske.foo.bar",
 		Version:    "feature-baz-SNAPSHOT",
 		Classifier: config.Leveransepakke,
 		Type:       config.ZipPackaging,
@@ -56,8 +56,8 @@ func TestGetSnapshotTimestampVersionBinaryBuild(t *testing.T) {
 	expectedVersion := "SNAPSHOT-feature_baz-20170701.103015-1"
 
 	gav := config.MavenGav{
-		ArtifactId: "myapp",
-		GroupId:    "ske.foo.bar",
+		ArtifactID: "myapp",
+		GroupID:    "ske.foo.bar",
 		Version:    "feature-baz-SNAPSHOT",
 		Classifier: config.Leveransepakke,
 		Type:       config.ZipPackaging,
@@ -126,8 +126,8 @@ func TestMavenDownloaderOnSnapshot(t *testing.T) {
 	mavenDownloader := NewMavenDownloader(srv.URL, "username", "password")
 
 	maven := config.MavenGav{
-		ArtifactId: "architect",
-		GroupId:    "no.skatteetaten.aurora",
+		ArtifactID: "architect",
+		GroupID:    "no.skatteetaten.aurora",
 		Version:    "test_build-SNAPSHOT",
 		Classifier: "Leveransepakke",
 		Type:       "zip",
@@ -154,8 +154,8 @@ func TestMavenDownloaderOnRelease(t *testing.T) {
 	mavenDownloader := NewMavenDownloader(srv.URL, "username", "password")
 
 	maven := config.MavenGav{
-		ArtifactId: "architect",
-		GroupId:    "no.skatteetaten.aurora",
+		ArtifactID: "architect",
+		GroupID:    "no.skatteetaten.aurora",
 		Version:    "1.0.0",
 		Classifier: "Leveransepakke",
 		Type:       "zip",
@@ -168,8 +168,8 @@ func TestMavenDownloaderOnRelease(t *testing.T) {
 func TestCreateFileName(t *testing.T) {
 	// case 1 - release
 	gav := config.MavenGav{
-		ArtifactId: "artifact",
-		GroupId:    "no.skatteetaten.aurora",
+		ArtifactID: "artifact",
+		GroupID:    "no.skatteetaten.aurora",
 		Version:    "1.0.0",
 		Classifier: "Leveransepakke",
 		Type:       "zip",
@@ -183,8 +183,8 @@ func TestCreateFileName(t *testing.T) {
 
 	// case 2 - SNAPSHOT with full manifest
 	gav = config.MavenGav{
-		ArtifactId: "myapp",
-		GroupId:    "ske.foo.bar",
+		ArtifactID: "myapp",
+		GroupID:    "ske.foo.bar",
 		Version:    "feature-baz-SNAPSHOT",
 		Classifier: config.Leveransepakke,
 		Type:       config.ZipPackaging,
@@ -202,8 +202,8 @@ func TestCreateFileName(t *testing.T) {
 
 	// case 3 - SNAPSHOT with manifest without timestamp
 	gav = config.MavenGav{
-		ArtifactId: "myapp",
-		GroupId:    "ske.foo.bar",
+		ArtifactID: "myapp",
+		GroupID:    "ske.foo.bar",
 		Version:    "feature_ABC_1234_test-SNAPSHOT",
 		Classifier: config.Webleveransepakke,
 		Type:       config.TgzPackaging,

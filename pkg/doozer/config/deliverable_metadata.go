@@ -19,7 +19,6 @@ type MetadataDocker struct {
 	Labels     map[string]string `json:"labels"`
 }
 
-// TODO: Consider if "destPath" is available for fetching from base image in some way and can be optional
 type MetadataDoozer struct {
 	SrcPath      string `json:"srcPath"`
 	FileName     string `json:"fileName"`

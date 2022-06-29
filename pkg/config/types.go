@@ -34,9 +34,9 @@ type BinaryBuildType string
 
 const (
 	Snapshot BinaryBuildType = "Snapshot"
-	Release  BinaryBuildType = "Release"
 )
 
+// Config contains the build config
 type Config struct {
 	ApplicationType   ApplicationType
 	ApplicationSpec   ApplicationSpec
@@ -54,6 +54,7 @@ type Config struct {
 	NexusIQReportUrl  string
 }
 
+// NexusAccess nexus url and nexus credentials
 type NexusAccess struct {
 	Username string
 	Password string
@@ -72,23 +73,23 @@ type ApplicationSpec struct {
 	BaseImageSpec DockerBaseImageSpec
 }
 
-//GAV parametersclear
+// MavenGav GAV parameters
 type MavenGav struct {
-	ArtifactId string
-	GroupId    string
+	ArtifactID string
+	GroupID    string
 	Version    string
 	Classifier Classifier
 	Type       PackageType
 }
 
-//Check if GAV is snapshot
+// IsSnapshot Check if GAV is snapshot
 func (m *MavenGav) IsSnapshot() bool {
 	return strings.HasSuffix(m.Version, "SNAPSHOT")
 }
 
-//Get name
+// Name Get name
 func (m *MavenGav) Name() string {
-	return strings.Join([]string{m.GroupId, m.ArtifactId, m.ArtifactId}, ":")
+	return strings.Join([]string{m.GroupID, m.ArtifactID, m.ArtifactID}, ":")
 }
 
 type DockerBaseImageSpec struct {
@@ -119,7 +120,7 @@ type PushExtraTags struct {
 	Patch  bool
 }
 
-// Generates the tags given the appversion and extra tag configuration. Don't do any filtering
+// ToStringValue Generates the tags given the appversion and extra tag configuration. Don't do any filtering
 func (m *PushExtraTags) ToStringValue() string {
 	str := make([]string, 0, 5)
 	if m.Major {
@@ -137,17 +138,17 @@ func (m *PushExtraTags) ToStringValue() string {
 	return strings.Join(str, ",")
 }
 
-//Get external registry url without protocol
+// GetExternalRegistryWithoutProtocol Get external registry url without protocol
 func (m DockerSpec) GetExternalRegistryWithoutProtocol() string {
 	return strings.TrimPrefix(m.ExternalDockerRegistry, "https://")
 }
 
-//Get internal registry url without protocol
+// GetInternalPullRegistryWithoutProtocol Get internal registry url without protocol
 func (m DockerSpec) GetInternalPullRegistryWithoutProtocol() string {
 	return strings.TrimPrefix(m.InternalPullRegistry, "https://")
 }
 
-//Parse extra tags
+// ParseExtraTags parse extra tags
 func ParseExtraTags(i string) PushExtraTags {
 	p := PushExtraTags{}
 	if strings.Contains(i, "major") {

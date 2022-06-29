@@ -1,6 +1,6 @@
 package prepare
 
-type NginxfileData struct {
+type nginxfileData struct {
 	HasNodeJSApplication bool
 	ConfigurableProxy    bool
 	NginxOverrides       map[string]string

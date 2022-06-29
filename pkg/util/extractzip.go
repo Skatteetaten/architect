@@ -42,7 +42,7 @@ func ExtractAndRenameDeliverable(dockerBuildFolder string, deliverablePath strin
 
 }
 
-//ExtractDeliverable extract archive to dest
+// ExtractDeliverable extract archive to dest
 func ExtractDeliverable(archivePath string, extractedDirPath string) error {
 
 	zipReader, err := zip.OpenReader(archivePath)

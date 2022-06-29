@@ -89,7 +89,7 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 
 		logrus.Info("Docker context ", buildConfig.BuildFolder)
 
-		dependencyMetadata, _ := nexus.ExtractDependecyMetadata(buildConfig.BuildFolder)
+		dependencyMetadata, _ := nexus.ExtractDependencyMetadata(buildConfig.BuildFolder)
 
 		buildResult, err := builder.Build(buildConfig, baseimageLayers)
 		if err != nil {

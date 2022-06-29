@@ -14,13 +14,14 @@ import (
 	"github.com/skatteetaten/architect/v2/pkg/util"
 )
 
-type BuildConfiguration struct {
+type buildConfiguration struct {
 	BuildContext string
 	Env          map[string]string
 	Labels       map[string]string
 	Cmd          []string
 }
 
+// Prepper prepare the image build context
 func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
 		baseImage runtime.BaseImage) ([]docker.BuildConfig, error) {
@@ -42,7 +43,7 @@ func Prepper() process.Prepper {
 	}
 }
 
-func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (*BuildConfiguration, error) {
+func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (*buildConfiguration, error) {
 	openshiftJson, err := findOpenshiftJsonInTarball(deliverable.Path)
 	if err != nil {
 		return nil, err
@@ -85,7 +86,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 	}
 
 	if !nginxData.HasNodeJSApplication {
-		err = writer(util.NewByteWriter([]byte(BlockingRunNodeJS)), "overrides", "run_node")
+		err = writer(util.NewByteWriter([]byte(blockingRunNodeJS)), "overrides", "run_node")
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed creating nodejs override script")
 		}
@@ -130,7 +131,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 		return nil, errors.Wrap(err, "Could not copy static files")
 	}
 
-	return &BuildConfiguration{
+	return &buildConfiguration{
 		BuildContext: buildPath,
 		Env:          dockerData.Env,
 		Labels:       dockerData.Labels,
@@ -145,7 +146,7 @@ func addNginxProbes(buildPath string, writer util.FileWriter) error {
 		Include: true,
 		Port:    8080,
 	}
-	err := writer(util.NewTemplateWriter(nginxProbe, "nginxreadiness", ReadinessLivenessSH),
+	err := writer(util.NewTemplateWriter(nginxProbe, "nginxreadiness", readinessLivenessSH),
 		"overrides", "readiness_nginx.sh")
 	if err != nil {
 		return err
@@ -155,7 +156,7 @@ func addNginxProbes(buildPath string, writer util.FileWriter) error {
 		return errors.Wrap(err, "Could not set file permissions")
 	}
 
-	err = writer(util.NewTemplateWriter(nginxProbe, "nginxliveness", ReadinessLivenessSH),
+	err = writer(util.NewTemplateWriter(nginxProbe, "nginxliveness", readinessLivenessSH),
 		"overrides", "liveness_nginx.sh")
 	if err != nil {
 		return err
@@ -173,7 +174,7 @@ func addNodeProbes(buildPath string, hasNodejsApplication bool, writer util.File
 		Include: hasNodejsApplication,
 		Port:    9090,
 	}
-	err := writer(util.NewTemplateWriter(nodeProbe, "nodeliveness", ReadinessLivenessSH),
+	err := writer(util.NewTemplateWriter(nodeProbe, "nodeliveness", readinessLivenessSH),
 		"overrides", "liveness_node.sh")
 	if err != nil {
 		return err
@@ -183,7 +184,7 @@ func addNodeProbes(buildPath string, hasNodejsApplication bool, writer util.File
 		return errors.Wrap(err, "Could not set file permissions")
 	}
 
-	err = writer(util.NewTemplateWriter(nodeProbe, "nodereadiness", ReadinessLivenessSH),
+	err = writer(util.NewTemplateWriter(nodeProbe, "nodereadiness", readinessLivenessSH),
 		"overrides", "readiness_node.sh")
 	if err != nil {
 		return err
@@ -195,7 +196,7 @@ func addNodeProbes(buildPath string, hasNodejsApplication bool, writer util.File
 	return nil
 }
 
-func mapOpenShiftJSONToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJSON, completeDockerName string, imageBuildTime string, auroraVersion *runtime.AuroraVersion) (*NginxfileData, *ImageMetadata, error) {
+func mapOpenShiftJSONToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJSON, completeDockerName string, imageBuildTime string, auroraVersion *runtime.AuroraVersion) (*nginxfileData, *ImageMetadata, error) {
 	labels := make(map[string]string)
 	if v.DockerMetadata.Labels != nil {
 		for k, v := range v.DockerMetadata.Labels {
@@ -261,7 +262,7 @@ func mapOpenShiftJSONToTemplateInput(dockerSpec config.DockerSpec, v *openshiftJ
 		env[docker.EnvSnapshotVersion] = auroraVersion.GetGivenVersion()
 	}
 
-	return &NginxfileData{
+	return &nginxfileData{
 			HasNodeJSApplication: len(nodejsMainfile) != 0,
 			ConfigurableProxy:    v.Aurora.ConfigurableProxy,
 			NginxOverrides:       overrides,

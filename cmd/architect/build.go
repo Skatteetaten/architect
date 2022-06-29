@@ -25,7 +25,7 @@ func init() {
 
 }
 
-//Build command
+// Build command
 var Build = &cobra.Command{
 	Use:   "build",
 	Short: "build file --file <file> --from <baseimage:version> --output <repository:tag> --type [java | nodejs | doozer]",
@@ -80,7 +80,7 @@ var Build = &cobra.Command{
 	},
 }
 
-//bc buildconfig command
+//Bc build command using buildConfig as input
 var Bc = &cobra.Command{
 	Use:   "bc",
 	Short: "build bc --file <bc>.json",
@@ -101,10 +101,6 @@ var Bc = &cobra.Command{
 		var configReader = config.NewFileConfigReader(configPath)
 
 		c, err := configReader.ReadConfig()
-		if err != nil {
-			logrus.Fatalf("Could not read config: %s", err)
-		}
-
 		if err != nil {
 			logrus.Fatalf("Could not read configuration: %s", err)
 		}

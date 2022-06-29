@@ -21,54 +21,56 @@ type Downloader interface {
 	DownloadArtifact(c *config.MavenGav) (Deliverable, error)
 }
 
+// MavenDownloader configuration
 type MavenDownloader struct {
 	baseURL  string
 	username string
 	password string
 }
 
-//BinaryDownloader struct
+//BinaryDownloader configuration
 type BinaryDownloader struct {
 	Path string
 }
 
-//Deliverable struct
+// Deliverable struct
 type Deliverable struct {
 	Path string
 	SHA1 string
 }
 
-//Dependency struct
+// Dependency utility struct used for gathering dependency metadata
 type Dependency struct {
 	Name string
 	SHA1 string
 	Size int64
 }
 
-//MavenManifest minimal representation of maven-metadata.xml
+// MavenManifest minimal representation of maven-metadata.xml
 type MavenManifest struct {
 	Versioning Versioning `xml:"versioning"`
 }
 
-//Versioning ...
+// Versioning ...
 type Versioning struct {
 	Snapshot Snapshot `xml:"snapshot"`
 }
 
-//Snapshot ...
+// Snapshot ...
 type Snapshot struct {
 	Timestamp   string `xml:"timestamp"`
 	BuildNumber int    `xml:"buildNumber"`
 }
 
-//NewBinaryLoader new BinaryDownloader of type Downloader
+// NewBinaryDownloader returns a new BinaryDownloader of type Downloader
 func NewBinaryDownloader(path string) Downloader {
 	return &BinaryDownloader{
 		Path: path,
 	}
 }
 
-func (n *BinaryDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, error) {
+// DownloadArtifact prepare the binary artifact
+func (n *BinaryDownloader) DownloadArtifact(_ *config.MavenGav) (Deliverable, error) {
 	deliverable := Deliverable{
 		Path: n.Path,
 	}
@@ -90,7 +92,7 @@ func NewMavenDownloader(baseURL string, username string, password string) Downlo
 	}
 }
 
-//DownloadArtifact downloads a maven artifact
+// DownloadArtifact downloads a maven artifact
 func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, error) {
 	deliverable := Deliverable{}
 
@@ -132,12 +134,12 @@ func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 		}
 	}
 
-	//Create download url
+	// Create download url
 	u, err := url.Parse(n.baseURL)
 	if err != nil {
 		return deliverable, errors.Wrapf(err, "Unable to parse nexus url %s", n.baseURL)
 	}
-	//Set path
+	// Set path
 	u.Path = createDownloadPath(mavenManifest, c)
 	logrus.Infof("Downloading artifact from %s", u.String())
 
@@ -189,31 +191,29 @@ func (n *MavenDownloader) DownloadArtifact(c *config.MavenGav) (Deliverable, err
 }
 
 func createMavenManifestPath(c *config.MavenGav) string {
-	groupId := strings.ReplaceAll(c.GroupId, ".", "/")
-	return fmt.Sprintf("/repository/maven-intern/%s/%s/%s/maven-metadata.xml", groupId, c.ArtifactId, c.Version)
+	groupID := strings.ReplaceAll(c.GroupID, ".", "/")
+	return fmt.Sprintf("/repository/maven-intern/%s/%s/%s/maven-metadata.xml", groupID, c.ArtifactID, c.Version)
 }
 
 func createDownloadPath(manifest MavenManifest, c *config.MavenGav) string {
-	groupId := strings.ReplaceAll(c.GroupId, ".", "/")
+	groupID := strings.ReplaceAll(c.GroupID, ".", "/")
 	artifact := createFileName(c, manifest)
-	return fmt.Sprintf("/repository/maven-intern/%s/%s/%s/%s", groupId, c.ArtifactId, c.Version, artifact)
+	return fmt.Sprintf("/repository/maven-intern/%s/%s/%s/%s", groupID, c.ArtifactID, c.Version, artifact)
 }
 
 func createFileName(gav *config.MavenGav, manifest MavenManifest) string {
 	versionWithoutSnapshot := strings.ReplaceAll(gav.Version, "SNAPSHOT", "")
 	if gav.IsSnapshot() && (len(manifest.Versioning.Snapshot.Timestamp) > 0 && manifest.Versioning.Snapshot.BuildNumber > 0) {
-		return fmt.Sprintf("%s-%s%s-%d%s", gav.ArtifactId, versionWithoutSnapshot, manifest.Versioning.Snapshot.Timestamp, manifest.Versioning.Snapshot.BuildNumber, getClassifierExt(gav))
-	} else {
-		return fmt.Sprintf("%s-%s%s", gav.ArtifactId, gav.Version, getClassifierExt(gav))
+		return fmt.Sprintf("%s-%s%s-%d%s", gav.ArtifactID, versionWithoutSnapshot, manifest.Versioning.Snapshot.Timestamp, manifest.Versioning.Snapshot.BuildNumber, getClassifierExt(gav))
 	}
+	return fmt.Sprintf("%s-%s%s", gav.ArtifactID, gav.Version, getClassifierExt(gav))
 }
 
 func getClassifierExt(c *config.MavenGav) string {
 	if c.Classifier != "" {
 		return fmt.Sprintf("-%s.%s", c.Classifier, c.Type)
-	} else {
-		return fmt.Sprintf(".%s", c.Type)
 	}
+	return fmt.Sprintf(".%s", c.Type)
 }
 
 /*
@@ -222,7 +222,7 @@ func getClassifierExt(c *config.MavenGav) string {
 */
 func GetSnapshotTimestampVersion(gav config.MavenGav, deliverable Deliverable) string {
 	if gav.IsSnapshot() {
-		replacer := strings.NewReplacer(gav.ArtifactId+"-", "", "-"+string(gav.Classifier)+"."+string(gav.Type), "")
+		replacer := strings.NewReplacer(gav.ArtifactID+"-", "", "-"+string(gav.Classifier)+"."+string(gav.Type), "")
 		version := "SNAPSHOT-" + replacer.Replace(path.Base(deliverable.Path))
 		return version
 	}

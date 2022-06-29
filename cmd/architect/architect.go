@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -45,27 +44,27 @@ func RunArchitect(configuration RunConfiguration) {
 
 	logrus.Infof("Output registry %s", c.DockerSpec.OutputRegistry)
 
-	pushRegistryUrl := url.URL{
+	pushRegistryURL := url.URL{
 		Host:   c.DockerSpec.OutputRegistry,
 		Scheme: "https",
 	}
 
-	pullRegistryUrl, err := url.Parse(c.DockerSpec.InternalPullRegistry)
+	pullRegistryURL, err := url.Parse(c.DockerSpec.InternalPullRegistry)
 	if err != nil {
 		logrus.Fatalf("Unable to parse URL %s", c.DockerSpec.InternalPullRegistry)
 		return
 	}
 
 	pushRegistryConn := docker.RegistryConnectionInfo{
-		Port:        docker.GetPortOrDefault(pushRegistryUrl.Port()),
+		Port:        docker.GetPortOrDefault(pushRegistryURL.Port()),
 		Insecure:    docker.InsecureOrDefault(c),
-		Host:        pushRegistryUrl.Hostname(),
+		Host:        pushRegistryURL.Hostname(),
 		Credentials: registryCredentials,
 	}
 
 	pullRegistryConn := docker.RegistryConnectionInfo{
-		Port:        docker.GetPortOrDefault(pullRegistryUrl.Port()),
-		Host:        pullRegistryUrl.Hostname(),
+		Port:        docker.GetPortOrDefault(pullRegistryURL.Port()),
+		Host:        pullRegistryURL.Hostname(),
 		Insecure:    docker.InsecureOrDefault(c),
 		Credentials: nil,
 	}
@@ -77,30 +76,21 @@ func RunArchitect(configuration RunConfiguration) {
 
 	if c.DockerSpec.RetagWith != "" {
 		logrus.Info("Perform retag")
-		//TODO: Vi må kanskje gjøre noe spesielt med flytting mellom snapshot og release?
 		if err := retag.Retag(ctx, c, registryCredentials, pullRegistry, builder); err != nil {
 			logrus.Fatalf("Failed to retag temporary image %s", err)
 		}
 	} else {
-		err := performBuild(ctx, &configuration, c, pullRegistry, pushRegistry, builder)
-
-		if err != nil {
+		if err := performBuild(ctx, &configuration, c, pullRegistry, pushRegistry, builder); err != nil {
 			var errorMessage string
 			if logrus.GetLevel() >= logrus.DebugLevel {
 				errorMessage = "Failed to build image: %+v, Terminating"
 			} else {
 				errorMessage = "Failed to build image: %v, Terminating"
 			}
-
-			errorMessage = fmt.Sprintf(errorMessage, err)
-
-			if strings.Contains(errorMessage, "Cannot connect to the Docker daemon") {
-				errorMessage = fmt.Sprintf("%s: The most likely cause is timeout", errorMessage)
-			}
-
-			logrus.Fatal(errorMessage)
+			logrus.Fatal(fmt.Sprintf(errorMessage, err))
 		}
 	}
+
 	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
 }
 func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, pullRegistry docker.Registry, pushRegistry docker.Registry, builder process.Builder) error {
@@ -117,7 +107,7 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 	}
 
 	if c.BinaryBuild && c.BinaryBuildType == config.Snapshot && !c.ApplicationSpec.MavenGav.IsSnapshot() {
-		logrus.Fatalf("Can only build snapshots. Make version end with -SNAPSHOT")
+		logrus.Fatalf("Can only build snapshots. Make sure version ends with -SNAPSHOT")
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
@@ -135,7 +125,7 @@ func (c RunConfiguration) getRegistryCredentials() (*docker.RegistryCredentials,
 			Password:      c.PushToken,
 			Serveraddress: registry,
 		}, nil
-	} else {
-		return c.RegistryCredentialsFunc(registry)
 	}
+	return c.RegistryCredentialsFunc(registry)
+
 }

@@ -15,6 +15,7 @@ import (
 	"strings"
 )
 
+// TagResolver interface
 type TagResolver interface {
 	ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error)
 	ResolveShortTag(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error)
@@ -26,11 +27,11 @@ type SingleTagTagResolver struct {
 	Tag        string
 }
 
-func (m *SingleTagTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
+func (m *SingleTagTagResolver) ResolveTags(_ *runtime.AuroraVersion, _ config.PushExtraTags) ([]string, error) {
 	return docker.CreateImageNameFromSpecAndTags([]string{m.Tag}, m.Registry, m.Repository), nil
 }
 
-func (m *SingleTagTagResolver) ResolveShortTag(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
+func (m *SingleTagTagResolver) ResolveShortTag(_ *runtime.AuroraVersion, _ config.PushExtraTags) ([]string, error) {
 	return []string{m.Tag}, nil
 }
 
@@ -79,20 +80,20 @@ func findCandidateTags(appVersion *runtime.AuroraVersion, outputRepository strin
 				"candidateTags=%v, repositoryTags=%v", appVersion, candidateTags, tagsInRepo.Tags)
 		}
 		return filteredTags, nil
-	} else {
-		logrus.Debug("Is not semantic version. Append only complete version and given version")
-		var versions []string
-		if appVersion.Snapshot {
-			if appVersion.GetUniqueSnapshotVersion() != "" {
-				versions = append(versions, appVersion.GetUniqueSnapshotVersion())
-			}
-			versions = append(versions, appVersion.GetGivenVersion())
-			versions = append(versions, appVersion.GetCompleteSnapshotVersion())
-		} else {
-			versions = append(versions, appVersion.GetCompleteVersion())
-		}
-		return versions, nil
 	}
+
+	logrus.Debug("Is not semantic version. Append only complete version and given version")
+	var versions []string
+	if appVersion.Snapshot {
+		if appVersion.GetUniqueSnapshotVersion() != "" {
+			versions = append(versions, appVersion.GetUniqueSnapshotVersion())
+		}
+		versions = append(versions, appVersion.GetGivenVersion())
+		versions = append(versions, appVersion.GetCompleteSnapshotVersion())
+	} else {
+		versions = append(versions, appVersion.GetCompleteVersion())
+	}
+	return versions, nil
 }
 
 func filterTagsFromRepository(version *runtime.AuroraVersion, candidateTags []string,
@@ -206,7 +207,7 @@ func getSemanticVersionTags(version *runtime.AuroraVersion, extraTags config.Pus
 		versions = append(versions, string(version.GetAppVersion()))
 	}
 
-	versions = append(versions, string(version.GetCompleteVersion()))
+	versions = append(versions, version.GetCompleteVersion())
 
 	return versions, nil
 }
@@ -228,20 +229,20 @@ func getMajor(version string, increment bool) (string, error) {
 }
 
 func getMinor(version string, increment bool) (string, error) {
-	build_version, err := extVersion.NewVersion(version)
+	buildVersion, err := extVersion.NewVersion(version)
 
 	if err != nil {
 		return "", errors.Wrap(err, "Error in parsing minor version: "+version)
 	}
 
-	versionMinor := build_version.Segments()[1]
+	versionMinor := buildVersion.Segments()[1]
 	if increment {
 		versionMinor++
 	}
-	if len(build_version.Metadata()) > 0 {
-		return fmt.Sprintf("%d.%d+%s", build_version.Segments()[0], versionMinor, build_version.Metadata()), nil
+	if len(buildVersion.Metadata()) > 0 {
+		return fmt.Sprintf("%d.%d+%s", buildVersion.Segments()[0], versionMinor, buildVersion.Metadata()), nil
 	}
-	return fmt.Sprintf("%d.%d", build_version.Segments()[0], versionMinor), nil
+	return fmt.Sprintf("%d.%d", buildVersion.Segments()[0], versionMinor), nil
 }
 
 func isMinor(version string) bool {

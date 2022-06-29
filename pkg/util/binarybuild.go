@@ -8,6 +8,7 @@ import (
 	"os"
 )
 
+// ExtractBinaryFromStdIn copy binary from stdin stream
 func ExtractBinaryFromStdIn() (string, error) {
 	tmpfile, err := ioutil.TempFile("", "binarybuild-architect")
 	defer tmpfile.Close()
@@ -22,6 +23,7 @@ func ExtractBinaryFromStdIn() (string, error) {
 	return tmpfile.Name(), nil
 }
 
+// ExtractBinaryFromFile copy binary from file
 func ExtractBinaryFromFile(file string) (string, error) {
 	tmpfile, err := ioutil.TempFile("", "binarybuild-architect")
 	defer tmpfile.Close()

@@ -264,7 +264,7 @@ func TestThatNoCustomLocationsIsPresentInNginx(t *testing.T) {
 	assert.Equal(t, 0, len(nginxfileData.Locations))
 }
 
-func mapObject(openshiftJSON *openshiftJSON) (*NginxfileData, *ImageMetadata, error) {
+func mapObject(openshiftJSON *openshiftJSON) (*nginxfileData, *ImageMetadata, error) {
 	dockerSpec := config.DockerSpec{
 		PushExtraTags: config.ParseExtraTags("major"),
 	}

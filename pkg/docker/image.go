@@ -32,6 +32,7 @@ type V1Image struct {
 	Size int64 `json:",omitempty"`
 }
 
+// Config is the configuration of the container received from the client
 type Config struct {
 	Hostname        string              // Hostname
 	Domainname      string              // Domainname

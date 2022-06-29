@@ -5,6 +5,7 @@ import (
 	"github.com/skatteetaten/architect/v2/pkg/nexus"
 )
 
+// BaseImage representation used in trace
 type BaseImage struct {
 	Type        string                  `json:"type"`
 	Name        string                  `json:"name"`
@@ -13,6 +14,7 @@ type BaseImage struct {
 	ImageConfig *docker.ContainerConfig `json:"image_config"`
 }
 
+// DeployableImage representation used in trace
 type DeployableImage struct {
 	Type         string                 `json:"type"`
 	Name         string                 `json:"name"`

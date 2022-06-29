@@ -18,6 +18,7 @@ import (
 	"strings"
 )
 
+// Registry interface provides methods for interacting with a container registry
 type Registry interface {
 	GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error)
 	GetTags(ctx context.Context, repository string) (*TagsAPIResponse, error)
@@ -25,12 +26,12 @@ type Registry interface {
 	GetManifest(ctx context.Context, repository string, digest string) (*ManifestV2, error)
 	GetContainerConfig(ctx context.Context, repository string, digest string) (*ContainerConfig, error)
 	LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error)
-	MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error
 	PushLayer(ctx context.Context, layer io.Reader, dstRepository string, layerDigest string) error
 	PushManifest(ctx context.Context, manifest []byte, repository string, tag string) error
 	PullLayer(ctx context.Context, repository string, layerDigest string) (string, error)
 }
 
+// Manifest schema representation
 type Manifest struct {
 	SchemaVersion int    `json:"schemaVersion"`
 	MediaType     string `json:"mediaType"`
@@ -44,6 +45,7 @@ type Manifest struct {
 	}
 }
 
+// RegistryConnectionInfo registry connection info
 type RegistryConnectionInfo struct {
 	Port        string
 	Host        string
@@ -119,6 +121,7 @@ func (registry *RegistryClient) getRegistryManifest(ctx context.Context, reposit
 	return body, nil
 }
 
+// GetManifest returns the image manifest
 func (registry *RegistryClient) GetManifest(ctx context.Context, repository string, tag string) (*ManifestV2, error) {
 
 	data, err := registry.getRegistryManifest(ctx, repository, tag)
@@ -135,6 +138,7 @@ func (registry *RegistryClient) GetManifest(ctx context.Context, repository stri
 	return &manifest, nil
 }
 
+// GetContainerConfig returns the image's container configuration
 func (registry *RegistryClient) GetContainerConfig(ctx context.Context, repository string, digest string) (*ContainerConfig, error) {
 	data, err := registry.getRegistryBlob(ctx, repository, digest)
 	if err != nil {
@@ -248,7 +252,7 @@ func (registry *RegistryClient) GetImageInfo(ctx context.Context, repository str
 
 	return &runtime.ImageInfo{
 		Labels:                   v1Image.Config.Labels,
-		Enviroment:               envMap,
+		Environment:              envMap,
 		CompleteBaseImageVersion: baseImageVersion,
 		Digest:                   manifestDigest,
 	}, nil
@@ -278,6 +282,7 @@ func (registry *RegistryClient) LayerExists(ctx context.Context, repository stri
 	return false, nil
 }
 
+// PullLayer pull image blob from registry
 func (registry *RegistryClient) PullLayer(ctx context.Context, repository string, layerDigest string) (string, error) {
 
 	path := fmt.Sprintf("/v2/%s/blobs/%s", repository, layerDigest)
@@ -311,34 +316,7 @@ func (registry *RegistryClient) PullLayer(ctx context.Context, repository string
 
 }
 
-//MountLayer performs cross mounting
-func (registry *RegistryClient) MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error {
-	//"https://<address>/v2/<srcRepository>/blobs/uploads/?mount=<digest>&from=<dstRepository>"
-	path := fmt.Sprintf(fmt.Sprintf("/v2/%s/blobs/uploads/?mount=%s&from=%s", dstRepository, layerDigest, srcRepository))
-
-	req, err := registry.newRequest(ctx, "POST", path, nil)
-	if err != nil {
-		return errors.Wrap(err, "Could not create the mount request")
-	}
-
-	resp, err := registry.client.Do(req)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to mount: src=%s dst=%s layerDigest=%s", srcRepository, dstRepository, layerDigest)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 201 && resp.StatusCode != 202 {
-		respData, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return errors.Wrap(err, "MountLayer: Unable to read response body")
-		}
-
-		return fmt.Errorf("MountLayer: Request failed with status code = %d. From server: %s", resp.StatusCode, string(respData))
-	}
-	return nil
-}
-
-//PushLayer push layer
+//PushLayer push image blob
 func (registry *RegistryClient) PushLayer(ctx context.Context, layer io.Reader, repository string, layerDigest string) error {
 	//v2/repository/blobs/uploads/
 	path := fmt.Sprintf("/v2/%s/blobs/uploads/", repository)
@@ -440,6 +418,7 @@ func (registry *RegistryClient) PushManifest(ctx context.Context, manifest []byt
 	return nil
 }
 
+// GetTags return image tags for a given repository
 func (registry *RegistryClient) GetTags(ctx context.Context, repository string) (*TagsAPIResponse, error) {
 	path := fmt.Sprintf("/v2/%s/tags/list", repository)
 	var tagsList TagsAPIResponse
