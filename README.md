@@ -305,9 +305,10 @@ source ./hack/initCredentials.sh # Load nexus credentials
 ## Dependecies
 
 We use go modules. 
-
+    
 Dependencies are managed via `go.mod`. Remember to run `go mod tidy` after dependency update.
 
 ## Building
 The build is orchestrated on Jenkins, with Jenkinsfile
 
+oc tag --source=Docker container-registry-internal-private-pull.aurora.skead.no/aurora/architect:SITJ_2397_new_endpoint_for_sporingslogger-SNAPSHOT architect:SITJ_2397_new_endpoint_for_sporingslogger-SNAPSHOT -n openshift

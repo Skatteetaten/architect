@@ -29,12 +29,12 @@ type BuildConfiguration struct {
 
 func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
-		baseImage runtime.BaseImage) ([]docker.BuildConfig, error) {
+		baseImage runtime.BaseImage) (*docker.BuildConfig, error) {
 		buildConfiguration, err := prepareLayers(cfg.DockerSpec, auroraVersion, deliverable)
 		if err != nil {
 			return nil, errors.Wrap(err, "Error while preparing layers")
 		}
-		return []docker.BuildConfig{{
+		return &docker.BuildConfig{
 			AuroraVersion:    auroraVersion,
 			DockerRepository: cfg.DockerSpec.OutputRepository,
 			BuildFolder:      buildConfiguration.BuildContext,
@@ -42,7 +42,7 @@ func Prepper() process.Prepper {
 			Env:              buildConfiguration.Env,
 			Labels:           buildConfiguration.Labels,
 			Cmd:              buildConfiguration.Cmd,
-		}}, nil
+		}, nil
 	}
 }
 
