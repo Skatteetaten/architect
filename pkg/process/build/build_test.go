@@ -87,11 +87,6 @@ func TestBuild(t *testing.T) {
 
 	t.Run("Test that build sends correct data to Sporingslogger ", func(t *testing.T) {
 
-		//mockgen -destination=pkg/docker/mocks/mock_registry.go -package=mocks -source=pkg/docker/registry.go Registry
-		//mockgen -destination=pkg/nexus/mocks/mock_nexus.go -package=mocks -source=pkg/nexus/nexus.go Downloader
-		// mockgen -destination=pkg/process/build/mocks/mock_layer_builder.go -package=mocks -source=pkg/process/build/build.go  Builder
-		//mockgen -destination=pkg/trace/mocks/mock_trace.go -package=mocks -source=pkg/trace/trace.go  Trace
-
 		ctx := context.Background()
 
 		appSpec := config.ApplicationSpec{

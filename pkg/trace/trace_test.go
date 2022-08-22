@@ -10,15 +10,13 @@ import (
 
 func TestCreateAppReg(t *testing.T) {
 
-	srv := FakeEndpoint(t, func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		deployableImage := &DeployableImage{}
 		_ = json.NewDecoder(r.Body).Decode(deployableImage)
 		assert.Equal(t, "deployableImage", deployableImage.Type)
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "/api/v1/image", r.RequestURI)
-	})
-
-	defer srv.Close()
+	}))
 
 	client2 := NewTraceClient(srv.URL)
 
@@ -31,11 +29,4 @@ func TestCreateAppReg(t *testing.T) {
 		AppVersion: "1.2.3",
 	})
 
-}
-
-func FakeEndpoint(t *testing.T, endpoint func(w http.ResponseWriter, r *http.Request)) *httptest.Server {
-
-	srv := httptest.NewServer(http.HandlerFunc(endpoint))
-
-	return srv
 }

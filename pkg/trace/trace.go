@@ -48,8 +48,6 @@ func (traceClient *TraceClient) AddImageMetadata(data interface{}) error {
 func (traceClient *TraceClient) send(ctx context.Context, jsonStr string) error {
 	uri := traceClient.url + "/api/v1/image"
 
-	logrus.Info("send info")
-	logrus.Info(uri)
 	req, err := http.NewRequestWithContext(ctx, "POST", uri, bytes.NewBuffer([]byte(jsonStr)))
 	if err != nil {
 		logrus.Warnf("Unable to create request: %s", err)

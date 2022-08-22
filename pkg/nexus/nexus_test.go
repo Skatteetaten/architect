@@ -31,12 +31,12 @@ func TestNewLocalDownloader(t *testing.T) {
 }
 
 func TestGetSnapshotTimestampVersion(t *testing.T) {
-	expectedVersion := "feature-baz-SNAPSHOT-feature_baz-20170701.103015-1"
+	expectedVersion := "PR_XYZ-SNAPSHOT-feature_baz-20170701.103015-1"
 
 	gav := config.MavenGav{
 		ArtifactId: "myapp",
 		GroupId:    "ske.foo.bar",
-		Version:    "feature-baz-SNAPSHOT",
+		Version:    "PR_XYZ-SNAPSHOT",
 		Classifier: config.Leveransepakke,
 		Type:       config.ZipPackaging,
 	}

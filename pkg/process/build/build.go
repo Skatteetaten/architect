@@ -111,11 +111,11 @@ func buildDockerImage(buildConfig docker.BuildConfig, ctx context.Context, cfg *
 		return nil, errors.Wrap(err, "There was an error with the pull operation.")
 	}
 
-	logrus.Info("Docker context ", buildConfig.BuildFolder)
 	return layerBuilder.Build(buildConfig, baseImageLayers)
 }
 func pushImage(ctx context.Context, cfg *config.Config, buildResult *LayerProvider, layerBuilder Builder, tags []string) error {
 	if cfg.NoPush {
+		logrus.Info("NoPush configured, not pushing image")
 		return nil
 	}
 
@@ -130,7 +130,7 @@ func pushImage(ctx context.Context, cfg *config.Config, buildResult *LayerProvid
 func sendImageInfoToSporingsLogger(ctx context.Context, cfg *config.Config, serviceName string,
 	dockerRegistry docker.Registry, sporingsLoggerClient trace.Trace, auroraVersion *runtime.AuroraVersion, shortTags []string) error {
 	if cfg.NoPush {
-		logrus.Info("sendImageInfoToSporingsLogger NoPush")
+		logrus.Info("NoPush configured, not sending image info to Sporingslogger")
 		return nil
 	}
 
@@ -138,7 +138,7 @@ func sendImageInfoToSporingsLogger(ctx context.Context, cfg *config.Config, serv
 	if err != nil {
 		return errors.Wrapf(err, "Unable to GetImageInfo ")
 	}
-	logrus.Info("sendImageInfoToSporingsLogge")
+	logrus.Infof("Sending image info to sporingslogger %s ", imageInfo.Digest)
 
 	return sporingsLoggerClient.AddImageMetadata(trace.DeployableImage{
 		Type:          "deployableImage",
