@@ -13,8 +13,6 @@ import (
 	build_mock "github.com/skatteetaten/architect/v2/pkg/process/build/mocks"
 	"github.com/skatteetaten/architect/v2/pkg/trace"
 	trace_mock "github.com/skatteetaten/architect/v2/pkg/trace/mocks"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
@@ -201,10 +199,6 @@ func TestBuild(t *testing.T) {
 				AppVersion:    "Version111",
 				AuroraVersion: "Version111-bBaseImageVersion123-BaseImage-CompleteBaseImageVersion",
 				Snapshot:      false,
-				// TODO add GitCommit      "Missing",
-				//Dependencies: dependencyMetadata, TODO -fix
-				//public List<Dependency> dependencies;
-
 			}))
 
 		err := process.Build(ctx, registryClient, registryClient, &testConfig, nexusDownloader, mockPrepper, layerBuilder, traceMock)
@@ -214,10 +208,4 @@ func TestBuild(t *testing.T) {
 		}
 	})
 
-}
-func FakeEndpoint(t *testing.T, endpoint func(w http.ResponseWriter, r *http.Request)) *httptest.Server {
-
-	srv := httptest.NewServer(http.HandlerFunc(endpoint))
-
-	return srv
 }
