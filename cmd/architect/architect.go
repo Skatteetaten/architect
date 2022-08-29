@@ -3,6 +3,7 @@ package architect
 import (
 	"context"
 	"fmt"
+	"github.com/skatteetaten/architect/v2/pkg/trace"
 	"net/url"
 	"os"
 	"strings"
@@ -72,6 +73,8 @@ func RunArchitect(configuration RunConfiguration) {
 	pushRegistry := docker.NewRegistryClient(pushRegistryConn)
 	pullRegistry := docker.NewRegistryClient(pullRegistryConn)
 
+	sporingsLoggerClient := trace.NewTraceClient(c.Sporingstjeneste)
+
 	var builder process.Builder
 	builder = process.NewLayerBuilder(c, pushRegistry, pullRegistry)
 
@@ -82,7 +85,7 @@ func RunArchitect(configuration RunConfiguration) {
 			logrus.Fatalf("Failed to retag temporary image %s", err)
 		}
 	} else {
-		err := performBuild(ctx, &configuration, c, pullRegistry, pushRegistry, builder)
+		err := performBuild(ctx, &configuration, c, pullRegistry, pushRegistry, builder, sporingsLoggerClient)
 
 		if err != nil {
 			var errorMessage string
@@ -103,7 +106,8 @@ func RunArchitect(configuration RunConfiguration) {
 	}
 	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
 }
-func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, pullRegistry docker.Registry, pushRegistry docker.Registry, builder process.Builder) error {
+func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, pullRegistry docker.Registry,
+	pushRegistry docker.Registry, builder process.Builder, sporingsLoggerClient trace.Trace) error {
 	var prepper process.Prepper
 	if c.ApplicationType == config.JavaLeveransepakke {
 		logrus.Info("Perform Java build")
@@ -123,7 +127,7 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 	ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
 	defer cancel()
 
-	return process.Build(ctx, pullRegistry, pushRegistry, c, configuration.NexusDownloader, prepper, builder)
+	return process.Build(ctx, pullRegistry, pushRegistry, c, configuration.NexusDownloader, prepper, builder, sporingsLoggerClient)
 }
 
 func (c RunConfiguration) getRegistryCredentials() (*docker.RegistryCredentials, error) {

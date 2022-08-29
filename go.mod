@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/docker/distribution v2.8.1+incompatible
+	github.com/golang/mock v1.6.0
 	github.com/hashicorp/go-version v1.5.0
 	github.com/openshift/api v0.0.0-20200306192528-e5737622441f
 	github.com/pkg/errors v0.9.1

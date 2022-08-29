@@ -31,12 +31,12 @@ func TestNewLocalDownloader(t *testing.T) {
 }
 
 func TestGetSnapshotTimestampVersion(t *testing.T) {
-	expectedVersion := "SNAPSHOT-feature_baz-20170701.103015-1"
+	expectedVersion := "PR_XYZ-SNAPSHOT-feature_baz-20170701.103015-1"
 
 	gav := config.MavenGav{
 		ArtifactId: "myapp",
 		GroupId:    "ske.foo.bar",
-		Version:    "feature-baz-SNAPSHOT",
+		Version:    "PR_XYZ-SNAPSHOT",
 		Classifier: config.Leveransepakke,
 		Type:       config.ZipPackaging,
 	}
@@ -53,7 +53,7 @@ func TestGetSnapshotTimestampVersion(t *testing.T) {
 }
 
 func TestGetSnapshotTimestampVersionBinaryBuild(t *testing.T) {
-	expectedVersion := "SNAPSHOT-feature_baz-20170701.103015-1"
+	expectedVersion := "feature-baz-SNAPSHOT-feature_baz-20170701.103015-1"
 
 	gav := config.MavenGav{
 		ArtifactId: "myapp",
@@ -63,6 +63,7 @@ func TestGetSnapshotTimestampVersionBinaryBuild(t *testing.T) {
 		Type:       config.ZipPackaging,
 	}
 
+	//todo fix the test to match the real world - we dont get Leveransepakke.zip this way ??
 	deliverable := Deliverable{
 		Path: "/tmp/package917376626/myapp-feature_baz-20170701.103015-1-Leveransepakke.zip",
 	}

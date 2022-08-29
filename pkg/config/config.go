@@ -190,12 +190,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
-	var sporingscontext = ""
-	if value, err := findEnv(env, "SPORINGSCONTEXT"); err == nil {
-		logrus.Debugf("Sporingscontext: %s", value)
-		sporingscontext = value
-	}
-
 	var sporingstjeneste = ""
 	if value, err := findEnv(env, "SPORINGSTJENESTE"); err == nil && value != "" {
 		logrus.Debugf("Sporingstjeneste: %s", value)
@@ -411,7 +405,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		BinaryBuild:       binaryBuild,
 		TLSVerify:         tlsVerify,
 		BuildTimeout:      buildTimeout,
-		SporingsContext:   sporingscontext,
 		Sporingstjeneste:  sporingstjeneste,
 		OwnerReferenceUid: string(build.UID),
 		BinaryBuildType:   buildType,
