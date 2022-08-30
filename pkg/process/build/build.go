@@ -70,8 +70,9 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 
 	err = sendImageInfoToSporingsLogger(ctx, cfg, dockerBuildConfig.DockerRepository, pushRegistry, sporingsLoggerClient, auroraVersion, shortTags)
 	if err != nil {
-		return errors.Wrapf(err, "Unable to send trace to Sporinglogger  %s:%s ",
-			dockerBuildConfig.DockerRepository, shortTags[0])
+		logrus.Warnf("Unable to send trace to Sporinglogger  %s:%s  error: %v",
+			dockerBuildConfig.DockerRepository, shortTags[0], err)
+		return nil
 	}
 
 	return nil
