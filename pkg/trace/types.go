@@ -13,11 +13,14 @@ type BaseImage struct {
 }
 
 type DeployableImage struct {
-	Type          string `json:"imageType"`
-	Name          string `json:"name"`
-	AppVersion    string `json:"appVersion"`
-	AuroraVersion string `json:"auroraVersion"`
-	Digest        string `json:"imageDigest"`
-	Snapshot      bool   `json:"snapshot"`
-	GitCommit     string `json:"gitCommit"`
+	Type             string `json:"imageType"`
+	Name             string `json:"name"`
+	AppVersion       string `json:"appVersion"`
+	Digest           string `json:"imageDigest"`
+	Snapshot         bool   `json:"snapshot"`
+	GitCommit        string `json:"gitCommit"`
+	BaseImageName    string `json:"baseImageName"`
+	BaseImageVersion string `json:"baseImageVersion"`
+	BaseImageDigest  string `json:"baseImageDigest"`
+	BuildVersion     string `json:"buildVersion"`
 }

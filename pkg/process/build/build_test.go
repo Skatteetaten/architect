@@ -96,7 +96,7 @@ func TestBuild(t *testing.T) {
 				"Type",
 			},
 			config.DockerBaseImageSpec{
-				"BaseImage",
+				"BaseImageName",
 				"BaseVersion",
 			},
 		}
@@ -123,7 +123,7 @@ func TestBuild(t *testing.T) {
 			appSpec,
 			dockerSpec,
 			config.BuilderSpec{
-				"BaseImageVersion123",
+				"BuildImageVersion123",
 			},
 			true,
 			true,
@@ -142,7 +142,14 @@ func TestBuild(t *testing.T) {
 		layerBuilder := build_mock.NewMockBuilder(mockCtrl)
 		traceMock := trace_mock.NewMockTrace(mockCtrl)
 
-		registryClient.EXPECT().GetImageInfo(gomock.Any(), gomock.Any(), gomock.Any()).Return(&runtime.ImageInfo{
+		registryClient.EXPECT().GetImageInfo(gomock.Any(), "BaseImageName", gomock.Any()).Return(&runtime.ImageInfo{
+			CompleteBaseImageVersion: "CompleteBaseImageVersion",
+			Labels:                   map[string]string{},
+			Enviroment:               map[string]string{},
+			Digest:                   "BaseImageDigest",
+		}, nil).AnyTimes()
+
+		registryClient.EXPECT().GetImageInfo(gomock.Any(), "ServiceNameTest", gomock.Any()).Return(&runtime.ImageInfo{
 			CompleteBaseImageVersion: "CompleteBaseImageVersion",
 			Labels:                   map[string]string{},
 			Enviroment:               map[string]string{},
@@ -173,7 +180,7 @@ func TestBuild(t *testing.T) {
 			baseImage runtime.BaseImage) (*docker.BuildConfig, error) {
 			return &docker.BuildConfig{
 				runtime.NewAuroraVersion("1.2.3", false, "giverVersioin", "completeVersion"), //AuroraVersion    *runtime.AuroraVersion
-				"DockerRepository",
+				"ServiceNameTest",
 				"BuildFolder",
 				runtime.DockerImage{
 					"TAG-test",
@@ -189,16 +196,19 @@ func TestBuild(t *testing.T) {
 		}
 
 		tags := make(map[string]string)
-		tags["TagWith"] = "OutputRegistry/DockerRepository:TagWith"
+		tags["TagWith"] = "OutputRegistry/ServiceNameTest:TagWith"
 
 		traceMock.EXPECT().AddImageMetadata(gomock.Eq(
 			trace.DeployableImage{
-				Type:          "deployableImage",
-				Digest:        "ImageDigest",
-				Name:          "DockerRepository",
-				AppVersion:    "Version111",
-				AuroraVersion: "Version111-bBaseImageVersion123-BaseImage-CompleteBaseImageVersion",
-				Snapshot:      false,
+				Type:             "deployableImage",
+				Digest:           "ImageDigest",
+				Name:             "ServiceNameTest",
+				AppVersion:       "Version111",
+				BaseImageName:    "BaseImageName",
+				BaseImageVersion: "CompleteBaseImageVersion",
+				BaseImageDigest:  "BaseImageDigest",
+				BuildVersion:     "BuildImageVersion123",
+				Snapshot:         false,
 			}))
 
 		err := process.Build(ctx, registryClient, registryClient, &testConfig, nexusDownloader, mockPrepper, layerBuilder, traceMock)

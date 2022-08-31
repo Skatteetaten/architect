@@ -12,7 +12,7 @@ func FindOutputTagOrHash(dockerName string) (string, error) {
 	dockerName = strings.Replace(dockerName, "http://", "", -1)
 	name, err := reference.ParseNamed(dockerName)
 	if err != nil {
-		return "", errors.Wrap(err, "Error parsing docker registry reference")
+		return "", errors.Wrapf(err, "Error parsing docker registry reference %s", dockerName)
 	}
 
 	if tagged, isTagged := name.(reference.NamedTagged); isTagged {
