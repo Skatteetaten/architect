@@ -223,7 +223,7 @@ func getClassifierExt(c *config.MavenGav) string {
 func GetSnapshotTimestampVersion(gav config.MavenGav, deliverable Deliverable) string {
 	if gav.IsSnapshot() {
 		replacer := strings.NewReplacer(gav.ArtifactId+"-", "", "-"+string(gav.Classifier)+"."+string(gav.Type), "")
-		version := gav.Version + "-" + replacer.Replace(path.Base(deliverable.Path))
+		version := "SNAPSHOT-" + replacer.Replace(path.Base(deliverable.Path))
 		return version
 	}
 	return gav.Version
