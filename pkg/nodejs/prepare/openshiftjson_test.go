@@ -51,7 +51,7 @@ const OpenshiftJSONNewFormatSpaNotSet = `
     }
 }`
 
-const openshiftJsonJSONWithLocations = `
+const openshiftJSONWithLocations = `
 {
 	"docker": {
 	  "maintainer": "Aurora OpenShift Utvikling <utvpaas@skatteetaten.no>",
@@ -108,7 +108,7 @@ const openshiftJsonJSONWithLocations = `
  } 
 `
 
-const openshiftJsonJSONWithNoLocations = `
+const openshiftJSONWithNoLocations = `
 {
 	"docker": {
 	  "maintainer": "Aurora OpenShift Utvikling <utvpaas@skatteetaten.no>",
@@ -170,14 +170,14 @@ func TestThatExcludeIsSetCorrectly(t *testing.T) {
 }
 
 func TestThatExcludeRegExIsValid(t *testing.T) {
-	openshiftJson := openshiftJSON{}
-	assert.NoError(t, json.Unmarshal([]byte(OpenshiftJSONNewFormat), &openshiftJson))
-	openshiftJson.Aurora.Exclude = []string{
+	openshiftJSON := openshiftJSON{}
+	assert.NoError(t, json.Unmarshal([]byte(OpenshiftJSONNewFormat), &openshiftJSON))
+	openshiftJSON.Aurora.Exclude = []string{
 		"(.*myapp)/(.+\\.php)$",
 		".+\\.(?<ext>.*)$",
 		"~*.+\\.(.+)$",
 	}
-	_, _, err := mapObject(&openshiftJson)
+	_, _, err := mapObject(&openshiftJSON)
 	assert.NoError(t, err)
 }
 
@@ -213,7 +213,7 @@ func TestThatLegacyFormatIsMappedCorrect(t *testing.T) {
 
 func TestThatRootGzipIsPresentInNginx(t *testing.T) {
 	openshiftJSON := openshiftJSON{}
-	assert.NoError(t, json.Unmarshal([]byte(openshiftJsonJSONWithLocations), &openshiftJSON))
+	assert.NoError(t, json.Unmarshal([]byte(openshiftJSONWithLocations), &openshiftJSON))
 	nginxfileData, _, err := mapObject(&openshiftJSON)
 
 	assert.NoError(t, err)
@@ -223,7 +223,7 @@ func TestThatRootGzipIsPresentInNginx(t *testing.T) {
 
 func TestThatCustomLocationsIsPresentInNginx(t *testing.T) {
 	openshiftJSON := openshiftJSON{}
-	assert.NoError(t, json.Unmarshal([]byte(openshiftJsonJSONWithLocations), &openshiftJSON))
+	assert.NoError(t, json.Unmarshal([]byte(openshiftJSONWithLocations), &openshiftJSON))
 	nginxfileData, _, err := mapObject(&openshiftJSON)
 
 	assert.NoError(t, err)
@@ -257,7 +257,7 @@ func TestThatCustomLocationsIsPresentInNginx(t *testing.T) {
 
 func TestThatNoCustomLocationsIsPresentInNginx(t *testing.T) {
 	openshiftJSON := openshiftJSON{}
-	assert.NoError(t, json.Unmarshal([]byte(openshiftJsonJSONWithNoLocations), &openshiftJSON))
+	assert.NoError(t, json.Unmarshal([]byte(openshiftJSONWithNoLocations), &openshiftJSON))
 	nginxfileData, _, err := mapObject(&openshiftJSON)
 
 	assert.NoError(t, err)

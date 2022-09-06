@@ -334,8 +334,8 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 
 	var nexusIqReportURL string
-	if envNexusIqReportUrl, err := findEnv(env, "IMAGE_LABEL_NEXUS_IQ_REPORT_URL"); err == nil {
-		nexusIqReportURL = envNexusIqReportUrl
+	if envNexusIqReportURL, err := findEnv(env, "IMAGE_LABEL_NEXUS_IQ_REPORT_URL"); err == nil {
+		nexusIqReportURL = envNexusIqReportURL
 	}
 
 	builderSpec := BuilderSpec{}
@@ -403,17 +403,17 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	logrus.Debugf("Pushing to %s/%s:%s", dockerSpec.OutputRegistry, dockerSpec.OutputRepository, dockerSpec.TagWith)
 
 	c := &Config{
-		ApplicationType:   applicationType,
-		ApplicationSpec:   applicationSpec,
-		DockerSpec:        dockerSpec,
-		BuilderSpec:       builderSpec,
-		BinaryBuild:       binaryBuild,
-		TLSVerify:         tlsVerify,
-		BuildTimeout:      buildTimeout,
-		Sporingstjeneste:  sporingstjeneste,
-		OwnerReferenceUid: string(build.UID),
-		BinaryBuildType:   buildType,
-		NexusIQReportUrl:  nexusIqReportURL,
+		ApplicationType:    applicationType,
+		ApplicationSpec:    applicationSpec,
+		DockerSpec:         dockerSpec,
+		BuilderSpec:        builderSpec,
+		BinaryBuild:        binaryBuild,
+		TLSVerify:          tlsVerify,
+		BuildTimeout:       buildTimeout,
+		Sporingstjeneste:   sporingstjeneste,
+		OwnerReferenceUUID: string(build.UID),
+		BinaryBuildType:    buildType,
+		NexusIQReportURL:   nexusIqReportURL,
 	}
 	return c, nil
 }

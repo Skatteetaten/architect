@@ -23,6 +23,7 @@ type LayerBuilder struct {
 	pullRegistry docker.Registry
 }
 
+// LayerProvider keep track of the image layers
 type LayerProvider struct {
 	Manifest        *docker.ManifestV2
 	ContainerConfig *docker.ContainerConfig

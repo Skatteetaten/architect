@@ -18,11 +18,11 @@ func TestCreateAppReg(t *testing.T) {
 		assert.Equal(t, "/api/v1/image", r.RequestURI)
 	}))
 
-	client2 := NewTraceClient(srv.URL)
+	client2 := NewClient(srv.URL)
 
 	tags := make(map[string]string)
 	tags["a"] = "c"
-	client2.AddImageMetadata(DeployableImage{
+	client2.SendImageMetadata(DeployableImage{
 		Type:       "deployableImage",
 		Digest:     "manifest.Digest",
 		Name:       "buildConfig.DockerRepository",

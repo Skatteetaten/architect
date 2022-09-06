@@ -15,12 +15,12 @@ type ContainerConfig struct {
 	Container       string                `json:"container"`
 	ContainerConfig OCIContainerConfig    `json:"container_config"`
 	Created         string                `json:"created"`
-	History         []History             `json:"history"`
+	History         []history             `json:"history"`
 	Os              string                `json:"os"`
-	RootFs          RootFs                `json:"rootfs"`
+	RootFs          rootFs                `json:"rootfs"`
 }
 
-// DockerContainerConfig go reprsentation of the DockerContainerConfig schema
+// DockerContainerConfig go representation of the DockerContainerConfig schema
 type DockerContainerConfig struct {
 	Hostname     string
 	DomainName   string
@@ -64,28 +64,31 @@ type OCIContainerConfig struct {
 	Labels       map[string]string
 }
 
-type RootFs struct {
+type rootFs struct {
 	Type    string   `json:"type,omitempty"`
 	DiffIds []string `json:"diff_ids,omitempty"`
 }
 
-type History struct {
+type history struct {
 	Created    string `json:"created,omitempty"`
 	CreatedBy  string `json:"created_by,omitempty"`
 	Comment    string `json:"comment,omitempty"`
 	EmptyLayer bool   `json:"empty_layer,omitempty"`
 }
 
+// CleanCopy remove the OCIContainerConfig object
 func (c *ContainerConfig) CleanCopy() *ContainerConfig {
 	c.ContainerConfig = OCIContainerConfig{}
 	return c
 }
 
+// AddLayer to container config
 func (c *ContainerConfig) AddLayer(digest string) *ContainerConfig {
 	c.RootFs.DiffIds = append(c.RootFs.DiffIds, digest)
 	return c
 }
 
+// Save container config to file
 func (c *ContainerConfig) Save(dstFolder string, filename string) error {
 	containerConfigFile, err := os.Create(dstFolder + "/" + filename)
 	if err != nil {
@@ -137,12 +140,13 @@ func (c *ContainerConfig) addHistoryEntry() {
 	layout := "2006-01-02T15:04:05.000000000Z"
 	timestamp := time.Now().UTC().Format(layout)
 
-	c.History = append(c.History, History{
+	c.History = append(c.History, history{
 		Created:   timestamp,
 		CreatedBy: "architect",
 	})
 }
 
+// Create container configuration
 func (c *ContainerConfig) Create(buildConfig BuildConfig) ([]byte, error) {
 	//Set env, labels, and cmd
 	c.addEnv(buildConfig.Env)

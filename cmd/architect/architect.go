@@ -72,7 +72,7 @@ func RunArchitect(configuration RunConfiguration) {
 	pushRegistry := docker.NewRegistryClient(pushRegistryConn)
 	pullRegistry := docker.NewRegistryClient(pullRegistryConn)
 
-	sporingsLoggerClient := trace.NewTraceClient(c.Sporingstjeneste)
+	sporingsLoggerClient := trace.NewClient(c.Sporingstjeneste)
 
 	var builder process.Builder
 	builder = process.NewLayerBuilder(c, pushRegistry, pullRegistry)

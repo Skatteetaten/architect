@@ -28,11 +28,13 @@ func newRetagger(cfg *config.Config, credentials *docker.RegistryCredentials, pu
 	}
 }
 
+// Retag image
 func Retag(ctx context.Context, cfg *config.Config, credentials *docker.RegistryCredentials, pullRegistry docker.Registry, builder process.Builder) error {
 	r := newRetagger(cfg, credentials, pullRegistry, builder)
 	return r.Retag(ctx)
 }
 
+// Retag image
 func (m *retagger) Retag(ctx context.Context) error {
 	tag := m.Config.DockerSpec.RetagWith
 	repository := m.Config.DockerSpec.OutputRepository
@@ -75,16 +77,16 @@ func (m *retagger) Retag(ctx context.Context) error {
 
 	pushExtraTags := config.ParseExtraTags(extratags)
 
-	retagRegistryUrl := url.URL{
+	retagRegistryURL := url.URL{
 		Host:   m.Config.DockerSpec.OutputRegistry,
 		Scheme: "https",
 	}
 
 	//This in only for the push-registry
 	retagRegistry := docker.RegistryConnectionInfo{
-		Port:        docker.GetPortOrDefault(retagRegistryUrl.Port()),
+		Port:        docker.GetPortOrDefault(retagRegistryURL.Port()),
 		Insecure:    docker.InsecureOrDefault(m.Config),
-		Host:        retagRegistryUrl.Hostname(),
+		Host:        retagRegistryURL.Hostname(),
 		Credentials: m.Credentials,
 	}
 	t := tagger.NormalTagResolver{

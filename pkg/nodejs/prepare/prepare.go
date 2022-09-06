@@ -44,7 +44,7 @@ func Prepper() process.Prepper {
 }
 
 func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (*buildConfiguration, error) {
-	openshiftJson, err := findOpenshiftJsonInTarball(deliverable.Path)
+	openshiftJSON, err := findOpenshiftJSONInTarball(deliverable.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersion *runtime.AuroraVe
 
 	imageBuildTime := docker.GetUtcTimestamp()
 	completeDockerName := baseImage.GetCompleteDockerTagName()
-	nginxData, dockerData, err := mapOpenShiftJSONToTemplateInput(dockerSpec, openshiftJson, completeDockerName, imageBuildTime, auroraVersion)
+	nginxData, dockerData, err := mapOpenShiftJSONToTemplateInput(dockerSpec, openshiftJSON, completeDockerName, imageBuildTime, auroraVersion)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed while parsing openshift.json")
 	}

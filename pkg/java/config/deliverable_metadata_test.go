@@ -11,7 +11,7 @@ func TestNewFromJson(t *testing.T) {
 	const readinessURL = "/health"
 	const ioK8sDescription = "Demo application with spring boot on Openshift."
 
-	const openshiftJson string = `{
+	const openshiftJSON string = `{
   "docker": {
     "maintainer": "Aurora OpenShift Utvikling <utvpaas@skatteetaten.no>",
     "labels": {
@@ -29,7 +29,7 @@ func TestNewFromJson(t *testing.T) {
   }
 }`
 
-	meta, err := NewDeliverableMetadata(strings.NewReader(openshiftJson))
+	meta, err := NewDeliverableMetadata(strings.NewReader(openshiftJSON))
 
 	if err != nil {
 		t.Error("Failed to initialize metadata from JSON")

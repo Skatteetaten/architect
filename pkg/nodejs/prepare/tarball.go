@@ -88,7 +88,7 @@ func writeInternal(deferrerd func() (string, error)) (string, error) {
 	return deferrerd()
 }
 
-func findOpenshiftJsonInTarball(pathToTarball string) (*openshiftJSON, error) {
+func findOpenshiftJSONInTarball(pathToTarball string) (*openshiftJSON, error) {
 	tarball, err := os.Open(pathToTarball)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error opening tarball")

@@ -21,26 +21,31 @@ type TagResolver interface {
 	ResolveShortTag(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error)
 }
 
-type SingleTagTagResolver struct {
+// SingleTagResolver resolve single tag´
+type SingleTagResolver struct {
 	Registry   string
 	Repository string
 	Tag        string
 }
 
-func (m *SingleTagTagResolver) ResolveTags(_ *runtime.AuroraVersion, _ config.PushExtraTags) ([]string, error) {
+// ResolveTags create single tag of format registry/repository:tag
+func (m *SingleTagResolver) ResolveTags(_ *runtime.AuroraVersion, _ config.PushExtraTags) ([]string, error) {
 	return docker.CreateImageNameFromSpecAndTags([]string{m.Tag}, m.Registry, m.Repository), nil
 }
 
-func (m *SingleTagTagResolver) ResolveShortTag(_ *runtime.AuroraVersion, _ config.PushExtraTags) ([]string, error) {
+// ResolveShortTag resolve short tag e.g latest
+func (m *SingleTagResolver) ResolveShortTag(_ *runtime.AuroraVersion, _ config.PushExtraTags) ([]string, error) {
 	return []string{m.Tag}, nil
 }
 
+// NormalTagResolver image tag resolver
 type NormalTagResolver struct {
 	Registry       string
 	Repository     string
 	RegistryClient docker.Registry
 }
 
+// ResolveTags create tags from runtime.AuroraVersion
 func (m *NormalTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
 	tags, err := findCandidateTags(appVersion, m.Repository, pushExtratags, m.RegistryClient)
 	if err != nil {
@@ -50,6 +55,7 @@ func (m *NormalTagResolver) ResolveTags(appVersion *runtime.AuroraVersion, pushE
 	return docker.CreateImageNameFromSpecAndTags(tags, m.Registry, m.Repository), nil
 }
 
+// ResolveShortTag create short tags from runtime.AuroraVersion
 func (m *NormalTagResolver) ResolveShortTag(appVersion *runtime.AuroraVersion, pushExtratags config.PushExtraTags) ([]string, error) {
 	tags, err := findCandidateTags(appVersion, m.Repository, pushExtratags, m.RegistryClient)
 	if err != nil {

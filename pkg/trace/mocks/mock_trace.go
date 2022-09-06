@@ -37,21 +37,21 @@ func (m *MockTrace) EXPECT() *MockTraceMockRecorder {
 }
 
 // AddBaseImageMetadata mocks base method.
-func (m *MockTrace) AddBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig) {
+func (m *MockTrace) SendBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddBaseImageMetadata", application, imageInfo, containerConfig)
+	m.ctrl.Call(m, "SendBaseImageMetadata", application, imageInfo, containerConfig)
 }
 
 // AddBaseImageMetadata indicates an expected call of AddBaseImageMetadata.
 func (mr *MockTraceMockRecorder) AddBaseImageMetadata(application, imageInfo, containerConfig interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBaseImageMetadata", reflect.TypeOf((*MockTrace)(nil).AddBaseImageMetadata), application, imageInfo, containerConfig)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendBaseImageMetadata", reflect.TypeOf((*MockTrace)(nil).SendBaseImageMetadata), application, imageInfo, containerConfig)
 }
 
 // AddImageMetadata mocks base method.
-func (m *MockTrace) AddImageMetadata(data interface{}) error {
+func (m *MockTrace) SendImageMetadata(data interface{}) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddImageMetadata", data)
+	ret := m.ctrl.Call(m, "SendImageMetadata", data)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
@@ -59,5 +59,5 @@ func (m *MockTrace) AddImageMetadata(data interface{}) error {
 // AddImageMetadata indicates an expected call of AddImageMetadata.
 func (mr *MockTraceMockRecorder) AddImageMetadata(data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddImageMetadata", reflect.TypeOf((*MockTrace)(nil).AddImageMetadata), data)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendImageMetadata", reflect.TypeOf((*MockTrace)(nil).SendImageMetadata), data)
 }

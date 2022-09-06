@@ -93,7 +93,7 @@ func TestBuild(t *testing.T) {
 				"GroupId",
 				"Version111",
 				"Classifier",
-				"Type",
+				"typeVersion",
 			},
 			config.DockerBaseImageSpec{
 				"BaseImage",
@@ -131,9 +131,9 @@ func TestBuild(t *testing.T) {
 			10,
 			false,
 			"Sporingstjeneste",
-			"OwnerReferenceUid",
+			"OwnerReferenceUUID",
 			"BinaryBuildType",
-			"NexusIQReportUrl",
+			"NexusIQReportURL",
 		}
 
 		mockCtrl := gomock.NewController(t)

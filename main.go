@@ -74,7 +74,7 @@ func initializeAndRunOnOpenShift() {
 	runConfig := architect.RunConfiguration{
 		Config:                  c,
 		NexusDownloader:         nexusDownloader,
-		RegistryCredentialsFunc: docker.CusterRegistryCredentials(),
+		RegistryCredentialsFunc: docker.ClusterRegistryCredentials(),
 	}
 	architect.RunArchitect(runConfig)
 }

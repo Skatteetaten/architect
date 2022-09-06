@@ -5,52 +5,67 @@ import (
 	"time"
 )
 
+// ApplicationType type string
 type ApplicationType string
 
 const (
-	JavaLeveransepakke   ApplicationType = "JavaLeveransepakke"
+	// JavaLeveransepakke ApplicationType
+	JavaLeveransepakke ApplicationType = "JavaLeveransepakke"
+	// NodeJsLeveransepakke ApplicationType
 	NodeJsLeveransepakke ApplicationType = "NodeJsLeveranse"
-	DoozerLeveranse      ApplicationType = "DoozerLeveranse"
-	NodeJs                               = "NODEJS"
-	Doozer                               = "DOOZER"
+	// DoozerLeveranse      ApplicationType
+	DoozerLeveranse ApplicationType = "DoozerLeveranse"
+	// NodeJs string
+	NodeJs string = "NODEJS"
+	// Doozer string
+	Doozer string = "DOOZER"
 )
 
+// PackageType type string
 type PackageType string
 
 const (
+	// ZipPackaging PackageType
 	ZipPackaging PackageType = "zip"
+	// TgzPackaging PackageType
 	TgzPackaging PackageType = "tgz"
 )
 
+// Classifier string
 type Classifier string
 
 const (
-	Leveransepakke       Classifier = "Leveransepakke"
-	Webleveransepakke    Classifier = "Webleveransepakke"
+	// Leveransepakke Classifier
+	Leveransepakke Classifier = "Leveransepakke"
+	// Webleveransepakke Classifier
+	Webleveransepakke Classifier = "Webleveransepakke"
+	// Doozerleveransepakke Classifier
 	Doozerleveransepakke Classifier = "Doozerleveransepakke"
 )
 
+// BinaryBuildType type string
 type BinaryBuildType string
 
 const (
+	// Snapshot BinaryBuildType
 	Snapshot BinaryBuildType = "Snapshot"
 )
 
 // Config contains the build config
 type Config struct {
-	ApplicationType   ApplicationType
-	ApplicationSpec   ApplicationSpec
-	DockerSpec        DockerSpec
-	BuilderSpec       BuilderSpec
-	BinaryBuild       bool
-	LocalBuild        bool
-	TLSVerify         bool
-	BuildTimeout      time.Duration
-	NoPush            bool
-	Sporingstjeneste  string
-	OwnerReferenceUid string
-	BinaryBuildType   BinaryBuildType
-	NexusIQReportUrl  string
+	ApplicationType    ApplicationType
+	ApplicationSpec    ApplicationSpec
+	DockerSpec         DockerSpec
+	BuilderSpec        BuilderSpec
+	BinaryBuild        bool
+	LocalBuild         bool
+	TLSVerify          bool
+	BuildTimeout       time.Duration
+	NoPush             bool
+	Sporingstjeneste   string
+	OwnerReferenceUUID string
+	BinaryBuildType    BinaryBuildType
+	NexusIQReportURL   string
 }
 
 // NexusAccess nexus url and nexus credentials
@@ -60,13 +75,17 @@ type NexusAccess struct {
 	NexusURL string
 }
 
+// IsValid check username, password and url is set
 func (n NexusAccess) IsValid() bool {
 	return len(n.Username) > 0 && len(n.Password) > 0 && len(n.NexusURL) > 0
 }
+
+// String return as string
 func (n NexusAccess) String() string {
 	return "{Username:" + n.Username + " Password:****** NexusURL:" + n.NexusURL + "}"
 }
 
+// ApplicationSpec config
 type ApplicationSpec struct {
 	MavenGav      MavenGav
 	BaseImageSpec DockerBaseImageSpec
@@ -91,11 +110,13 @@ func (m *MavenGav) Name() string {
 	return strings.Join([]string{m.GroupID, m.ArtifactID, m.ArtifactID}, ":")
 }
 
+// DockerBaseImageSpec config
 type DockerBaseImageSpec struct {
 	BaseImage   string
 	BaseVersion string
 }
 
+// DockerSpec config
 type DockerSpec struct {
 	OutputRegistry       string
 	OutputRepository     string
@@ -108,10 +129,12 @@ type DockerSpec struct {
 	RetagWith string
 }
 
+// BuilderSpec config
 type BuilderSpec struct {
 	Version string
 }
 
+// PushExtraTags config
 type PushExtraTags struct {
 	Latest bool
 	Major  bool

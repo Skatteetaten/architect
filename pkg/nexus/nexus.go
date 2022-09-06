@@ -216,10 +216,8 @@ func getClassifierExt(c *config.MavenGav) string {
 	return fmt.Sprintf(".%s", c.Type)
 }
 
-/*
-Create app version. If not snapshot build, then return version from GAV.
-Otherwise, create new snapshot version based on deliverable.
-*/
+// GetSnapshotTimestampVersion Create app version. If not snapshot build, then return version from GAV.
+// Otherwise, create new snapshot version based on deliverable.
 func GetSnapshotTimestampVersion(gav config.MavenGav, deliverable Deliverable) string {
 	if gav.IsSnapshot() {
 		replacer := strings.NewReplacer(gav.ArtifactID+"-", "", "-"+string(gav.Classifier)+"."+string(gav.Type), "")

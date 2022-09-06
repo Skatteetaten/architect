@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"github.com/pkg/errors"
 	"io"
-	"io/ioutil"
 )
 
+// DeliverableMetadata build and runtime configuration
 type DeliverableMetadata struct {
 	Docker    *MetadataDocker    `json:"docker"`
 	Doozer    *MetadataDoozer    `json:"doozer"`
@@ -14,11 +14,13 @@ type DeliverableMetadata struct {
 	Openshift *MetadataOpenShift `json:"openshift"`
 }
 
+// MetadataDocker maintainer and labels. These values are appended to the resulting image.
 type MetadataDocker struct {
 	Maintainer string            `json:"maintainer"`
 	Labels     map[string]string `json:"labels"`
 }
 
+// MetadataDoozer build specific information for dozer builds.
 type MetadataDoozer struct {
 	SrcPath      string `json:"srcPath"`
 	FileName     string `json:"fileName"`
@@ -28,20 +30,23 @@ type MetadataDoozer struct {
 	Entrypoint   string `json:"entrypoint"`   // Optional if base image Entrypoint is applicable
 }
 
+// MetadataJava java runtime information
 type MetadataJava struct {
 	MainClass       string `json:"mainClass"`
 	JvmOpts         string `json:"jvmOpts"`
 	ApplicationArgs string `json:"applicationArgs"`
 }
 
+// MetadataOpenShift readiness check parameters
 type MetadataOpenShift struct {
 	ReadinessURL              string `json:"readinessUrl"`
 	ReadinessOnManagementPort string `json:"readinessOnManagementPort"`
 }
 
+// NewDeliverableMetadata read openshift.json and transform to DeliverableMetadata
 func NewDeliverableMetadata(reader io.Reader) (*DeliverableMetadata, error) {
 	var meta DeliverableMetadata
-	content, err := ioutil.ReadAll(reader)
+	content, err := io.ReadAll(reader)
 
 	if err != nil {
 		return nil, err

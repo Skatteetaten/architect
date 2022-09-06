@@ -11,9 +11,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -59,11 +59,13 @@ type RegistryClient struct {
 	client         *http.Client
 }
 
+// BasicAuthWrapper RoundTrip
 type BasicAuthWrapper struct {
 	connectionInfo RegistryConnectionInfo
 	next           http.RoundTripper
 }
 
+// RoundTrip append registry credentials
 func (rt *BasicAuthWrapper) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	if rt.connectionInfo.Credentials != nil {
 		req.SetBasicAuth(rt.connectionInfo.Credentials.Username, rt.connectionInfo.Credentials.Password)
@@ -87,6 +89,7 @@ func NewRegistryClient(connectionInfo RegistryConnectionInfo) Registry {
 	return &RegistryClient{connectionInfo: connectionInfo, client: client}
 }
 
+// TagsAPIResponse list tags registry response
 type TagsAPIResponse struct {
 	Name string   `json:"name"`
 	Tags []string `json:"tags"`
@@ -97,6 +100,7 @@ const (
 	httpHeaderContainerImageV1 = "application/vnd.docker.container.image.v1+json"
 )
 
+// URL create registry url
 func (r *RegistryConnectionInfo) URL() *url.URL {
 	hostAndPort := fmt.Sprintf("%s:%s", r.Host, r.Port)
 	logrus.Debugf("Host: %s", r.Host)
@@ -107,6 +111,7 @@ func (r *RegistryConnectionInfo) URL() *url.URL {
 	return &u
 }
 
+// DisableTLSValidation disable tls check
 func (r *RegistryConnectionInfo) DisableTLSValidation() bool {
 	return r.Insecure
 }
@@ -114,11 +119,11 @@ func (r *RegistryConnectionInfo) DisableTLSValidation() bool {
 func (registry *RegistryClient) getRegistryManifest(ctx context.Context, repository string, tag string) ([]byte, error) {
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderManifestSchemaV2
-	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.connectionInfo.URL(), repository, tag)
-	logrus.Infof("Retrieving registry manifest from URL %s", url)
-	body, err := getHTTPRequest(registry.client, ctx, mHeader, url)
+	manifestURL := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.connectionInfo.URL(), repository, tag)
+	logrus.Infof("Retrieving registry manifest from URL %s", manifestURL)
+	body, err := getHTTPRequest(ctx, registry.client, mHeader, manifestURL)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed in getRegistryManifest for request url %s with header %s", url, mHeader)
+		return nil, errors.Wrapf(err, "Failed in getRegistryManifest for request url %s with header %s", manifestURL, mHeader)
 	}
 	return body, nil
 }
@@ -159,11 +164,11 @@ func (registry *RegistryClient) GetContainerConfig(ctx context.Context, reposito
 func (registry *RegistryClient) getRegistryBlob(ctx context.Context, repository string, digestID string) ([]byte, error) {
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderContainerImageV1
-	url := fmt.Sprintf("%s/v2/%s/blobs/%s", registry.connectionInfo.URL(), repository, digestID)
-	logrus.Debugf("Retrieving registry blob from URL %s", url)
-	body, err := getHTTPRequest(registry.client, ctx, mHeader, url)
+	blobURL := fmt.Sprintf("%s/v2/%s/blobs/%s", registry.connectionInfo.URL(), repository, digestID)
+	logrus.Debugf("Retrieving registry blob from URL %s", blobURL)
+	body, err := getHTTPRequest(ctx, registry.client, mHeader, blobURL)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed in getRegistryBlob for request url %s and header %s", url, mHeader)
+		return nil, errors.Wrapf(err, "Failed in getRegistryBlob for request url %s and header %s", blobURL, mHeader)
 	}
 	return body, nil
 }
@@ -303,7 +308,7 @@ func (registry *RegistryClient) PullLayer(ctx context.Context, repository string
 		return "", fmt.Errorf("unexpected http code %d", resp.StatusCode)
 	}
 
-	file, err := ioutil.TempFile("/tmp", "layer.*.tar.gz")
+	file, err := os.CreateTemp("/tmp", "layer.*.tar.gz")
 	if err != nil {
 		return "", errors.Wrap(err, "Could not create temporary file")
 	}
@@ -355,7 +360,7 @@ func (registry *RegistryClient) PushLayer(ctx context.Context, layer io.Reader, 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 202 {
-		respData, err := ioutil.ReadAll(resp.Body)
+		respData, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return errors.Wrap(err, "PushLayers patch: Unable to parse response body")
 		}
@@ -379,7 +384,7 @@ func (registry *RegistryClient) PushLayer(ctx context.Context, layer io.Reader, 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 201 {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return errors.Wrap(err, "Unable to read body")
 		}
@@ -410,7 +415,7 @@ func (registry *RegistryClient) PushManifest(ctx context.Context, manifest []byt
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 201 {
-		respData, err := ioutil.ReadAll(resp.Body)
+		respData, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return errors.Wrap(err, "PushManifest: ")
 		}
@@ -442,7 +447,7 @@ func (registry *RegistryClient) GetTags(ctx context.Context, repository string) 
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to read tags for repository %s", repository)

@@ -7,12 +7,14 @@ import (
 	"io/ioutil"
 )
 
+// DeliverableMetadata build and runtime configuration
 type DeliverableMetadata struct {
 	Docker    *MetadataDocker    `json:"docker"`
 	Java      *MetadataJava      `json:"java"`
 	Openshift *MetadataOpenShift `json:"openshift"`
 }
 
+// MetadataDocker maintainer and labels. These values are appended to the resulting image.
 type MetadataDocker struct {
 	Maintainer  string            `json:"maintainer"`
 	Labels      map[string]string `json:"labels"`
@@ -20,6 +22,7 @@ type MetadataDocker struct {
 	BaseVersion string            `json:"baseVersion"`
 }
 
+// MetadataJava java runtime configuration
 type MetadataJava struct {
 	MainClass       string `json:"mainClass"`
 	JvmOpts         string `json:"jvmOpts"`
@@ -27,11 +30,13 @@ type MetadataJava struct {
 	ReadinessURL    string `json:"readinessUrl"`
 }
 
+// MetadataOpenShift readiness parameters
 type MetadataOpenShift struct {
 	ReadinessURL              string `json:"readinessUrl"`
 	ReadinessOnManagementPort string `json:"readinessOnManagementPort"`
 }
 
+// NewDeliverableMetadata read openshift.json and transform to DeliverableMetadata
 func NewDeliverableMetadata(reader io.Reader) (*DeliverableMetadata, error) {
 	var meta DeliverableMetadata
 	content, err := ioutil.ReadAll(reader)

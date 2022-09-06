@@ -146,9 +146,9 @@ func TestMavenDownloaderOnRelease(t *testing.T) {
 			w.WriteHeader(200)
 			w.Write(data.Bytes())
 			return
-		} else {
-			t.Errorf("Unexpected call %s", r.RequestURI)
 		}
+		t.Errorf("Unexpected call %s", r.RequestURI)
+
 	}))
 	defer srv.Close()
 
