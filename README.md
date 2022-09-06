@@ -305,9 +305,21 @@ source ./hack/initCredentials.sh # Load nexus credentials
 ## Dependecies
 
 We use go modules. 
-
+    
 Dependencies are managed via `go.mod`. Remember to run `go mod tidy` after dependency update.
 
 ## Building
 The build is orchestrated on Jenkins, with Jenkinsfile
+
+oc tag --source=Docker container-registry-internal-private-pull.aurora.skead.no/aurora/architect:SITJ_2397_new_endpoint_for_sporingslogger-SNAPSHOT architect:SITJ_2397_new_endpoint_for_sporingslogger-SNAPSHOT -n openshift
+
+
+## Mockgen 
+
+gomock brukes for build_test:
+
+mockgen -destination=pkg/docker/mocks/mock_registry.go -package=mocks -source=pkg/docker/registry.go Registry
+mockgen -destination=pkg/nexus/mocks/mock_nexus.go -package=mocks -source=pkg/nexus/nexus.go Downloader
+mockgen -destination=pkg/process/build/mocks/mock_layer_builder.go -package=mocks -source=pkg/process/build/build.go  Builder
+mockgen -destination=pkg/trace/mocks/mock_trace.go -package=mocks -source=pkg/trace/trace.go  Trace
 

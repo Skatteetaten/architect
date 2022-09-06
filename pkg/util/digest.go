@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-//CalculateDigestFromArchive calculates a sha256 hash
+// CalculateDigestFromArchive calculates a sha256 hash
 func CalculateDigestFromArchive(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -29,7 +29,7 @@ func CalculateDigestFromArchive(path string) (string, error) {
 	return fmt.Sprintf("sha256:%s", digest), nil
 }
 
-//CalculateDigestFromFile of tar content
+// CalculateDigestFromFile of tar content
 func CalculateDigestFromFile(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {

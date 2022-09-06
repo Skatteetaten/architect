@@ -85,7 +85,7 @@ func GetPortOrDefault(port string) string {
 	return port
 }
 
-//TODO: HACK: Fix registry certificate. TLS handshake fails with: does not contain any IP SANs
+// TODO: HACK: Fix registry certificate. TLS handshake fails with: does not contain any IP SANs
 func InsecureOrDefault(config *config.Config) bool {
 	if config.BinaryBuild {
 		return true

@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-//Downloader interface
+// Downloader interface
 type Downloader interface {
 	DownloadArtifact(c *config.MavenGav) (Deliverable, error)
 }
@@ -28,7 +28,7 @@ type MavenDownloader struct {
 	password string
 }
 
-//BinaryDownloader configuration
+// BinaryDownloader configuration
 type BinaryDownloader struct {
 	Path string
 }
@@ -83,7 +83,7 @@ func (n *BinaryDownloader) DownloadArtifact(_ *config.MavenGav) (Deliverable, er
 	return deliverable, nil
 }
 
-//NewMavenDownloader MavenDownloader of type Downloader
+// NewMavenDownloader MavenDownloader of type Downloader
 func NewMavenDownloader(baseURL string, username string, password string) Downloader {
 	return &MavenDownloader{
 		baseURL:  baseURL,
@@ -217,8 +217,8 @@ func getClassifierExt(c *config.MavenGav) string {
 }
 
 /*
-  Create app version. If not snapshot build, then return version from GAV.
-  Otherwise, create new snapshot version based on deliverable.
+Create app version. If not snapshot build, then return version from GAV.
+Otherwise, create new snapshot version based on deliverable.
 */
 func GetSnapshotTimestampVersion(gav config.MavenGav, deliverable Deliverable) string {
 	if gav.IsSnapshot() {

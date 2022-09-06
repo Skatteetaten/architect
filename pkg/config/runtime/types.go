@@ -36,15 +36,15 @@ func (m *DockerImage) GetCompleteDockerTagName() string {
 	return m.Registry + "/" + m.Repository + ":" + m.Tag
 }
 
-//We only care of the version of architect image.. Refactor to a version variable?
+// We only care of the version of architect image.. Refactor to a version variable?
 type ArchitectImage struct {
 	Tag string
 }
 
 /*
-  Create aurora version aka complete version
-  <application-version>-<builder-version>-<baseimage-repository>-<baseimage-version>
-  e.g. 2.0.0-b1.11.0-oracle8-1.0.2
+Create aurora version aka complete version
+<application-version>-<builder-version>-<baseimage-repository>-<baseimage-version>
+e.g. 2.0.0-b1.11.0-oracle8-1.0.2
 */
 func getCompleteVersion(appversion AppVersion, buildImage *ArchitectImage, baseImage DockerImage) string {
 	return fmt.Sprintf("%s-%s-%s", appversion,
@@ -77,7 +77,6 @@ MAJOR				= 2
 MINOR				= 2.0
 PATCH				= 2.0.0
 OutputImage.Repository	aurora/console
-
 */
 type AuroraVersion struct {
 	appVersion AppVersion // The actual version of the artifact. This will differ from GivenVersion iff the artifact
@@ -135,7 +134,7 @@ func (m *AuroraVersion) GetUniqueSnapshotVersion() string {
 	return fmt.Sprintf("%s-%s", m.GetGivenVersion(), m.hash[len(m.hash)-8:])
 }
 
-//TODO: Snapshot / Semantic? Whats the difference?
+// TODO: Snapshot / Semantic? Whats the difference?
 func (m *AuroraVersion) IsSemanticReleaseVersion() bool {
 	if m.Snapshot {
 		return false

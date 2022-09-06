@@ -3,6 +3,7 @@ package architect
 import (
 	"context"
 	"fmt"
+	"github.com/skatteetaten/architect/v2/pkg/trace"
 	"net/url"
 	"os"
 	"time"
@@ -20,7 +21,7 @@ import (
 
 var verbose bool
 
-//RunConfiguration runtime configuration
+// RunConfiguration runtime configuration
 type RunConfiguration struct {
 	NexusDownloader         nexus.Downloader
 	Config                  *config.Config
@@ -29,7 +30,7 @@ type RunConfiguration struct {
 	PushToken               string
 }
 
-//RunArchitect main
+// RunArchitect main
 func RunArchitect(configuration RunConfiguration) {
 	c := configuration.Config
 	ctx := context.Background()
@@ -71,6 +72,8 @@ func RunArchitect(configuration RunConfiguration) {
 	pushRegistry := docker.NewRegistryClient(pushRegistryConn)
 	pullRegistry := docker.NewRegistryClient(pullRegistryConn)
 
+	sporingsLoggerClient := trace.NewTraceClient(c.Sporingstjeneste)
+
 	var builder process.Builder
 	builder = process.NewLayerBuilder(c, pushRegistry, pullRegistry)
 
@@ -80,7 +83,7 @@ func RunArchitect(configuration RunConfiguration) {
 			logrus.Fatalf("Failed to retag temporary image %s", err)
 		}
 	} else {
-		if err := performBuild(ctx, &configuration, c, pullRegistry, pushRegistry, builder); err != nil {
+		if err := performBuild(ctx, &configuration, c, pullRegistry, pushRegistry, builder, sporingsLoggerClient); err != nil {
 			var errorMessage string
 			if logrus.GetLevel() >= logrus.DebugLevel {
 				errorMessage = "Failed to build image: %+v, Terminating"
@@ -93,7 +96,8 @@ func RunArchitect(configuration RunConfiguration) {
 
 	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
 }
-func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, pullRegistry docker.Registry, pushRegistry docker.Registry, builder process.Builder) error {
+func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, pullRegistry docker.Registry,
+	pushRegistry docker.Registry, builder process.Builder, sporingsLoggerClient trace.Trace) error {
 	var prepper process.Prepper
 	if c.ApplicationType == config.JavaLeveransepakke {
 		logrus.Info("Perform Java build")
@@ -113,7 +117,7 @@ func performBuild(ctx context.Context, configuration *RunConfiguration, c *confi
 	ctx, cancel := context.WithTimeout(ctx, c.BuildTimeout*time.Second)
 	defer cancel()
 
-	return process.Build(ctx, pullRegistry, pushRegistry, c, configuration.NexusDownloader, prepper, builder)
+	return process.Build(ctx, pullRegistry, pushRegistry, c, configuration.NexusDownloader, prepper, builder, sporingsLoggerClient)
 }
 
 func (c RunConfiguration) getRegistryCredentials() (*docker.RegistryCredentials, error) {

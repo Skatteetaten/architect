@@ -32,7 +32,7 @@ const (
 // Prepper prepare build context
 func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
-		baseImage runtime.BaseImage) ([]docker.BuildConfig, error) {
+		baseImage runtime.BaseImage) (*docker.BuildConfig, error) {
 
 		buildContext, err := prepareLayers(cfg.DockerSpec, auroraVersion, deliverable, baseImage)
 
@@ -40,7 +40,7 @@ func Prepper() process.Prepper {
 			return nil, errors.Wrap(err, "Error prepare artifact")
 		}
 
-		buildConf := docker.BuildConfig{
+		return &docker.BuildConfig{
 			AuroraVersion:    auroraVersion,
 			BuildFolder:      buildContext.BuildContext,
 			DockerRepository: cfg.DockerSpec.OutputRepository,
@@ -49,8 +49,8 @@ func Prepper() process.Prepper {
 			Labels:           buildContext.Labels,
 			Cmd:              buildContext.Cmd,
 			Entrypoint:       buildContext.EntryPoint,
-		}
-		return []docker.BuildConfig{buildConf}, nil
+		}, nil
+
 	}
 }
 

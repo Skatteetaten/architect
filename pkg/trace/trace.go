@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/v2/pkg/config"
 	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
@@ -12,61 +13,64 @@ import (
 	"time"
 )
 
-// NewTracer returns a new Tracer
-func NewTracer(sporingsURL string, context string) *Tracer {
-	return &Tracer{
-		url:     sporingsURL,
-		context: context,
-		enabled: sporingsURL != "" && context != "",
+type Trace interface {
+	AddImageMetadata(data interface{}) error
+	AddBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig)
+}
+
+func NewTraceClient(sporingURL string) Trace {
+	return &TraceClient{
+		url:     sporingURL,
+		enabled: sporingURL != "",
 	}
 }
 
-// Tracer struct
-type Tracer struct {
+type TraceClient struct {
 	url     string
-	context string
 	enabled bool
 }
 
-func (t *Tracer) AddImageMetadata(data interface{}) {
-	if t.enabled {
-		ctx := context.Background()
-		timeoutIn := time.Now().Add(5 * time.Second)
-		ctx, cancelFunc := context.WithDeadline(ctx, timeoutIn)
-		defer cancelFunc()
+func (traceClient *TraceClient) AddImageMetadata(data interface{}) error {
+	ctx := context.Background()
+	timeoutIn := time.Now().Add(5 * time.Second)
+	ctx, cancelFunc := context.WithDeadline(ctx, timeoutIn)
+	defer cancelFunc()
 
-		d, err := json.Marshal(data)
-		if err != nil {
-			logrus.Warnf("Unable to unmarshal image metadata. Got error %s", err)
-			return
-		}
-		t.send(ctx, string(d))
+	d, err := json.Marshal(data)
+	if err != nil {
+		return errors.Wrapf(err, "Unable to unmarshal image metadata")
 	}
+	return traceClient.send(ctx, string(d))
+
+	return nil
 }
 
-func (t *Tracer) send(ctx context.Context, jsonStr string) {
-	uri := t.url + "/api/v1/trace/" + t.context
+func (traceClient *TraceClient) send(ctx context.Context, jsonStr string) error {
+	uri := traceClient.url + "/api/v1/image"
 
-	if t.enabled {
-		req, err := http.NewRequestWithContext(ctx, "POST", uri, bytes.NewBuffer([]byte(jsonStr)))
-		if err != nil {
-			logrus.Warnf("Unable to create request: %s", err)
-			return
-		}
-		req.Header.Set("Content-Type", "application/json")
-
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			logrus.Warnf("Request failed: %s", err)
-			return
-		}
-		defer resp.Body.Close()
+	req, err := http.NewRequestWithContext(ctx, "POST", uri, bytes.NewBuffer([]byte(jsonStr)))
+	if err != nil {
+		logrus.Warnf("Unable to create request: %s", err)
+		return errors.Wrapf(err, "Unable to create request")
 	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		logrus.Warnf("Request failed: %s", err)
+		return errors.Wrapf(err, "Request failed")
+	}
+	if resp.StatusCode >= 300 {
+		logrus.Warnf("Request failed: %s", err)
+		return errors.Wrapf(err, "Request failed %d", resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+	return nil
 }
 
-func (t *Tracer) AddBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig) {
-
+func (traceClient *TraceClient) AddBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig) {
 	payload := BaseImage{
 		Type:        "baseImage",
 		Name:        application.BaseImageSpec.BaseImage,
@@ -75,6 +79,6 @@ func (t *Tracer) AddBaseImageMetadata(application config.ApplicationSpec, imageI
 		ImageConfig: containerConfig,
 	}
 	logrus.Debugf("Pushing trace data %v", payload)
-	t.AddImageMetadata(payload)
+	traceClient.AddImageMetadata(payload)
 
 }

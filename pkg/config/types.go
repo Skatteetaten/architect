@@ -47,7 +47,6 @@ type Config struct {
 	TLSVerify         bool
 	BuildTimeout      time.Duration
 	NoPush            bool
-	SporingsContext   string
 	Sporingstjeneste  string
 	OwnerReferenceUid string
 	BinaryBuildType   BinaryBuildType

@@ -80,7 +80,7 @@ var Build = &cobra.Command{
 	},
 }
 
-//Bc build command using buildConfig as input
+// Bc build command using buildConfig as input
 var Bc = &cobra.Command{
 	Use:   "bc",
 	Short: "build bc --file <bc>.json",

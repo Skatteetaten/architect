@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-//We limit to four digits... Git commits tend to be only nummeric as well
+// We limit to four digits... Git commits tend to be only nummeric as well
 var versionWithOptionalMinorAndPatch = regexp.MustCompile(`^[0-9]{1,5}(\.[0-9]+(\.[0-9]+)?)?(\+([0-9A-Za-z]+))?$`)
 var versionWithMinorAndPatch = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+$|^[0-9]+\.[0-9]+\.[0-9]+\+([0-9A-Za-z]+)$`)
 var versionMeta = regexp.MustCompile(`\+([0-9A-Za-z]+)$`)

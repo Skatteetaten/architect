@@ -25,12 +25,12 @@ type buildConfiguration struct {
 // Prepper prepare java image layers
 func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
-		baseImage runtime.BaseImage) ([]docker.BuildConfig, error) {
+		baseImage runtime.BaseImage) (*docker.BuildConfig, error) {
 		buildConfiguration, err := prepareLayers(cfg.DockerSpec, auroraVersion, deliverable)
 		if err != nil {
 			return nil, errors.Wrap(err, "Error while preparing layers")
 		}
-		return []docker.BuildConfig{{
+		return &docker.BuildConfig{
 			AuroraVersion:    auroraVersion,
 			DockerRepository: cfg.DockerSpec.OutputRepository,
 			BuildFolder:      buildConfiguration.BuildContext,
@@ -38,11 +38,11 @@ func Prepper() process.Prepper {
 			Env:              buildConfiguration.Env,
 			Labels:           buildConfiguration.Labels,
 			Cmd:              buildConfiguration.Cmd,
-		}}, nil
+		}, nil
 	}
 }
 
-//TODO: Vurder om vi kan trekke ut prepare layer, slik at den kan gjenbrukes på tvers av byggene våre. Metoden er veldig lik doozer sin
+// TODO: Vurder om vi kan trekke ut prepare layer, slik at den kan gjenbrukes på tvers av byggene våre. Metoden er veldig lik doozer sin
 func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable) (*buildConfiguration, error) {
 	buildPath, err := ioutil.TempDir("", "deliverable")
 

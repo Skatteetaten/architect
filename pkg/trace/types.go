@@ -2,7 +2,6 @@ package trace
 
 import (
 	"github.com/skatteetaten/architect/v2/pkg/docker"
-	"github.com/skatteetaten/architect/v2/pkg/nexus"
 )
 
 // BaseImage representation used in trace
@@ -16,11 +15,11 @@ type BaseImage struct {
 
 // DeployableImage representation used in trace
 type DeployableImage struct {
-	Type         string                 `json:"type"`
-	Name         string                 `json:"name"`
-	Digest       string                 `json:"digest"`
-	Tags         map[string]string      `json:"tags"`
-	NexusSHA1    string                 `json:"nexus_sha1"`
-	ImageConfig  map[string]interface{} `json:"image_config"`
-	Dependencies []nexus.Dependency     `json:"dependencies"`
+	Type          string `json:"imageType"`
+	Name          string `json:"name"`
+	AppVersion    string `json:"appVersion"`
+	AuroraVersion string `json:"auroraVersion"`
+	Digest        string `json:"imageDigest"`
+	Snapshot      bool   `json:"snapshot"`
+	GitCommit     string `json:"gitCommit"`
 }

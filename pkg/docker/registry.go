@@ -52,6 +52,8 @@ type RegistryConnectionInfo struct {
 	Insecure    bool
 	Credentials *RegistryCredentials
 }
+
+// RegistryClient configuration
 type RegistryClient struct {
 	connectionInfo RegistryConnectionInfo
 	client         *http.Client
@@ -69,7 +71,7 @@ func (rt *BasicAuthWrapper) RoundTrip(req *http.Request) (resp *http.Response, e
 	return rt.next.RoundTrip(req)
 }
 
-//NewRegistryClient create new registry client
+// NewRegistryClient create new registry client
 func NewRegistryClient(connectionInfo RegistryConnectionInfo) Registry {
 
 	transport := &http.Transport{
@@ -166,7 +168,7 @@ func (registry *RegistryClient) getRegistryBlob(ctx context.Context, repository 
 	return body, nil
 }
 
-//GetImageConfig get image config
+// GetImageConfig get image config
 func (registry *RegistryClient) GetImageConfig(ctx context.Context, repository string, digest string) (map[string]interface{}, error) {
 	var result map[string]interface{}
 
@@ -194,7 +196,7 @@ func (registry *RegistryClient) GetImageConfig(ctx context.Context, repository s
 	return result, nil
 }
 
-//GetImageInfo get information about an image
+// GetImageInfo get information about an image
 func (registry *RegistryClient) GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error) {
 	body, err := registry.getRegistryManifest(ctx, repository, tag)
 
@@ -258,7 +260,7 @@ func (registry *RegistryClient) GetImageInfo(ctx context.Context, repository str
 	}, nil
 }
 
-//LayerExists checks if layer exists in registry
+// LayerExists checks if layer exists in registry
 func (registry *RegistryClient) LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error) {
 	//HEAD /v2/<repository>/blobs/<digest>
 	path := fmt.Sprintf("/v2/%s/blobs/%s", repository, layerDigest)
@@ -316,7 +318,7 @@ func (registry *RegistryClient) PullLayer(ctx context.Context, repository string
 
 }
 
-//PushLayer push image blob
+// PushLayer push image blob
 func (registry *RegistryClient) PushLayer(ctx context.Context, layer io.Reader, repository string, layerDigest string) error {
 	//v2/repository/blobs/uploads/
 	path := fmt.Sprintf("/v2/%s/blobs/uploads/", repository)
@@ -389,7 +391,7 @@ func (registry *RegistryClient) PushLayer(ctx context.Context, layer io.Reader, 
 	return nil
 }
 
-//PushManifest push manifest
+// PushManifest push manifest
 func (registry *RegistryClient) PushManifest(ctx context.Context, manifest []byte, repository string, tag string) error {
 	//PUT /v2/<repository>/manifests/<tag>
 	path := fmt.Sprintf("/v2/%s/manifests/%s", repository, tag)

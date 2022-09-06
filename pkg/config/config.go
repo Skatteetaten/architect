@@ -200,12 +200,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
-	var sporingscontext = ""
-	if value, err := findEnv(env, "SPORINGSCONTEXT"); err == nil {
-		logrus.Debugf("Sporingscontext: %s", value)
-		sporingscontext = value
-	}
-
 	var sporingstjeneste = ""
 	if value, err := findEnv(env, "SPORINGSTJENESTE"); err == nil && value != "" {
 		logrus.Debugf("Sporingstjeneste: %s", value)
@@ -416,7 +410,6 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		BinaryBuild:       binaryBuild,
 		TLSVerify:         tlsVerify,
 		BuildTimeout:      buildTimeout,
-		SporingsContext:   sporingscontext,
 		Sporingstjeneste:  sporingstjeneste,
 		OwnerReferenceUid: string(build.UID),
 		BinaryBuildType:   buildType,
@@ -434,7 +427,7 @@ func checkURL(client *http.Client, protocol string, base string, path string) er
 	return err
 }
 
-//resolveIPIfInternalRegistry To fix AOT-263
+// resolveIPIfInternalRegistry To fix AOT-263
 func resolveIPIfInternalRegistry(registryWithPort string, rewrite bool) (string, error) {
 	if !rewrite {
 		return registryWithPort, nil

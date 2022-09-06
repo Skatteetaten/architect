@@ -36,7 +36,7 @@ func TestGetSnapshotTimestampVersion(t *testing.T) {
 	gav := config.MavenGav{
 		ArtifactID: "myapp",
 		GroupID:    "ske.foo.bar",
-		Version:    "feature-baz-SNAPSHOT",
+		Version:    "PR_XYZ-SNAPSHOT",
 		Classifier: config.Leveransepakke,
 		Type:       config.ZipPackaging,
 	}
@@ -63,6 +63,7 @@ func TestGetSnapshotTimestampVersionBinaryBuild(t *testing.T) {
 		Type:       config.ZipPackaging,
 	}
 
+	//todo fix the test to match the real world - we dont get Leveransepakke.zip this way ??
 	deliverable := Deliverable{
 		Path: "/tmp/package917376626/myapp-feature_baz-20170701.103015-1-Leveransepakke.zip",
 	}

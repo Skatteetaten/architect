@@ -54,7 +54,7 @@ func NewByteWriter(data []byte) WriterFunc {
 	}
 }
 
-//NewFileWriter wrapper
+// NewFileWriter wrapper
 func NewFileWriter(targetFolder string) FileWriter {
 	return func(writerFunc WriterFunc, fileAsPath ...string) error {
 		fileAsPath = append(fileAsPath, "")

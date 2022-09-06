@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-//Web :
+// Web :
 type Web struct {
 	ConfigurableProxy bool           `json:"configurableProxy"`
 	Nodejs            Nodejs         `json:"nodejs"`
@@ -16,13 +16,13 @@ type Web struct {
 	Locations         nginxLocations `json:"locations"`
 }
 
-//Nodejs :
+// Nodejs :
 type Nodejs struct {
 	Main      string            `json:"main"`
 	Overrides map[string]string `json:"overrides"`
 }
 
-//WebApp :
+// WebApp :
 type WebApp struct {
 	Content         string            `json:"content"`
 	Path            string            `json:"path"`
@@ -30,7 +30,7 @@ type WebApp struct {
 	Headers         map[string]string `json:"headers"`
 }
 
-//OpenshiftConfig :
+// OpenshiftConfig :
 type OpenshiftConfig struct {
 	Web Web `json:"web"`
 }
