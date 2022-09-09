@@ -7,7 +7,6 @@ import (
 	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
 	"github.com/skatteetaten/architect/v2/pkg/nexus"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -42,7 +41,7 @@ func TestPrepareLayers(t *testing.T) {
 		assert.DirExists(t, path+"/layer/u01", "layer does not exist")
 		assert.DirExists(t, path+"/layer/u01/application", "The application folder does not exist")
 
-		fileInfos, err := ioutil.ReadDir(path + "/layer/u01/application")
+		fileInfos, err := os.ReadDir(path + "/layer/u01/application")
 		if err != nil {
 			t.Fatalf("Could not read application folder content")
 		}
@@ -55,7 +54,7 @@ func TestPrepareLayers(t *testing.T) {
 		assert.Equal(t, appContent, []string{"lib", "logs", "metadata"})
 		assert.FileExists(t, path+"/layer/u01/application/metadata/openshift.json", "openshift.json is missing")
 
-		fileInfos, err = ioutil.ReadDir(path + "/layer/u01/bin")
+		fileInfos, err = os.ReadDir(path + "/layer/u01/bin")
 		if err != err {
 			logrus.Fatal("Could not read the bin directory")
 		}
@@ -63,7 +62,7 @@ func TestPrepareLayers(t *testing.T) {
 			logrus.Infof("File: %s", info.Name())
 		}
 
-		fileInfos, err = ioutil.ReadDir(path + "/layer/u01/application/lib")
+		fileInfos, err = os.ReadDir(path + "/layer/u01/application/lib")
 		if err != nil {
 			t.Fatalf("Could not read application folder content")
 		}
@@ -104,7 +103,6 @@ func TestPrepareLayers(t *testing.T) {
 		assert.Equal(t, strings.Join(javaDescriptor.Data.PathsToClassLibraries, ","), "lib,repo", "Wrong path to class libaries")
 
 	})
-
 	// Delete temp directory
 	os.RemoveAll(path)
 

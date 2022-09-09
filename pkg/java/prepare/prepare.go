@@ -9,7 +9,6 @@ import (
 	"github.com/skatteetaten/architect/v2/pkg/nexus"
 	process "github.com/skatteetaten/architect/v2/pkg/process/build"
 	"github.com/skatteetaten/architect/v2/pkg/util"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -44,7 +43,7 @@ func Prepper() process.Prepper {
 
 // TODO: Vurder om vi kan trekke ut prepare layer, slik at den kan gjenbrukes på tvers av byggene våre. Metoden er veldig lik doozer sin
 func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable) (*buildConfiguration, error) {
-	buildPath, err := ioutil.TempDir("", "deliverable")
+	buildPath, err := os.MkdirTemp("", "deliverable")
 
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create root folder of Docker context")

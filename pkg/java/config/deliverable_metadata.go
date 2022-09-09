@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/pkg/errors"
 	"io"
-	"io/ioutil"
 )
 
 // DeliverableMetadata build and runtime configuration
@@ -28,6 +27,7 @@ type MetadataJava struct {
 	JvmOpts         string `json:"jvmOpts"`
 	ApplicationArgs string `json:"applicationArgs"`
 	ReadinessURL    string `json:"readinessUrl"`
+	StartScript     string `json:"startScript"`
 }
 
 // MetadataOpenShift readiness parameters
@@ -39,7 +39,7 @@ type MetadataOpenShift struct {
 // NewDeliverableMetadata read openshift.json and transform to DeliverableMetadata
 func NewDeliverableMetadata(reader io.Reader) (*DeliverableMetadata, error) {
 	var meta DeliverableMetadata
-	content, err := ioutil.ReadAll(reader)
+	content, err := io.ReadAll(reader)
 
 	if err != nil {
 		return nil, err
