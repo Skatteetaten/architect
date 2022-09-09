@@ -8,7 +8,7 @@ import (
 )
 
 type typeVersion struct {
-	Type    string `json:"typeVersion"`
+	Type    string `json:"Type"`
 	Version string `json:"Version"`
 }
 

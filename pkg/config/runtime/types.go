@@ -76,7 +76,7 @@ type CompleteVersion string
 // AuroraVersion EKSEMPEL:
 //
 // Gitt følgende URL http://uil0map-paas-app01.skead.no:9090/v2/aurora/console/tags/list
-// COMPlETE	 		= 2.0.0-b1.11.0-oracle8-1.0.2
+// COMPLETE	 		    = 2.0.0-b1.11.0-oracle8-1.0.2
 // LATEST				= latest
 // MAJOR				= 2
 // MINOR				= 2.0

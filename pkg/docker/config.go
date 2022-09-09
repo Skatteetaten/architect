@@ -11,7 +11,7 @@ import (
 
 type dockerConfig struct {
 	Auths       auths             `json:"auths"`
-	HTTPHeaders map[string]string `json:"httpHeaders,omitempty"`
+	HTTPHeaders map[string]string `json:"HttpHeaders,omitempty"`
 }
 
 type auths map[string]registryEntry
