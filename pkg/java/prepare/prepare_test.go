@@ -96,8 +96,8 @@ func TestPrepareLayers(t *testing.T) {
 		if err != nil {
 			t.Fatal("Could not read the radish config")
 		}
-		assert.Equal(t, javaDescriptor.Type.Type, "Java", "Wrong type")
-		assert.Equal(t, javaDescriptor.Type.Version, "1", "Wrong version")
+		assert.Equal(t, javaDescriptor.typeVersion.Type, "Java", "Wrong type")
+		assert.Equal(t, javaDescriptor.typeVersion.Version, "1", "Wrong version")
 		assert.Equal(t, javaDescriptor.Data.Basedir, "/u01/application", "Wrong basedir")
 		assert.Equal(t, javaDescriptor.Data.ApplicationArgs, "--logging.config=${LOGBACK_FILE}", "Wrong application arguments")
 		assert.Equal(t, javaDescriptor.Data.JavaOptions, "-Dspring.profiles.active=openshift", "Wrong java options")

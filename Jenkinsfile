@@ -7,7 +7,7 @@ def config = [
         scriptVersion           : 'v7',
         pipelineScript          : 'https://git.aurora.skead.no/scm/ao/aurora-pipeline-scripts.git',
         iqOrganizationName      : 'Team APS',
-        goVersion               : '1.18',
+        goVersion               : '1.19',
         artifactPath            : 'bin/',
         chatRoom                : "#sitj-build",
         credentialsId           : "github",

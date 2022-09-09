@@ -9,7 +9,8 @@ import (
 	"github.com/skatteetaten/architect/v2/pkg/doozer/config"
 )
 
-type ImageMetaData struct {
+// ImageMetadata utility struct containing image metadata
+type ImageMetadata struct {
 	BaseImage  string
 	Maintainer string
 	SrcPath    string
@@ -61,8 +62,9 @@ func verifyMetadata(meta config.DeliverableMetadata) error {
 	return nil
 }
 
+// ReadMetadata Read and return ImageMetadata
 func ReadMetadata(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVersion, meta config.DeliverableMetadata,
-	baseImage runtime.DockerImage, imageBuildTime string, destinationPath string) (*ImageMetaData, error) {
+	baseImage runtime.DockerImage, imageBuildTime string, destinationPath string) (*ImageMetadata, error) {
 
 	if err := verifyMetadata(meta); err != nil {
 		return nil, err
@@ -81,7 +83,7 @@ func ReadMetadata(dockerSpec global.DockerSpec, auroraVersion runtime.AuroraVers
 		destPath = destinationPath
 	}
 
-	return &ImageMetaData{
+	return &ImageMetadata{
 		BaseImage:  baseImage.GetCompleteDockerTagName(),
 		Maintainer: meta.Docker.Maintainer,
 		SrcPath:    meta.Doozer.SrcPath,

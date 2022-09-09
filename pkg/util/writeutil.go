@@ -10,13 +10,13 @@ import (
 	"text/template"
 )
 
-//FileWriter function
+// FileWriter function
 type FileWriter func(WriterFunc, ...string) error
 
-//WriterFunc function
+// WriterFunc function
 type WriterFunc func(io.Writer) error
 
-//NewTemplateWriter wrapper
+// NewTemplateWriter wrapper
 func NewTemplateWriter(input interface{}, templatename string, templateString string) WriterFunc {
 	return func(writer io.Writer) error {
 		tmpl, err := template.New(templatename).Parse(templateString)
@@ -54,14 +54,17 @@ func NewByteWriter(data []byte) WriterFunc {
 	}
 }
 
-//NewFileWriter wrapper
+// NewFileWriter wrapper
 func NewFileWriter(targetFolder string) FileWriter {
 	return func(writerFunc WriterFunc, fileAsPath ...string) error {
 		fileAsPath = append(fileAsPath, "")
 		copy(fileAsPath[1:], fileAsPath[0:])
 		fileAsPath[0] = targetFolder
 		fp := filepath.Join(fileAsPath...)
-		MkdirAllWithPermissions(path.Dir(fp), os.ModeDir|0755)
+		err := MkdirAllWithPermissions(path.Dir(fp), os.ModeDir|0755)
+		if err != nil {
+			return err
+		}
 		fileToWriteTo, err := os.Create(fp)
 		if err != nil {
 			return errors.Wrapf(err, "Error creating %v", fileAsPath)

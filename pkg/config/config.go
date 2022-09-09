@@ -19,34 +19,39 @@ import (
 	"time"
 )
 
-type ConfigReader interface {
+// Reader interface that provides the ReadConfig method
+type Reader interface {
 	ReadConfig() (*Config, error)
 }
 
+// InClusterConfigReader reads build configuration from the builder pod
 type InClusterConfigReader struct {
 }
 
+// FileConfigReader reads build configuration from file
 type FileConfigReader struct {
 	pathToConfigFile string
 }
 
+// CmdConfigReader reads build configuration from commandline parameters
 type CmdConfigReader struct {
 	NoPush bool
 	Cmd    *cobra.Command
 	Args   []string
 }
 
-const FallbackDockerRegistry = "https://docker-registry.aurora.sits.no:5000"
-
-func NewInClusterConfigReader() ConfigReader {
+// NewInClusterConfigReader returns a Reader of type InClusterConfigReader
+func NewInClusterConfigReader() Reader {
 	return &InClusterConfigReader{}
 }
 
-func NewFileConfigReader(filepath string) ConfigReader {
+// NewFileConfigReader returns a Reader of type FileConfigReader
+func NewFileConfigReader(filepath string) Reader {
 	return &FileConfigReader{pathToConfigFile: filepath}
 }
 
-func NewCmdConfigReader(cmd *cobra.Command, args []string, noPush bool) ConfigReader {
+// NewCmdConfigReader returns a Reader of type CmdConfigReader
+func NewCmdConfigReader(cmd *cobra.Command, args []string, noPush bool) Reader {
 	return &CmdConfigReader{
 		Cmd:    cmd,
 		Args:   args,
@@ -54,6 +59,7 @@ func NewCmdConfigReader(cmd *cobra.Command, args []string, noPush bool) ConfigRe
 	}
 }
 
+// ReadConfig from commandline parameters
 func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 
 	var applicationType = JavaLeveransepakke
@@ -114,6 +120,7 @@ func (m *CmdConfigReader) ReadConfig() (*Config, error) {
 
 }
 
+// ReadNexusConfigFromFileSystem read nexusUrl, nexusUser, and nexusPassword from file and return NexusAccess
 func ReadNexusConfigFromFileSystem() (*NexusAccess, error) {
 	nexusAccess := NexusAccess{}
 	secretPath := "/u01/nexus/nexus.json"
@@ -133,6 +140,7 @@ func ReadNexusConfigFromFileSystem() (*NexusAccess, error) {
 	return &nexusAccess, nil
 }
 
+// ReadNexusAccessFromEnvVars read nexusUrl, nesusUser, and nexusPassword from env variables and return NexusAccess
 func ReadNexusAccessFromEnvVars() (*NexusAccess, error) {
 	nexusAccess := NexusAccess{}
 	nexusAccess.Username, _ = os.LookupEnv("NEXUS_USERNAME")
@@ -144,6 +152,7 @@ func ReadNexusAccessFromEnvVars() (*NexusAccess, error) {
 	return nil, errors.Errorf("Could not read Nexus credentials from environment")
 }
 
+// ReadConfig from file
 func (m *FileConfigReader) ReadConfig() (*Config, error) {
 	dat, err := ioutil.ReadFile(m.pathToConfigFile)
 	if err != nil {
@@ -153,11 +162,12 @@ func (m *FileConfigReader) ReadConfig() (*Config, error) {
 	return newConfig(dat, false)
 }
 
+// ReadConfig from the buildConfig
 func (m *InClusterConfigReader) ReadConfig() (*Config, error) {
 	buildConfig := os.Getenv("BUILD")
 
 	if len(buildConfig) == 0 {
-		return nil, errors.New("Expected a build config environment variable to be present.")
+		return nil, errors.New("expected a build config environment variable to be present")
 	}
 
 	return newConfig([]byte(buildConfig), true)
@@ -171,7 +181,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	}
 	customStrategy := build.Spec.Strategy.CustomStrategy
 	if customStrategy == nil {
-		return nil, errors.New("Expected strategy to be custom strategy. Thats the only one supported.")
+		return nil, errors.New("expected strategy to be custom strategy. thats the only one supported")
 	}
 
 	binaryBuild := build.Spec.Source.Type == buildv1.BuildSourceBinary
@@ -213,12 +223,12 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 
 	applicationSpec := ApplicationSpec{}
 	if artifactID, err := findEnv(env, "ARTIFACT_ID"); err == nil {
-		applicationSpec.MavenGav.ArtifactId = artifactID
+		applicationSpec.MavenGav.ArtifactID = artifactID
 	} else {
 		return nil, err
 	}
 	if groupID, err := findEnv(env, "GROUP_ID"); err == nil {
-		applicationSpec.MavenGav.GroupId = groupID
+		applicationSpec.MavenGav.GroupID = groupID
 	} else {
 		return nil, err
 	}
@@ -266,8 +276,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	} else if strings.ToLower(build.Spec.CommonSpec.Output.To.Kind) == "dockerimage" {
 		registryURL, err := url.Parse("https://" + build.Spec.CommonSpec.Output.To.Name)
 		if err != nil {
-			dockerSpec.ExternalDockerRegistry = FallbackDockerRegistry
-			logrus.Warnf("Failed to parse dockerimage-url from BC for ExternalDockerRegistry. Using %s", FallbackDockerRegistry)
+			logrus.Errorf("Failed to parse dockerimage-url from BC for ExternalDockerRegistry")
 		} else {
 			base := registryURL.Host
 			if err := checkURL(client, "https://", base, "/v2/"); err == nil {
@@ -277,14 +286,12 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 				dockerSpec.ExternalDockerRegistry = "http://" + base
 				logrus.Debugf("Using insecure registry: %s", dockerSpec.ExternalDockerRegistry)
 			} else {
-				dockerSpec.ExternalDockerRegistry = FallbackDockerRegistry
-				logrus.Warnf("Failed to access url %s from BC for ExternalDockerRegistry. Using %s", base, FallbackDockerRegistry)
+				logrus.Errorf("Failed to access url %s from BC for ExternalDockerRegistry", base)
 			}
 		}
 	} else {
 		//If all fails
-		dockerSpec.ExternalDockerRegistry = FallbackDockerRegistry
-		logrus.Warnf("Failed to find a specified url for ExternalDockerRegistry. Using %s", FallbackDockerRegistry)
+		logrus.Errorf("Failed to find a specified url for ExternalDockerRegistry")
 	}
 
 	if internalPullRegistry, err := findEnv(env, "INTERNAL_PULL_REGISTRY"); err == nil {
@@ -296,12 +303,10 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			dockerSpec.InternalPullRegistry = "http://" + base
 			logrus.Debugf("Using insecure registry: %s", dockerSpec.ExternalDockerRegistry)
 		} else {
-			dockerSpec.InternalPullRegistry = FallbackDockerRegistry
-			logrus.Warnf("Failed to access url %s for InternalPullRegistry. Using %s", internalPullRegistry, FallbackDockerRegistry)
+			logrus.Errorf("Failed to access url %s for InternalPullRegistry.", internalPullRegistry)
 		}
 	} else {
-		dockerSpec.InternalPullRegistry = FallbackDockerRegistry
-		logrus.Warnf("Failed to find a specified url for InternalPullRegistry. Using %s", FallbackDockerRegistry)
+		logrus.Error("Failed to find a specified url for InternalPullRegistry")
 	}
 
 	if pushExtraTags, err := findEnv(env, "PUSH_EXTRA_TAGS"); err == nil {
@@ -328,9 +333,9 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		buildType = BinaryBuildType(envBuildType)
 	}
 
-	var nexusIqReportUrl string
-	if envNexusIqReportUrl, err := findEnv(env, "IMAGE_LABEL_NEXUS_IQ_REPORT_URL"); err == nil {
-		nexusIqReportUrl = envNexusIqReportUrl
+	var nexusIqReportURL string
+	if envNexusIqReportURL, err := findEnv(env, "IMAGE_LABEL_NEXUS_IQ_REPORT_URL"); err == nil {
+		nexusIqReportURL = envNexusIqReportURL
 	}
 
 	builderSpec := BuilderSpec{}
@@ -352,7 +357,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		if err != nil {
 			return nil, err
 		}
-		dockerSpec.OutputRegistry, err = resolveIpIfInternalRegistry(outputRegistry, rewriteDockerRepositoryName)
+		dockerSpec.OutputRegistry, err = resolveIPIfInternalRegistry(outputRegistry, rewriteDockerRepositoryName)
 		if err != nil {
 			return nil, err
 		}
@@ -373,7 +378,7 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 			logrus.Error("Expected OUTPUT_REGISTRY environment variable when outputKind is ImageStreamTag")
 			return nil, errors.New("No output registry")
 		}
-		dockerSpec.OutputRegistry, err = resolveIpIfInternalRegistry(outputRegistry, rewriteDockerRepositoryName)
+		dockerSpec.OutputRegistry, err = resolveIPIfInternalRegistry(outputRegistry, rewriteDockerRepositoryName)
 		if err != nil {
 			return nil, err
 		}
@@ -398,17 +403,17 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 	logrus.Debugf("Pushing to %s/%s:%s", dockerSpec.OutputRegistry, dockerSpec.OutputRepository, dockerSpec.TagWith)
 
 	c := &Config{
-		ApplicationType:   applicationType,
-		ApplicationSpec:   applicationSpec,
-		DockerSpec:        dockerSpec,
-		BuilderSpec:       builderSpec,
-		BinaryBuild:       binaryBuild,
-		TLSVerify:         tlsVerify,
-		BuildTimeout:      buildTimeout,
-		Sporingstjeneste:  sporingstjeneste,
-		OwnerReferenceUid: string(build.UID),
-		BinaryBuildType:   buildType,
-		NexusIQReportUrl:  nexusIqReportUrl,
+		ApplicationType:    applicationType,
+		ApplicationSpec:    applicationSpec,
+		DockerSpec:         dockerSpec,
+		BuilderSpec:        builderSpec,
+		BinaryBuild:        binaryBuild,
+		TLSVerify:          tlsVerify,
+		BuildTimeout:       buildTimeout,
+		Sporingstjeneste:   sporingstjeneste,
+		OwnerReferenceUUID: string(build.UID),
+		BinaryBuildType:    buildType,
+		NexusIQReportURL:   nexusIqReportURL,
 	}
 	return c, nil
 }
@@ -422,8 +427,8 @@ func checkURL(client *http.Client, protocol string, base string, path string) er
 	return err
 }
 
-//resolveIpIfInternalRegistry To fix AOT-263
-func resolveIpIfInternalRegistry(registryWithPort string, rewrite bool) (string, error) {
+// resolveIPIfInternalRegistry To fix AOT-263
+func resolveIPIfInternalRegistry(registryWithPort string, rewrite bool) (string, error) {
 	if !rewrite {
 		return registryWithPort, nil
 	}

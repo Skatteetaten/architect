@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-//CompressLayerTarGz compress folder
+// CompressLayerTarGz compress folder
 func CompressLayerTarGz(src string, folder string, destination string) (string, error) {
 
 	name := folder + "-layer.tar.gz"
@@ -19,8 +19,6 @@ func CompressLayerTarGz(src string, folder string, destination string) (string, 
 		logrus.Fatalln(err)
 	}
 	defer file.Close()
-
-	//var buf bytes.Buffer
 
 	gw := gzip.NewWriter(file)
 	defer gw.Close()
@@ -81,9 +79,9 @@ func CompressLayerTarGz(src string, folder string, destination string) (string, 
 	return name, err
 }
 
-//get the filepath for the symbolic link
+// get the filepath for the symbolic link
 func handleSymlink(path string) (string, error) {
-	//read the link
+	// read the link
 	link, err := os.Readlink(path)
 	if err != nil {
 		return "", err
@@ -97,7 +95,7 @@ func handleSymlink(path string) (string, error) {
 	return link, nil
 }
 
-//ExtractGZ stream
+// ExtractGz stream
 func ExtractGz(gzipStream io.Reader) *gzip.Reader {
 	uncompressedStream, err := gzip.NewReader(gzipStream)
 	if err != nil {

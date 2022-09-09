@@ -9,6 +9,7 @@ import (
 	"github.com/skatteetaten/architect/v2/pkg/util"
 )
 
+// Configuration binary build configuration
 type Configuration struct {
 	File             string
 	ApplicationType  config.ApplicationType
@@ -23,6 +24,7 @@ type Configuration struct {
 	PushUsername     string
 }
 
+// BuildBinary run architect with binary input
 func BuildBinary(c Configuration) {
 	architectConfig := generateArchitectConfig(c)
 	binaryInput, err := util.ExtractBinaryFromFile(c.File)

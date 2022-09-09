@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
@@ -15,7 +16,6 @@ import (
 
 const repository = "aurora/flange"
 const tag = "8"
-const digest = "sha256:b6a7c668428ff9347ef5c4f8736e8b7f38696dc6acc74409627d360752017fcc"
 
 func TestGetManifestEnvSchemaV1(t *testing.T) {
 	expectedVersion := "1.7.0"
@@ -28,7 +28,7 @@ func TestGetManifestEnvSchemaV1(t *testing.T) {
 	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 
-	actualVersion := imageInfo.Enviroment["BASE_IMAGE_VERSION"]
+	actualVersion := imageInfo.Environment["BASE_IMAGE_VERSION"]
 	assert.Equal(t, expectedVersion, actualVersion)
 }
 
@@ -56,7 +56,7 @@ func TestGetManifestEnvMapSchemaV1(t *testing.T) {
 	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 
-	actualLength := len(imageInfo.Enviroment)
+	actualLength := len(imageInfo.Environment)
 	assert.Equal(t, expectedLength, actualLength)
 }
 
@@ -71,7 +71,7 @@ func TestGetManifestEnvSchemaV2(t *testing.T) {
 	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 
-	actualVersion := imageInfo.Enviroment["BASE_IMAGE_VERSION"]
+	actualVersion := imageInfo.Environment["BASE_IMAGE_VERSION"]
 	assert.Equal(t, expectedVersion, actualVersion)
 }
 
@@ -145,22 +145,6 @@ func TestLayerExists(t *testing.T) {
 	})
 }
 
-func TestMountLayer(t *testing.T) {
-
-	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "POST", r.Method)
-		assert.Equal(t, "/v2/test/architect/blobs/uploads/?mount=777&from=aurora/wingnut", r.RequestURI)
-		w.WriteHeader(201)
-	}))
-	ts.StartTLS()
-	defer ts.Close()
-
-	target := createTestRegistryClient(ts)
-
-	err := target.MountLayer(context.Background(), "aurora/wingnut", "test/architect", "777")
-	assert.NoError(t, err)
-}
-
 func TestPushManifest(t *testing.T) {
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "PUT", r.Method)
@@ -227,7 +211,7 @@ func TestGetManifestEnvMapSchemaV2(t *testing.T) {
 	imageInfo, err := target.GetImageInfo(context.Background(), repository, tag)
 	assert.NoError(t, err)
 
-	actualLength := len(imageInfo.Enviroment)
+	actualLength := len(imageInfo.Environment)
 	assert.Equal(t, expectedLength, actualLength)
 }
 
@@ -333,7 +317,9 @@ func startMockRegistryServer(filename string) (*httptest.Server, error) {
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(buf)))
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.Write(buf)
+		if _, err := w.Write(buf); err != nil {
+			logrus.Fatalf("MockServer failed: %v", err)
+		}
 	}))
 	ts.StartTLS()
 	return ts, nil
@@ -369,7 +355,9 @@ func startMockRegistryManifestServer(fileManifest string, fileImageMeta string) 
 		}
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(buf)))
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.Write(buf)
+		if _, err := w.Write(buf); err != nil {
+			logrus.Fatalf("MockServer failed: %v", err)
+		}
 	}))
 	ts.StartTLS()
 	return ts, nil

@@ -1,9 +1,6 @@
 package docker
 
 import (
-	"encoding/base64"
-	"encoding/json"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
 	"os"
@@ -11,12 +8,14 @@ import (
 	"path/filepath"
 )
 
+// RegistryCredentials registry access url and credentials
 type RegistryCredentials struct {
 	Username      string `json:"username,omitempty"`
 	Password      string `json:"password,omitempty"`
 	Serveraddress string `json:"serveraddress,omitempty"`
 }
 
+// BuildConfig image build configuration
 type BuildConfig struct {
 	AuroraVersion    *runtime.AuroraVersion
 	DockerRepository string
@@ -29,26 +28,17 @@ type BuildConfig struct {
 	Entrypoint       []string
 }
 
-func (rc RegistryCredentials) Encode() (string, error) {
-	ser, err := json.Marshal(rc)
-
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to serialize credentials to json")
-	}
-
-	return base64.StdEncoding.EncodeToString(ser), nil
-}
-
+// GetDockerConfigPath path to the docker configuration file
 func GetDockerConfigPath() (string, error) {
 	usr, err := user.Current()
 
 	if err != nil {
 		return "", err
 	}
-
 	return filepath.Join(usr.HomeDir, ".docker/config.json"), nil
 }
 
+// LocalRegistryCredentials load docker credentials from localhost
 func LocalRegistryCredentials() func(string) (*RegistryCredentials, error) {
 	return func(outputRegistry string) (*RegistryCredentials, error) {
 		dockerConfigPath, err := GetDockerConfigPath()
@@ -61,7 +51,8 @@ func LocalRegistryCredentials() func(string) (*RegistryCredentials, error) {
 	}
 }
 
-func CusterRegistryCredentials() func(string) (*RegistryCredentials, error) {
+// ClusterRegistryCredentials load docker credentials from build pod
+func ClusterRegistryCredentials() func(string) (*RegistryCredentials, error) {
 	return func(outputRegistry string) (*RegistryCredentials, error) {
 		return readRegistryCredentials(outputRegistry, "/var/run/secrets/openshift.io/push/.dockercfg")
 	}
@@ -85,13 +76,13 @@ func readRegistryCredentials(outputRegistry string, dockerConfigPath string) (*R
 		return nil, err
 	}
 
-	dockerConfig, err := ReadConfig(dockerConfigReader)
+	dockerConfig, err := readConfig(dockerConfigReader)
 
 	if err != nil {
 		return nil, err
 	}
 
-	basicCredentials, err := dockerConfig.GetCredentials(outputRegistry)
+	basicCredentials, err := dockerConfig.getCredentials(outputRegistry)
 
 	if err != nil {
 		return nil, err

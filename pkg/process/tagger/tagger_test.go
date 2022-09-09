@@ -32,11 +32,10 @@ const (
 )
 
 const (
-	SnapshotGivenVersion       = "branch_test-SNAPSHOT"
-	SnapshotGivenVersionUnique = "branch_test-SNAPSHOT-12345678"
-	SnapshotAppVersion         = "branch_test-201703929219"
-	SnapshotAuroraVersion      = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
-	SnapshotTagComplete        = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
+	SnapshotGivenVersion  = "branch_test-SNAPSHOT"
+	SnapshotAppVersion    = "branch_test-201703929219"
+	SnapshotAuroraVersion = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
+	SnapshotTagComplete   = "SNAPSHOT-201703929219-b1.11.0-oracle8-1.2.3"
 )
 
 type RegistryMock struct {

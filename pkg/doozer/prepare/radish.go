@@ -7,7 +7,7 @@ import (
 	"io"
 )
 
-type Type struct {
+type typeVersion struct {
 	Type    string `json:"Type"`
 	Version string `json:"Version"`
 }
@@ -21,19 +21,19 @@ type javaDescriptorData struct {
 }
 
 type javaDescriptor struct {
-	Type
+	typeVersion
 	Data javaDescriptorData
 }
 
 type generalDescriptor struct {
-	Type
+	typeVersion
 }
 
 func newRadishDescriptor(meta *config.DeliverableMetadata, basedir string) util.WriterFunc {
 	return func(writer io.Writer) error {
 		if meta.Java != nil {
 			desc := javaDescriptor{
-				Type: Type{
+				typeVersion: typeVersion{
 					Type:    "Java",
 					Version: "1",
 				},
@@ -49,7 +49,7 @@ func newRadishDescriptor(meta *config.DeliverableMetadata, basedir string) util.
 			return err
 		}
 		desc := generalDescriptor{
-			Type: Type{
+			typeVersion: typeVersion{
 				Type:    "General",
 				Version: "1",
 			},

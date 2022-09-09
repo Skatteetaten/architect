@@ -8,7 +8,7 @@ import (
 )
 
 // Prepper is a fuction used to prepare a docker image. It is called within the context of
-// The
+// the prepare stage
 type Prepper func(
 	cfg *config.Config,
 	auroraVersion *runtime.AuroraVersion,

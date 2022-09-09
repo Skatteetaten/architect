@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-//Web :
+// Web :
 type Web struct {
 	ConfigurableProxy bool           `json:"configurableProxy"`
 	Nodejs            Nodejs         `json:"nodejs"`
@@ -16,13 +16,13 @@ type Web struct {
 	Locations         nginxLocations `json:"locations"`
 }
 
-//Nodejs :
+// Nodejs :
 type Nodejs struct {
 	Main      string            `json:"main"`
 	Overrides map[string]string `json:"overrides"`
 }
 
-//WebApp :
+// WebApp :
 type WebApp struct {
 	Content         string            `json:"content"`
 	Path            string            `json:"path"`
@@ -30,18 +30,12 @@ type WebApp struct {
 	Headers         map[string]string `json:"headers"`
 }
 
-//OpenshiftConfig :
+// OpenshiftConfig :
 type OpenshiftConfig struct {
 	Web Web `json:"web"`
 }
 
-func UnmarshallOpenshiftConfig(buffer io.Reader) (OpenshiftConfig, error) {
-	var data OpenshiftConfig
-	err := json.NewDecoder(buffer).Decode(&data)
-	return data, err
-}
-
-func newRadishNginxConfig(docker *ImageMetadata, nginx *NginxfileData) util.WriterFunc {
+func newRadishNginxConfig(docker *ImageMetadata, nginx *nginxfileData) util.WriterFunc {
 	return func(writer io.Writer) error {
 		data := OpenshiftConfig{
 			Web: Web{
