@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"github.com/pkg/errors"
 	"io"
-	"io/ioutil"
 )
 
-// DeliverableMetadata build and runtime configuration
+// DeliverableMetadata build and runtime configuration.
+// The information is written to the radish descriptor file [radish.json]
+// in the resulting image.
 type DeliverableMetadata struct {
 	Docker    *MetadataDocker    `json:"docker"`
 	Java      *MetadataJava      `json:"java"`
@@ -28,6 +29,7 @@ type MetadataJava struct {
 	JvmOpts         string `json:"jvmOpts"`
 	ApplicationArgs string `json:"applicationArgs"`
 	ReadinessURL    string `json:"readinessUrl"`
+	StartScript     string `json:"startScript"`
 }
 
 // MetadataOpenShift readiness parameters
@@ -39,7 +41,7 @@ type MetadataOpenShift struct {
 // NewDeliverableMetadata read openshift.json and transform to DeliverableMetadata
 func NewDeliverableMetadata(reader io.Reader) (*DeliverableMetadata, error) {
 	var meta DeliverableMetadata
-	content, err := ioutil.ReadAll(reader)
+	content, err := io.ReadAll(reader)
 
 	if err != nil {
 		return nil, err

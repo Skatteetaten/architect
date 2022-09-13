@@ -18,6 +18,7 @@ type javaDescriptorData struct {
 	MainClass             string   `json:"MainClass"`
 	ApplicationArgs       string   `json:"ApplicationArgs"`
 	JavaOptions           string   `json:"JavaOptions"`
+	StartScript           string   `json:"StartScript"`
 }
 
 type javaDescriptor struct {
@@ -38,6 +39,7 @@ func newRadishDescriptor(meta *config.DeliverableMetadata, basedir string) util.
 				MainClass:             meta.Java.MainClass,
 				ApplicationArgs:       meta.Java.ApplicationArgs,
 				JavaOptions:           meta.Java.JvmOpts,
+				StartScript:           meta.Java.StartScript,
 			},
 		}
 
