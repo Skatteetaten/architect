@@ -6,7 +6,9 @@ import (
 	"io"
 )
 
-// DeliverableMetadata build and runtime configuration
+// DeliverableMetadata build and runtime configuration.
+// The information is written to the radish descriptor file [radish.json]
+// in the resulting image.
 type DeliverableMetadata struct {
 	Docker    *MetadataDocker    `json:"docker"`
 	Java      *MetadataJava      `json:"java"`
