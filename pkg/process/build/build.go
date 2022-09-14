@@ -70,7 +70,10 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 		return errors.Wrapf(err, "Image push failed")
 	}
 
-	err = sendImageInfoToSporingsLogger(ctx, cfg, dockerBuildConfig.DockerRepository, pushRegistry, sporingsLoggerClient, auroraVersion, shortTags)
+	err = sendImageInfoToSporingsLogger(ctx, cfg,
+		dockerBuildConfig.DockerRepository, application.MavenGav.Version, auroraVersion.Snapshot,
+		pushRegistry, sporingsLoggerClient, shortTags,
+		baseImage)
 	if err != nil {
 		logrus.Warnf("Unable to send trace to Sporinglogger  %s:%s  error: %v",
 			dockerBuildConfig.DockerRepository, shortTags[0], err)
@@ -130,8 +133,9 @@ func pushImage(ctx context.Context, cfg *config.Config, buildResult *LayerProvid
 	return nil
 }
 
-func sendImageInfoToSporingsLogger(ctx context.Context, cfg *config.Config, serviceName string,
-	dockerRegistry docker.Registry, sporingsLoggerClient trace.Trace, auroraVersion *runtime.AuroraVersion, shortTags []string) error {
+func sendImageInfoToSporingsLogger(ctx context.Context, cfg *config.Config, serviceName string, version string, snapshot bool,
+	dockerRegistry docker.Registry, sporingsLoggerClient trace.Trace,
+	shortTags []string, baseImage runtime.BaseImage) error {
 	if cfg.NoPush {
 		logrus.Info("NoPush configured, not sending image info to Sporingslogger")
 		return nil
@@ -143,13 +147,16 @@ func sendImageInfoToSporingsLogger(ctx context.Context, cfg *config.Config, serv
 	}
 	logrus.Infof("Sending image info to sporingslogger %s ", imageInfo.Digest)
 
-	return sporingsLoggerClient.SendImageMetadata(trace.DeployableImage{
-		Type:          "deployableImage",
-		Name:          serviceName,
-		AppVersion:    string(auroraVersion.GetAppVersion()),
-		AuroraVersion: auroraVersion.GetCompleteVersion(),
-		Digest:        imageInfo.Digest,
-		Snapshot:      auroraVersion.Snapshot,
+	return sporingsLoggerClient.AddImageMetadata(trace.DeployableImage{
+		Type:             "deployableImage",
+		Name:             serviceName,
+		AppVersion:       version,
+		Digest:           imageInfo.Digest,
+		Snapshot:         snapshot,
+		BaseImageName:    baseImage.Repository,
+		BaseImageVersion: baseImage.ImageInfo.CompleteBaseImageVersion,
+		BaseImageDigest:  baseImage.ImageInfo.Digest,
+		BuildVersion:     cfg.BuilderSpec.Version,
 	})
 }
 
