@@ -145,7 +145,7 @@ func TestBuild(t *testing.T) {
 		registryClient.EXPECT().GetImageInfo(gomock.Any(), "BaseImageName", gomock.Any()).Return(&runtime.ImageInfo{
 			CompleteBaseImageVersion: "CompleteBaseImageVersion",
 			Labels:                   map[string]string{},
-			Enviroment:               map[string]string{},
+			Environment:              map[string]string{},
 			Digest:                   "BaseImageDigest",
 		}, nil).AnyTimes()
 

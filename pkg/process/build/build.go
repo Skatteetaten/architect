@@ -70,6 +70,7 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 		return errors.Wrapf(err, "Image push failed")
 	}
 
+	trace.ScanImage(dockerBuildConfig.BuildFolder)
 	err = sendImageInfoToSporingsLogger(ctx, cfg,
 		dockerBuildConfig.DockerRepository, application.MavenGav.Version, auroraVersion.Snapshot,
 		pushRegistry, sporingsLoggerClient, shortTags,
@@ -147,7 +148,7 @@ func sendImageInfoToSporingsLogger(ctx context.Context, cfg *config.Config, serv
 	}
 	logrus.Infof("Sending image info to sporingslogger %s ", imageInfo.Digest)
 
-	return sporingsLoggerClient.AddImageMetadata(trace.DeployableImage{
+	return sporingsLoggerClient.SendImageMetadata(trace.DeployableImage{
 		Type:             "deployableImage",
 		Name:             serviceName,
 		AppVersion:       version,
