@@ -13,24 +13,27 @@ import (
 	"time"
 )
 
+// Trace interface
 type Trace interface {
-	AddImageMetadata(data interface{}) error
-	AddBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig)
+	SendImageMetadata(data interface{}) error
+	SendBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig)
 }
 
-func NewTraceClient(sporingURL string) Trace {
-	return &TraceClient{
+// NewClient create new Trace client
+func NewClient(sporingURL string) Trace {
+	return &traceClient{
 		url:     sporingURL,
 		enabled: sporingURL != "",
 	}
 }
 
-type TraceClient struct {
+type traceClient struct {
 	url     string
 	enabled bool
 }
 
-func (traceClient *TraceClient) AddImageMetadata(data interface{}) error {
+// SendImageMetadata send image metadata to sporingslogger
+func (traceClient *traceClient) SendImageMetadata(data interface{}) error {
 	ctx := context.Background()
 	timeoutIn := time.Now().Add(5 * time.Second)
 	ctx, cancelFunc := context.WithDeadline(ctx, timeoutIn)
@@ -45,7 +48,7 @@ func (traceClient *TraceClient) AddImageMetadata(data interface{}) error {
 	return nil
 }
 
-func (traceClient *TraceClient) send(ctx context.Context, jsonStr string) error {
+func (traceClient *traceClient) send(ctx context.Context, jsonStr string) error {
 	uri := traceClient.url + "/api/v1/image"
 
 	req, err := http.NewRequestWithContext(ctx, "POST", uri, bytes.NewBuffer([]byte(jsonStr)))
@@ -70,7 +73,8 @@ func (traceClient *TraceClient) send(ctx context.Context, jsonStr string) error 
 	return nil
 }
 
-func (traceClient *TraceClient) AddBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig) {
+// SendBaseImageMetadata send baseimage metadata to sporingslogger
+func (traceClient *traceClient) SendBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig) {
 	payload := BaseImage{
 		Type:        "baseImage",
 		Name:        application.BaseImageSpec.BaseImage,
@@ -79,6 +83,6 @@ func (traceClient *TraceClient) AddBaseImageMetadata(application config.Applicat
 		ImageConfig: containerConfig,
 	}
 	logrus.Debugf("Pushing trace data %v", payload)
-	traceClient.AddImageMetadata(payload)
+	traceClient.SendImageMetadata(payload)
 
 }

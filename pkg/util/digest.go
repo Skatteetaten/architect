@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-//CalculateDigestFromArchive calculates a sha256 hash
+// CalculateDigestFromArchive calculates a sha256 hash
 func CalculateDigestFromArchive(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -29,7 +29,7 @@ func CalculateDigestFromArchive(path string) (string, error) {
 	return fmt.Sprintf("sha256:%s", digest), nil
 }
 
-//CalculateDigestFromFile of tar content
+// CalculateDigestFromFile of tar content
 func CalculateDigestFromFile(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -46,24 +46,10 @@ func CalculateDigestFromFile(path string) (string, error) {
 	return fmt.Sprintf("sha256:%s", digest), nil
 }
 
+// CalculateDigest calculates the 256 sha of the provided byte slice
 func CalculateDigest(data []byte) string {
 	hasher := sha256.New()
 	hasher.Write(data)
 	digest := hex.EncodeToString(hasher.Sum(nil))
 	return fmt.Sprintf("sha256:%s", digest)
-}
-
-//CalculateSize of file
-func CalculateSize(path string) (int, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return 0, errors.Wrapf(err, "Failed to open file %s", path)
-	}
-
-	info, err := file.Stat()
-	if err != nil {
-		return 0, errors.Wrapf(err, "Unable extract file stats")
-	}
-
-	return int(info.Size()), nil
 }

@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-//FindOutoutTagOrHash get tag or hash from docker name
+// FindOutputTagOrHash get tag or hash from docker name
 func FindOutputTagOrHash(dockerName string) (string, error) {
 	//In case when working with insecure registries
 	dockerName = strings.Replace(dockerName, "http://", "", -1)

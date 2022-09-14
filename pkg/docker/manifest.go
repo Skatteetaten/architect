@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// ManifestV2 is the go representation of a docker manifest
 type ManifestV2 struct {
 	SchemaVersion int    `json:"schemaVersion"`
 	MediaType     string `json:"mediaType"`
@@ -17,12 +18,14 @@ type ManifestV2 struct {
 	Layers []Layer `json:"layers"`
 }
 
+// Layer represents a container layer
 type Layer struct {
 	MediaType string `json:"mediaType"`
 	Size      int    `json:"size"`
 	Digest    string `json:"digest"`
 }
 
+// Save Write the manifest to file
 func (m *ManifestV2) Save(dstFolder string, name string) error {
 	manifestFile, err := os.Create(dstFolder + "/" + name)
 	if err != nil {
@@ -43,6 +46,7 @@ func (m *ManifestV2) Save(dstFolder string, name string) error {
 	return nil
 }
 
+// CleanCopy make a clean copy of the manifest
 func (m *ManifestV2) CleanCopy() *ManifestV2 {
 	layers := make([]Layer, len(m.Layers))
 	copy(layers, m.Layers)

@@ -32,7 +32,7 @@ func TestArchitectPrepareLayers(t *testing.T) {
 			ImageInfo: &runtime.ImageInfo{
 				CompleteBaseImageVersion: "",
 				Labels:                   map[string]string{},
-				Enviroment:               nil,
+				Environment:              nil,
 				Digest:                   "",
 			},
 		})
@@ -70,7 +70,7 @@ func TestPrepareLayers(t *testing.T) {
 			ImageInfo: &runtime.ImageInfo{
 				CompleteBaseImageVersion: "",
 				Labels:                   map[string]string{},
-				Enviroment:               nil,
+				Environment:              nil,
 				Digest:                   "",
 			},
 		})

@@ -10,7 +10,6 @@ import (
 	"github.com/skatteetaten/architect/v2/pkg/nexus"
 	process "github.com/skatteetaten/architect/v2/pkg/process/build"
 	"github.com/skatteetaten/architect/v2/pkg/util"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -18,11 +17,7 @@ import (
 	"strings"
 )
 
-type FileGenerator interface {
-	Write(writer io.Writer) error
-}
-
-type BuildConfiguration struct {
+type buildConfiguration struct {
 	BuildContext string
 	Env          map[string]string
 	Labels       map[string]string
@@ -31,14 +26,14 @@ type BuildConfiguration struct {
 }
 
 const (
-	DeliveryMetadataPath = "metadata/openshift.json"
+	deliveryMetadataPath = "metadata/openshift.json"
 )
 
+// Prepper prepare build context
 func Prepper() process.Prepper {
 	return func(cfg *config.Config, auroraVersion *runtime.AuroraVersion, deliverable nexus.Deliverable,
 		baseImage runtime.BaseImage) (*docker.BuildConfig, error) {
 
-		logrus.Debug("Pull output image")
 		buildContext, err := prepareLayers(cfg.DockerSpec, auroraVersion, deliverable, baseImage)
 
 		if err != nil {
@@ -59,7 +54,7 @@ func Prepper() process.Prepper {
 	}
 }
 
-func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (*BuildConfiguration, error) {
+func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraVersion, deliverable nexus.Deliverable, baseImage runtime.BaseImage) (*buildConfiguration, error) {
 	//Create build context
 	buildContext, err := ioutil.TempDir("", "deliverable")
 	filewriter := util.NewFileWriter(buildContext)
@@ -85,7 +80,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 	}
 
 	// Load metadata
-	metadatafolder := filepath.Join(applicationFolder, DeliveryMetadataPath)
+	metadatafolder := filepath.Join(applicationFolder, deliveryMetadataPath)
 	logrus.Debugf("metadatafolder: %v", metadatafolder)
 	deliverableMetadata, err := loadDeliverableMetadata(metadatafolder)
 	if err != nil {
@@ -154,7 +149,7 @@ func prepareLayers(dockerSpec config.DockerSpec, auroraVersions *runtime.AuroraV
 		return nil, errors.Wrap(err, "Unable to create symlink")
 	}
 
-	return &BuildConfiguration{
+	return &buildConfiguration{
 		BuildContext: buildContext,
 		Env:          imageMetadata.Env,
 		Labels:       imageMetadata.Labels,

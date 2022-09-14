@@ -13,12 +13,14 @@ import (
 	"strings"
 )
 
+// Builder interface
 type Builder interface {
 	Build(buildConfig docker.BuildConfig, baseimageLayers *LayerProvider) (*LayerProvider, error)
 	Pull(ctx context.Context, buildConfig docker.BuildConfig) (*LayerProvider, error)
 	Push(ctx context.Context, buildResult *LayerProvider, tag []string) error
 }
 
+// Build a container image
 func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docker.Registry, cfg *config.Config,
 	downloader nexus.Downloader, prepper Prepper, layerBuilder Builder, sporingsLoggerClient trace.Trace) error {
 	application := cfg.ApplicationSpec
@@ -58,7 +60,7 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 		return errors.Wrapf(err, "Unable to extract tags")
 	}
 
-	buildResult, err := buildDockerImage(*dockerBuildConfig, ctx, cfg, layerBuilder)
+	buildResult, err := buildDockerImage(ctx, *dockerBuildConfig, cfg, layerBuilder)
 	if err != nil {
 		return errors.Wrap(err, "There was an error with the build operation.")
 	}
@@ -104,10 +106,10 @@ func getBaseImage(ctx context.Context, pullRegistry docker.Registry, err error, 
 	return baseImage, nil
 }
 
-func buildDockerImage(buildConfig docker.BuildConfig, ctx context.Context, cfg *config.Config, layerBuilder Builder) (*LayerProvider, error) {
+func buildDockerImage(ctx context.Context, buildConfig docker.BuildConfig, cfg *config.Config, layerBuilder Builder) (*LayerProvider, error) {
 
-	if cfg.NexusIQReportUrl != "" {
-		buildConfig.Labels["no.skatteetaten.aurora.nexus-iq-report-url"] = cfg.NexusIQReportUrl
+	if cfg.NexusIQReportURL != "" {
+		buildConfig.Labels["no.skatteetaten.aurora.nexus-iq-report-url"] = cfg.NexusIQReportURL
 	}
 
 	baseImageLayers, err := layerBuilder.Pull(ctx, buildConfig)
@@ -174,8 +176,8 @@ func checkAllTagsForOverwrite(ctx context.Context, buildConfig docker.BuildConfi
 }
 
 // CheckTagsForOverwrite /
-//Check that we do not overwrite existing TAGS
-//SNAPSHOT tags can be overwritten
+// Check that we do not overwrite existing TAGS
+// SNAPSHOT tags can be overwritten
 func CheckTagsForOverwrite(isSnapshot bool, tags []string, tagWith string, semanticVersion string, completeVersion string) error {
 	if isSnapshot {
 		return nil
@@ -210,7 +212,7 @@ func extractTags(buildConfig docker.BuildConfig, pushRegistry docker.Registry, c
 			Repository:     buildConfig.DockerRepository,
 		}
 	} else {
-		tagResolver = &tagger.SingleTagTagResolver{
+		tagResolver = &tagger.SingleTagResolver{
 			Tag:        cfg.DockerSpec.TagWith,
 			Registry:   cfg.DockerSpec.OutputRegistry,
 			Repository: buildConfig.DockerRepository,

@@ -93,7 +93,7 @@ func TestBuild(t *testing.T) {
 				"GroupId",
 				"Version111",
 				"Classifier",
-				"Type",
+				"typeVersion",
 			},
 			config.DockerBaseImageSpec{
 				"BaseImageName",
@@ -131,9 +131,9 @@ func TestBuild(t *testing.T) {
 			10,
 			false,
 			"Sporingstjeneste",
-			"OwnerReferenceUid",
+			"OwnerReferenceUUID",
 			"BinaryBuildType",
-			"NexusIQReportUrl",
+			"NexusIQReportURL",
 		}
 
 		mockCtrl := gomock.NewController(t)
@@ -152,7 +152,7 @@ func TestBuild(t *testing.T) {
 		registryClient.EXPECT().GetImageInfo(gomock.Any(), "ServiceNameTest", gomock.Any()).Return(&runtime.ImageInfo{
 			CompleteBaseImageVersion: "CompleteBaseImageVersion",
 			Labels:                   map[string]string{},
-			Enviroment:               map[string]string{},
+			Environment:              map[string]string{},
 			Digest:                   "ImageDigest",
 		}, nil).AnyTimes()
 

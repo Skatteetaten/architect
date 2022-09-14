@@ -8,13 +8,13 @@ import (
 func TestNewFromJson(t *testing.T) {
 
 	const maintainer string = "Aurora OpenShift Utvikling <utvpaas@skatteetaten.no>"
-	const readinessUrl = "/health"
+	const readinessURL = "/health"
 	const ioK8sDescription = "Demo application with spring boot on Openshift."
 	const srcPath = "app/"
 	const fileName = "application.war"
 	const destPath = "/usr/local/tomcat/webapps/"
 
-	const openshiftJson string = `{
+	const openshiftJSON string = `{
   "docker": {
     "maintainer": "Aurora OpenShift Utvikling <utvpaas@skatteetaten.no>",
     "labels": {
@@ -39,14 +39,14 @@ func TestNewFromJson(t *testing.T) {
   }
 }`
 
-	meta, err := NewDeliverableMetadata(strings.NewReader(openshiftJson))
+	meta, err := NewDeliverableMetadata(strings.NewReader(openshiftJSON))
 
 	if err != nil {
 		t.Error("Failed to initialize metadata from JSON")
 	}
 
 	assertEquals(t, maintainer, meta.Docker.Maintainer)
-	assertEquals(t, readinessUrl, meta.Openshift.ReadinessURL)
+	assertEquals(t, readinessURL, meta.Openshift.ReadinessURL)
 	assertEquals(t, ioK8sDescription, meta.Docker.Labels["io.k8s.description"])
 	assertEquals(t, srcPath, meta.Doozer.SrcPath)
 	assertEquals(t, fileName, meta.Doozer.FileName)
@@ -67,6 +67,6 @@ func TestErrorOnInvalidJson(t *testing.T) {
 
 func assertEquals(t *testing.T, expected string, actual string) {
 	if !(expected == actual) {
-		t.Error("excpected", expected, ", got", actual)
+		t.Error("expected", expected, ", got", actual)
 	}
 }

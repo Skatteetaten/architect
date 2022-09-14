@@ -4,25 +4,24 @@ import (
 	"archive/zip"
 	"github.com/pkg/errors"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
 const (
-	// The base directory where all code is copied in the Docker image
+	// DockerBasedir The base directory where all code is copied in the Docker image
 	DockerBasedir = "/u01"
-	// Where in the build folder the application is put
+	// DockerfileApplicationFolder Where in the build folder the application is put
 	DockerfileApplicationFolder = "app"
-	ApplicationFolder           = "application"
-	LayerFolder                 = "layer"
-	// The directory where the application is prepared
+	// ApplicationFolder name
+	ApplicationFolder = "application"
+	// LayerFolder name
+	LayerFolder = "layer"
+	// ApplicationBuildFolder The directory where the application is prepared
 	ApplicationBuildFolder = DockerfileApplicationFolder + "/" + ApplicationFolder
-	ApplicationLayerFolder = DockerBasedir + "/" + ApplicationFolder
-	DeliveryMetadataPath   = "metadata/openshift.json"
 )
 
-//ExtractAndRenameDeliverable extract and rename
+// ExtractAndRenameDeliverable extract and rename
 func ExtractAndRenameDeliverable(dockerBuildFolder string, deliverablePath string) error {
 
 	applicationRoot := filepath.Join(dockerBuildFolder, DockerfileApplicationFolder)
@@ -42,7 +41,7 @@ func ExtractAndRenameDeliverable(dockerBuildFolder string, deliverablePath strin
 
 }
 
-//ExtractDeliverable extract archive to dest
+// ExtractDeliverable extract archive to dest
 func ExtractDeliverable(archivePath string, extractedDirPath string) error {
 
 	zipReader, err := zip.OpenReader(archivePath)
@@ -128,10 +127,12 @@ func fillPathGap(path string) error {
 	return nil
 }
 
-// When we unzip the delivery, it will have an additional level.
+// RenameSingleFolderInDirectory When we unzip the delivery, it will have an additional level.
 // eg. app/myapplication-LEVERANSEPAKKE-SNAPSHOT -> app/application
+// This function is used to rename the folder to align it better
+// with the container image file system.
 func RenameSingleFolderInDirectory(base string, newName string) error {
-	list, err := ioutil.ReadDir(base)
+	list, err := os.ReadDir(base)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to open application directory %s", base)

@@ -9,7 +9,7 @@ import (
 	"syscall"
 )
 
-//CopyDirectory copy content from srcDir to dest
+// CopyDirectory copy content from srcDir to dest
 func CopyDirectory(scrDir, dest string) error {
 	entries, err := ioutil.ReadDir(scrDir)
 	if err != nil {
@@ -61,7 +61,7 @@ func CopyDirectory(scrDir, dest string) error {
 	return nil
 }
 
-//Copy srcFile to dstFile
+// Copy srcFile to dstFile
 func Copy(srcFile, dstFile string) error {
 	out, err := os.Create(dstFile)
 	if err != nil {
@@ -84,7 +84,7 @@ func Copy(srcFile, dstFile string) error {
 	return nil
 }
 
-//Exists check if file exists
+// Exists check if file exists
 func Exists(filePath string) bool {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return false

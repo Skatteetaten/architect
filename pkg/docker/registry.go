@@ -11,13 +11,14 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 )
 
+// Registry interface provides methods for interacting with a container registry
 type Registry interface {
 	GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error)
 	GetTags(ctx context.Context, repository string) (*TagsAPIResponse, error)
@@ -25,12 +26,12 @@ type Registry interface {
 	GetManifest(ctx context.Context, repository string, digest string) (*ManifestV2, error)
 	GetContainerConfig(ctx context.Context, repository string, digest string) (*ContainerConfig, error)
 	LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error)
-	MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error
 	PushLayer(ctx context.Context, layer io.Reader, dstRepository string, layerDigest string) error
 	PushManifest(ctx context.Context, manifest []byte, repository string, tag string) error
 	PullLayer(ctx context.Context, repository string, layerDigest string) (string, error)
 }
 
+// Manifest schema representation
 type Manifest struct {
 	SchemaVersion int    `json:"schemaVersion"`
 	MediaType     string `json:"mediaType"`
@@ -44,22 +45,27 @@ type Manifest struct {
 	}
 }
 
+// RegistryConnectionInfo registry connection info
 type RegistryConnectionInfo struct {
 	Port        string
 	Host        string
 	Insecure    bool
 	Credentials *RegistryCredentials
 }
+
+// RegistryClient configuration
 type RegistryClient struct {
 	connectionInfo RegistryConnectionInfo
 	client         *http.Client
 }
 
+// BasicAuthWrapper RoundTrip
 type BasicAuthWrapper struct {
 	connectionInfo RegistryConnectionInfo
 	next           http.RoundTripper
 }
 
+// RoundTrip append registry credentials
 func (rt *BasicAuthWrapper) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	if rt.connectionInfo.Credentials != nil {
 		req.SetBasicAuth(rt.connectionInfo.Credentials.Username, rt.connectionInfo.Credentials.Password)
@@ -67,7 +73,7 @@ func (rt *BasicAuthWrapper) RoundTrip(req *http.Request) (resp *http.Response, e
 	return rt.next.RoundTrip(req)
 }
 
-//NewRegistryClient create new registry client
+// NewRegistryClient create new registry client
 func NewRegistryClient(connectionInfo RegistryConnectionInfo) Registry {
 
 	transport := &http.Transport{
@@ -83,6 +89,7 @@ func NewRegistryClient(connectionInfo RegistryConnectionInfo) Registry {
 	return &RegistryClient{connectionInfo: connectionInfo, client: client}
 }
 
+// TagsAPIResponse list tags registry response
 type TagsAPIResponse struct {
 	Name string   `json:"name"`
 	Tags []string `json:"tags"`
@@ -93,6 +100,7 @@ const (
 	httpHeaderContainerImageV1 = "application/vnd.docker.container.image.v1+json"
 )
 
+// URL create registry url
 func (r *RegistryConnectionInfo) URL() *url.URL {
 	hostAndPort := fmt.Sprintf("%s:%s", r.Host, r.Port)
 	logrus.Debugf("Host: %s", r.Host)
@@ -103,6 +111,7 @@ func (r *RegistryConnectionInfo) URL() *url.URL {
 	return &u
 }
 
+// DisableTLSValidation disable tls check
 func (r *RegistryConnectionInfo) DisableTLSValidation() bool {
 	return r.Insecure
 }
@@ -110,15 +119,16 @@ func (r *RegistryConnectionInfo) DisableTLSValidation() bool {
 func (registry *RegistryClient) getRegistryManifest(ctx context.Context, repository string, tag string) ([]byte, error) {
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderManifestSchemaV2
-	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.connectionInfo.URL(), repository, tag)
-	logrus.Infof("Retrieving registry manifest from URL %s", url)
-	body, err := getHTTPRequest(registry.client, ctx, mHeader, url)
+	manifestURL := fmt.Sprintf("%s/v2/%s/manifests/%s", registry.connectionInfo.URL(), repository, tag)
+	logrus.Infof("Retrieving registry manifest from URL %s", manifestURL)
+	body, err := getHTTPRequest(ctx, registry.client, mHeader, manifestURL)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed in getRegistryManifest for request url %s with header %s", url, mHeader)
+		return nil, errors.Wrapf(err, "Failed in getRegistryManifest for request url %s with header %s", manifestURL, mHeader)
 	}
 	return body, nil
 }
 
+// GetManifest returns the image manifest
 func (registry *RegistryClient) GetManifest(ctx context.Context, repository string, tag string) (*ManifestV2, error) {
 
 	data, err := registry.getRegistryManifest(ctx, repository, tag)
@@ -135,6 +145,7 @@ func (registry *RegistryClient) GetManifest(ctx context.Context, repository stri
 	return &manifest, nil
 }
 
+// GetContainerConfig returns the image's container configuration
 func (registry *RegistryClient) GetContainerConfig(ctx context.Context, repository string, digest string) (*ContainerConfig, error) {
 	data, err := registry.getRegistryBlob(ctx, repository, digest)
 	if err != nil {
@@ -153,16 +164,16 @@ func (registry *RegistryClient) GetContainerConfig(ctx context.Context, reposito
 func (registry *RegistryClient) getRegistryBlob(ctx context.Context, repository string, digestID string) ([]byte, error) {
 	mHeader := make(map[string]string)
 	mHeader["Accept"] = httpHeaderContainerImageV1
-	url := fmt.Sprintf("%s/v2/%s/blobs/%s", registry.connectionInfo.URL(), repository, digestID)
-	logrus.Debugf("Retrieving registry blob from URL %s", url)
-	body, err := getHTTPRequest(registry.client, ctx, mHeader, url)
+	blobURL := fmt.Sprintf("%s/v2/%s/blobs/%s", registry.connectionInfo.URL(), repository, digestID)
+	logrus.Debugf("Retrieving registry blob from URL %s", blobURL)
+	body, err := getHTTPRequest(ctx, registry.client, mHeader, blobURL)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed in getRegistryBlob for request url %s and header %s", url, mHeader)
+		return nil, errors.Wrapf(err, "Failed in getRegistryBlob for request url %s and header %s", blobURL, mHeader)
 	}
 	return body, nil
 }
 
-//GetImageConfig get image config
+// GetImageConfig get image config
 func (registry *RegistryClient) GetImageConfig(ctx context.Context, repository string, digest string) (map[string]interface{}, error) {
 	var result map[string]interface{}
 
@@ -190,7 +201,7 @@ func (registry *RegistryClient) GetImageConfig(ctx context.Context, repository s
 	return result, nil
 }
 
-//GetImageInfo get information about an image
+// GetImageInfo get information about an image
 func (registry *RegistryClient) GetImageInfo(ctx context.Context, repository string, tag string) (*runtime.ImageInfo, error) {
 	body, err := registry.getRegistryManifest(ctx, repository, tag)
 
@@ -248,13 +259,13 @@ func (registry *RegistryClient) GetImageInfo(ctx context.Context, repository str
 
 	return &runtime.ImageInfo{
 		Labels:                   v1Image.Config.Labels,
-		Enviroment:               envMap,
+		Environment:              envMap,
 		CompleteBaseImageVersion: baseImageVersion,
 		Digest:                   manifestDigest,
 	}, nil
 }
 
-//LayerExists checks if layer exists in registry
+// LayerExists checks if layer exists in registry
 func (registry *RegistryClient) LayerExists(ctx context.Context, repository string, layerDigest string) (bool, error) {
 	//HEAD /v2/<repository>/blobs/<digest>
 	path := fmt.Sprintf("/v2/%s/blobs/%s", repository, layerDigest)
@@ -278,6 +289,7 @@ func (registry *RegistryClient) LayerExists(ctx context.Context, repository stri
 	return false, nil
 }
 
+// PullLayer pull image blob from registry
 func (registry *RegistryClient) PullLayer(ctx context.Context, repository string, layerDigest string) (string, error) {
 
 	path := fmt.Sprintf("/v2/%s/blobs/%s", repository, layerDigest)
@@ -296,7 +308,7 @@ func (registry *RegistryClient) PullLayer(ctx context.Context, repository string
 		return "", fmt.Errorf("unexpected http code %d", resp.StatusCode)
 	}
 
-	file, err := ioutil.TempFile("/tmp", "layer.*.tar.gz")
+	file, err := os.CreateTemp("/tmp", "layer.*.tar.gz")
 	if err != nil {
 		return "", errors.Wrap(err, "Could not create temporary file")
 	}
@@ -311,34 +323,7 @@ func (registry *RegistryClient) PullLayer(ctx context.Context, repository string
 
 }
 
-//MountLayer performs cross mounting
-func (registry *RegistryClient) MountLayer(ctx context.Context, srcRepository string, dstRepository string, layerDigest string) error {
-	//"https://<address>/v2/<srcRepository>/blobs/uploads/?mount=<digest>&from=<dstRepository>"
-	path := fmt.Sprintf(fmt.Sprintf("/v2/%s/blobs/uploads/?mount=%s&from=%s", dstRepository, layerDigest, srcRepository))
-
-	req, err := registry.newRequest(ctx, "POST", path, nil)
-	if err != nil {
-		return errors.Wrap(err, "Could not create the mount request")
-	}
-
-	resp, err := registry.client.Do(req)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to mount: src=%s dst=%s layerDigest=%s", srcRepository, dstRepository, layerDigest)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 201 && resp.StatusCode != 202 {
-		respData, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return errors.Wrap(err, "MountLayer: Unable to read response body")
-		}
-
-		return fmt.Errorf("MountLayer: Request failed with status code = %d. From server: %s", resp.StatusCode, string(respData))
-	}
-	return nil
-}
-
-//PushLayer push layer
+// PushLayer push image blob
 func (registry *RegistryClient) PushLayer(ctx context.Context, layer io.Reader, repository string, layerDigest string) error {
 	//v2/repository/blobs/uploads/
 	path := fmt.Sprintf("/v2/%s/blobs/uploads/", repository)
@@ -375,7 +360,7 @@ func (registry *RegistryClient) PushLayer(ctx context.Context, layer io.Reader, 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 202 {
-		respData, err := ioutil.ReadAll(resp.Body)
+		respData, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return errors.Wrap(err, "PushLayers patch: Unable to parse response body")
 		}
@@ -399,7 +384,7 @@ func (registry *RegistryClient) PushLayer(ctx context.Context, layer io.Reader, 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 201 {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return errors.Wrap(err, "Unable to read body")
 		}
@@ -411,7 +396,7 @@ func (registry *RegistryClient) PushLayer(ctx context.Context, layer io.Reader, 
 	return nil
 }
 
-//PushManifest push manifest
+// PushManifest push manifest
 func (registry *RegistryClient) PushManifest(ctx context.Context, manifest []byte, repository string, tag string) error {
 	//PUT /v2/<repository>/manifests/<tag>
 	path := fmt.Sprintf("/v2/%s/manifests/%s", repository, tag)
@@ -430,7 +415,7 @@ func (registry *RegistryClient) PushManifest(ctx context.Context, manifest []byt
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 201 {
-		respData, err := ioutil.ReadAll(resp.Body)
+		respData, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return errors.Wrap(err, "PushManifest: ")
 		}
@@ -440,6 +425,7 @@ func (registry *RegistryClient) PushManifest(ctx context.Context, manifest []byt
 	return nil
 }
 
+// GetTags return image tags for a given repository
 func (registry *RegistryClient) GetTags(ctx context.Context, repository string) (*TagsAPIResponse, error) {
 	path := fmt.Sprintf("/v2/%s/tags/list", repository)
 	var tagsList TagsAPIResponse
@@ -461,7 +447,7 @@ func (registry *RegistryClient) GetTags(ctx context.Context, repository string) 
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to read tags for repository %s", repository)

@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 )
 
-//TODO: Kan vi bruke den fra utils ?
+// TODO: Kan vi bruke den fra utils ?
 func extractTarball(pathToTarball string) (string, error) {
 	tmpdir, err := ioutil.TempDir("", "nodejs-architect")
 	tarball, err := os.Open(pathToTarball)
@@ -67,7 +67,6 @@ func extractTarball(pathToTarball string) (string, error) {
 				defer f.Close()
 
 				// copy over contents
-
 				if _, err := io.Copy(f, tarReader); err != nil {
 					return tmpdir, errors.Wrapf(err, "Error writing file %s", name)
 				}
@@ -84,12 +83,12 @@ func extractTarball(pathToTarball string) (string, error) {
 	return tmpdir, nil
 }
 
-//Probably a better way of doing this.. But need to have file.Close() called to prevent to many open fd's.
+// Probably a better way of doing this.. But need to have file.Close() called to prevent to many open fd's.
 func writeInternal(deferrerd func() (string, error)) (string, error) {
 	return deferrerd()
 }
 
-func findOpenshiftJsonInTarball(pathToTarball string) (*openshiftJSON, error) {
+func findOpenshiftJSONInTarball(pathToTarball string) (*openshiftJSON, error) {
 	tarball, err := os.Open(pathToTarball)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error opening tarball")
