@@ -11,6 +11,7 @@ import (
 	config "github.com/skatteetaten/architect/v2/pkg/config"
 	runtime "github.com/skatteetaten/architect/v2/pkg/config/runtime"
 	docker "github.com/skatteetaten/architect/v2/pkg/docker"
+	trace "github.com/skatteetaten/architect/v2/pkg/trace"
 )
 
 // MockTrace is a mock of Trace interface.
@@ -36,19 +37,34 @@ func (m *MockTrace) EXPECT() *MockTraceMockRecorder {
 	return m.recorder
 }
 
-// AddBaseImageMetadata mocks base method.
+// ScanImage mocks base method.
+func (m *MockTrace) ScanImage(buildFolder string) ([]trace.Dependency, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ScanImage", buildFolder)
+	ret0, _ := ret[0].([]trace.Dependency)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ScanImage indicates an expected call of ScanImage.
+func (mr *MockTraceMockRecorder) ScanImage(buildFolder interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScanImage", reflect.TypeOf((*MockTrace)(nil).ScanImage), buildFolder)
+}
+
+// SendBaseImageMetadata mocks base method.
 func (m *MockTrace) SendBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SendBaseImageMetadata", application, imageInfo, containerConfig)
 }
 
-// AddBaseImageMetadata indicates an expected call of AddBaseImageMetadata.
-func (mr *MockTraceMockRecorder) AddBaseImageMetadata(application, imageInfo, containerConfig interface{}) *gomock.Call {
+// SendBaseImageMetadata indicates an expected call of SendBaseImageMetadata.
+func (mr *MockTraceMockRecorder) SendBaseImageMetadata(application, imageInfo, containerConfig interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendBaseImageMetadata", reflect.TypeOf((*MockTrace)(nil).SendBaseImageMetadata), application, imageInfo, containerConfig)
 }
 
-// AddImageMetadata mocks base method.
+// SendImageMetadata mocks base method.
 func (m *MockTrace) SendImageMetadata(data interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendImageMetadata", data)
@@ -56,8 +72,8 @@ func (m *MockTrace) SendImageMetadata(data interface{}) error {
 	return ret0
 }
 
-// AddImageMetadata indicates an expected call of AddImageMetadata.
-func (mr *MockTraceMockRecorder) AddImageMetadata(data interface{}) *gomock.Call {
+// SendImageMetadata indicates an expected call of SendImageMetadata.
+func (mr *MockTraceMockRecorder) SendImageMetadata(data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendImageMetadata", reflect.TypeOf((*MockTrace)(nil).SendImageMetadata), data)
 }

@@ -4,11 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/pkg/cataloger"
+	"github.com/anchore/syft/syft/sbom"
+	"github.com/anchore/syft/syft/source"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skatteetaten/architect/v2/pkg/config"
 	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
 	"github.com/skatteetaten/architect/v2/pkg/docker"
+	"github.com/skatteetaten/architect/v2/pkg/trace/format"
 	"net/http"
 	"time"
 )
@@ -17,6 +22,7 @@ import (
 type Trace interface {
 	SendImageMetadata(data interface{}) error
 	SendBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig)
+	ScanImage(buildFolder string) ([]Dependency, error)
 }
 
 // NewClient create new Trace client
@@ -85,4 +91,49 @@ func (traceClient *traceClient) SendBaseImageMetadata(application config.Applica
 	logrus.Debugf("Pushing trace data %v", payload)
 	traceClient.SendImageMetadata(payload)
 
+}
+
+// use syft to discover packages + distro only
+func (traceClient *traceClient) ScanImage(buildFolder string) ([]Dependency, error) {
+
+	imageUrl := "dir:" + buildFolder
+	input, err := source.ParseInput(imageUrl, "", false)
+	if err != nil {
+		return nil, err
+	}
+
+	src, cleanup, err := source.New(*input, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+
+	catalog, _, release, err := syft.CatalogPackages(src, cataloger.Config{
+		Search: cataloger.SearchConfig{
+			Scope: source.SquashedScope,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	resultSbom := sbom.SBOM{
+		Artifacts: sbom.Artifacts{
+			PackageCatalog:    catalog,
+			LinuxDistribution: release,
+		},
+		Source: src.Metadata,
+	}
+	data, err := syft.Encode(resultSbom, format.Format())
+	if err != nil {
+		return nil, errors.Wrapf(err, "syft.Encode failed")
+	}
+	var dependencies []Dependency
+	sbomReader := bytes.NewReader(data)
+
+	err = json.NewDecoder(sbomReader).Decode(&dependencies)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Decode failed %v", dependencies)
+	}
+	return dependencies, nil
 }

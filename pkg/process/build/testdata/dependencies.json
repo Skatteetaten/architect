@@ -1,0 +1,29 @@
+[
+  {
+    "purl": "pkg:maven/org.slf4j/log4j-over-slf4j@1.7.6",
+    "dependencyId": "3309b30a925be850",
+    "name": "log4j-over-slf4j",
+    "version": "1.7.6",
+    "checksumAlgorithm": "sha1",
+    "checksumValue": "a6a9bc4e71ba7b490235a8f2294ec7dd03bf370b",
+    "sourceLocation": "/var/folders/0p/tfdns97510xb9dk79nlv79ym0000gp/T/deliverable1450604940/layer/u01/application/lib/log4j-over-slf4j-1.7.6.jar"
+  },
+  {
+    "purl": "pkg:maven/minarch/minarch@1.2.22",
+    "dependencyId": "e07a98b98acdecc8",
+    "name": "minarch",
+    "version": "1.2.22",
+    "checksumAlgorithm": "sha1",
+    "checksumValue": "a6f660f2880fdff3990363f9761b4ef937523ba0",
+    "sourceLocation": "/var/folders/0p/tfdns97510xb9dk79nlv79ym0000gp/T/deliverable1450604940/layer/u01/application/lib/minarch-1.2.22.jar"
+  },
+  {
+    "purl": "pkg:maven/org.slf4j/slf4j-api@1.7.6",
+    "dependencyId": "93824bab1fb3d6e0",
+    "name": "slf4j-api",
+    "version": "1.7.6",
+    "checksumAlgorithm": "sha1",
+    "checksumValue": "562424e36df3d2327e8e9301a76027fca17d54ea",
+    "sourceLocation": "/var/folders/0p/tfdns97510xb9dk79nlv79ym0000gp/T/deliverable1450604940/layer/u01/application/lib/slf4j-api-1.7.6.jar"
+  }
+]

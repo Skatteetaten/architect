@@ -70,10 +70,9 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 		return errors.Wrapf(err, "Image push failed")
 	}
 
-	trace.ScanImage(dockerBuildConfig.BuildFolder)
-	err = sendImageInfoToSporingsLogger(ctx, cfg,
-		dockerBuildConfig.DockerRepository, application.MavenGav.Version, auroraVersion.Snapshot,
-		pushRegistry, sporingsLoggerClient, shortTags,
+	err = sendImageInfoToSporingsLogger(sporingsLoggerClient, ctx, cfg,
+		dockerBuildConfig, application.MavenGav.Version, auroraVersion.Snapshot,
+		pushRegistry, shortTags,
 		baseImage)
 	if err != nil {
 		logrus.Warnf("Unable to send trace to Sporinglogger  %s:%s  error: %v",
@@ -134,15 +133,20 @@ func pushImage(ctx context.Context, cfg *config.Config, buildResult *LayerProvid
 	return nil
 }
 
-func sendImageInfoToSporingsLogger(ctx context.Context, cfg *config.Config, serviceName string, version string, snapshot bool,
-	dockerRegistry docker.Registry, sporingsLoggerClient trace.Trace,
+func sendImageInfoToSporingsLogger(sporingsLoggerClient trace.Trace, ctx context.Context, cfg *config.Config,
+	dockerBuildConfig *docker.BuildConfig, version string, snapshot bool, dockerRegistry docker.Registry,
 	shortTags []string, baseImage runtime.BaseImage) error {
 	if cfg.NoPush {
 		logrus.Info("NoPush configured, not sending image info to Sporingslogger")
 		return nil
 	}
 
-	imageInfo, err := dockerRegistry.GetImageInfo(ctx, serviceName, shortTags[0])
+	dependencies, err := sporingsLoggerClient.ScanImage(dockerBuildConfig.BuildFolder)
+	if err != nil {
+		return errors.Wrapf(err, "ScanImage failed")
+	}
+
+	imageInfo, err := dockerRegistry.GetImageInfo(ctx, dockerBuildConfig.DockerRepository, shortTags[0])
 	if err != nil {
 		return errors.Wrapf(err, "Unable to GetImageInfo ")
 	}
@@ -150,7 +154,7 @@ func sendImageInfoToSporingsLogger(ctx context.Context, cfg *config.Config, serv
 
 	return sporingsLoggerClient.SendImageMetadata(trace.DeployableImage{
 		Type:             "deployableImage",
-		Name:             serviceName,
+		Name:             dockerBuildConfig.DockerRepository,
 		AppVersion:       version,
 		Digest:           imageInfo.Digest,
 		Snapshot:         snapshot,
@@ -158,6 +162,7 @@ func sendImageInfoToSporingsLogger(ctx context.Context, cfg *config.Config, serv
 		BaseImageVersion: baseImage.ImageInfo.CompleteBaseImageVersion,
 		BaseImageDigest:  baseImage.ImageInfo.Digest,
 		BuildVersion:     cfg.BuilderSpec.Version,
+		Dependencies:     dependencies,
 	})
 }
 

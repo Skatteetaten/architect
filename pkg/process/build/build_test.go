@@ -2,6 +2,7 @@ package process_test
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/golang/mock/gomock"
 	"github.com/skatteetaten/architect/v2/pkg/config"
 	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
@@ -13,6 +14,7 @@ import (
 	build_mock "github.com/skatteetaten/architect/v2/pkg/process/build/mocks"
 	"github.com/skatteetaten/architect/v2/pkg/trace"
 	trace_mock "github.com/skatteetaten/architect/v2/pkg/trace/mocks"
+	"io/ioutil"
 	"testing"
 )
 
@@ -169,10 +171,6 @@ func TestBuild(t *testing.T) {
 			SHA1: "SHA1",
 		}, nil)
 
-		layerBuilder.EXPECT().Pull(gomock.Any(), gomock.Any()).Return(nil, nil)
-		layerBuilder.EXPECT().Push(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-		layerBuilder.EXPECT().Build(gomock.Any(), gomock.Any()).Return(nil, nil)
-
 		mockPrepper := func(
 			cfg *config.Config,
 			auroraVersion *runtime.AuroraVersion,
@@ -195,10 +193,23 @@ func TestBuild(t *testing.T) {
 			}, nil
 		}
 
-		tags := make(map[string]string)
-		tags["TagWith"] = "OutputRegistry/ServiceNameTest:TagWith"
+		layerBuilder.EXPECT().Pull(gomock.Any(), gomock.Any()).Return(nil, nil)
+		layerBuilder.EXPECT().Push(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		layerBuilder.EXPECT().Build(gomock.Any(), gomock.Any()).Return(nil, nil)
 
-		traceMock.EXPECT().AddImageMetadata(gomock.Eq(
+		jsonFile, err := ioutil.ReadFile("testdata/dependencies.json")
+		if err != nil {
+			t.Fatalf(" error reading testdata/dependencies.json %v ", err)
+		}
+
+		var dependencies []trace.Dependency
+		err = json.Unmarshal([]byte(jsonFile), &dependencies)
+		if err != nil {
+			t.Fatalf("Unmarshal error %v ", err)
+		}
+		traceMock.EXPECT().ScanImage(gomock.Any()).Return(dependencies, nil)
+
+		traceMock.EXPECT().SendImageMetadata(gomock.Eq(
 			trace.DeployableImage{
 				Type:             "deployableImage",
 				Digest:           "ImageDigest",
@@ -209,9 +220,10 @@ func TestBuild(t *testing.T) {
 				BaseImageDigest:  "BaseImageDigest",
 				BuildVersion:     "BuildImageVersion123",
 				Snapshot:         false,
+				Dependencies:     dependencies,
 			}))
 
-		err := process.Build(ctx, registryClient, registryClient, &testConfig, nexusDownloader, mockPrepper, layerBuilder, traceMock)
+		err = process.Build(ctx, registryClient, registryClient, &testConfig, nexusDownloader, mockPrepper, layerBuilder, traceMock)
 
 		if err != nil {
 			t.Fatal("Overwrite should be allowed for tagWith-snapshot")

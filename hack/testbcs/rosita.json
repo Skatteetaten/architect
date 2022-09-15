@@ -1,0 +1,170 @@
+{
+    "apiVersion": "build.openshift.io/v1",
+    "kind": "BuildConfig",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"build.openshift.io/v1\",\"kind\":\"BuildConfig\",\"metadata\":{\"annotations\":{\"openshift.io/generated-by\":\"OpenShiftNewApp\"},\"creationTimestamp\":null,\"labels\":{\"affiliation\":\"aup\",\"app\":\"aurora-snapshot-4.0\",\"app.kubernetes.io/component\":\"aurora-snapshot-4.0\",\"app.kubernetes.io/instance\":\"aurora-snapshot-4.0\",\"name\":\"rosita-sitj-2397-tesing-sporingslogger-snapshot\",\"removeAfter\":\"1660812930\",\"template\":\"aurora-snapshot-4.0\"},\"name\":\"rosita-sitj-2397-tesing-sporingslogger-snapshot\",\"namespace\":\"aup-build\"},\"spec\":{\"failedBuildsHistoryLimit\":2,\"nodeSelector\":null,\"output\":{\"to\":{\"kind\":\"DockerImage\",\"name\":\"container-registry-internal.aurora.skead.no:443/no_skatteetaten_sikkerhet_autentisering/rosita\"}},\"postCommit\":{},\"resources\":{},\"source\":{},\"strategy\":{\"customStrategy\":{\"env\":[{\"name\":\"ARTIFACT_ID\",\"value\":\"rosita\"},{\"name\":\"GROUP_ID\",\"value\":\"no.skatteetaten.sikkerhet.autentisering\"},{\"name\":\"VERSION\",\"value\":\"SITJ_2397_tesing_sporingslogger-SNAPSHOT\"},{\"name\":\"DOCKER_BASE_VERSION\",\"value\":\"2\"},{\"name\":\"DOCKER_BASE_IMAGE\",\"value\":\"aurora/wingnut11\"},{\"name\":\"PUSH_EXTRA_TAGS\",\"value\":\"major,minor,patch\"},{\"name\":\"APPLICATION_TYPE\",\"value\":\"maven\"},{\"name\":\"BUILD_STRATEGY\",\"value\":\"docker\"},{\"name\":\"INTERNAL_PULL_REGISTRY\",\"value\":\"container-registry-internal-private-pull.aurora.skead.no:443\"},{\"name\":\"SPORINGSCONTEXT\"},{\"name\":\"SPORINGSTJENESTE\",\"value\":\"https://sporingslogger.sits.no\"}],\"exposeDockerSocket\":true,\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"architect:SITJ_2397_new_endpoint_for_sporingslogger-SNAPSHOT\",\"namespace\":\"openshift\"},\"secrets\":[{\"mountPath\":\"/u01/nexus\",\"secretSource\":{\"name\":\"jenkins-slave-nexus-mount\"}}]},\"type\":\"Custom\"},\"successfulBuildsHistoryLimit\":2},\"status\":{\"lastVersion\":0}}\n",
+            "openshift.io/generated-by": "OpenShiftNewApp"
+        },
+        "creationTimestamp": "2022-08-09T12:27:55Z",
+        "generation": 15,
+        "labels": {
+            "affiliation": "aup",
+            "app": "aurora-snapshot-4.0",
+            "app.kubernetes.io/component": "aurora-snapshot-4.0",
+            "app.kubernetes.io/instance": "aurora-snapshot-4.0",
+            "name": "rosita-sitj-2397-tesing-sporingslogger-snapshot",
+            "removeAfter": "1660812930",
+            "template": "aurora-snapshot-4.0"
+        },
+        "managedFields": [
+            {
+                "apiVersion": "build.openshift.io/v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:metadata": {
+                        "f:annotations": {
+                            ".": {},
+                            "f:kubectl.kubernetes.io/last-applied-configuration": {},
+                            "f:openshift.io/generated-by": {}
+                        },
+                        "f:labels": {
+                            ".": {},
+                            "f:affiliation": {},
+                            "f:app": {},
+                            "f:app.kubernetes.io/component": {},
+                            "f:app.kubernetes.io/instance": {},
+                            "f:name": {},
+                            "f:removeAfter": {},
+                            "f:template": {}
+                        }
+                    },
+                    "f:spec": {
+                        "f:failedBuildsHistoryLimit": {},
+                        "f:output": {
+                            "f:to": {}
+                        },
+                        "f:runPolicy": {},
+                        "f:source": {
+                            "f:type": {}
+                        },
+                        "f:strategy": {
+                            "f:customStrategy": {
+                                ".": {},
+                                "f:env": {},
+                                "f:exposeDockerSocket": {},
+                                "f:from": {},
+                                "f:secrets": {}
+                            },
+                            "f:type": {}
+                        },
+                        "f:successfulBuildsHistoryLimit": {}
+                    }
+                },
+                "manager": "kubectl-client-side-apply",
+                "operation": "Update",
+                "time": "2022-08-11T08:58:33Z"
+            },
+            {
+                "apiVersion": "build.openshift.io/v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:status": {
+                        "f:lastVersion": {}
+                    }
+                },
+                "manager": "Go-http-client",
+                "operation": "Update",
+                "time": "2022-08-11T08:58:41Z"
+            }
+        ],
+        "name": "rosita-sitj-2397-tesing-sporingslogger-snapshot",
+        "namespace": "aup-build",
+        "resourceVersion": "1070877641",
+        "uid": "4c81cfac-e123-4417-95f4-a3b87ced6d05"
+    },
+    "spec": {
+        "failedBuildsHistoryLimit": 2,
+        "nodeSelector": null,
+        "output": {
+            "to": {
+                "kind": "DockerImage",
+                "name": "container-registry-internal.aurora.skead.no:443/no_skatteetaten_sikkerhet_autentisering/rosita"
+            }
+        },
+        "postCommit": {},
+        "resources": {},
+        "runPolicy": "Serial",
+        "source": {
+            "type": "None"
+        },
+        "strategy": {
+            "customStrategy": {
+                "env": [
+                    {
+                        "name": "ARTIFACT_ID",
+                        "value": "rosita"
+                    },
+                    {
+                        "name": "GROUP_ID",
+                        "value": "no.skatteetaten.sikkerhet.autentisering"
+                    },
+                    {
+                        "name": "VERSION",
+                        "value": "SITJ_2397_tesing_sporingslogger-SNAPSHOT"
+                    },
+                    {
+                        "name": "DOCKER_BASE_VERSION",
+                        "value": "2"
+                    },
+                    {
+                        "name": "DOCKER_BASE_IMAGE",
+                        "value": "aurora/wingnut11"
+                    },
+                    {
+                        "name": "PUSH_EXTRA_TAGS",
+                        "value": "major,minor,patch"
+                    },
+                    {
+                        "name": "APPLICATION_TYPE",
+                        "value": "maven"
+                    },
+                    {
+                        "name": "BUILD_STRATEGY",
+                        "value": "docker"
+                    },
+                    {
+                        "name": "INTERNAL_PULL_REGISTRY",
+                        "value": "container-registry-internal-private-pull.aurora.skead.no:443"
+                    },
+                    {
+                        "name": "SPORINGSCONTEXT"
+                    },
+                    {
+                        "name": "SPORINGSTJENESTE",
+                        "value": "https://sporingslogger.sits.no"
+                    }
+                ],
+                "exposeDockerSocket": true,
+                "from": {
+                    "kind": "ImageStreamTag",
+                    "name": "architect:SITJ_2397_new_endpoint_for_sporingslogger-SNAPSHOT",
+                    "namespace": "openshift"
+                },
+                "secrets": [
+                    {
+                        "mountPath": "/u01/nexus",
+                        "secretSource": {
+                            "name": "jenkins-slave-nexus-mount"
+                        }
+                    }
+                ]
+            },
+            "type": "Custom"
+        },
+        "successfulBuildsHistoryLimit": 2
+    },
+    "status": {
+        "lastVersion": 12
+    }
+}
