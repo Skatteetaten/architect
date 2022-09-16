@@ -1,4 +1,4 @@
-package trace
+package sporingslogger
 
 import (
 	"bytes"
@@ -13,33 +13,33 @@ import (
 	"github.com/skatteetaten/architect/v2/pkg/config"
 	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
 	"github.com/skatteetaten/architect/v2/pkg/docker"
-	"github.com/skatteetaten/architect/v2/pkg/trace/format"
+	"github.com/skatteetaten/architect/v2/pkg/sporingslogger/sbomFormat"
 	"net/http"
 	"time"
 )
 
-// Trace interface
-type Trace interface {
+// Sporingslogger interface
+type Sporingslogger interface {
 	SendImageMetadata(data interface{}) error
 	SendBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig)
 	ScanImage(buildFolder string) ([]Dependency, error)
 }
 
-// NewClient create new Trace client
-func NewClient(sporingURL string) Trace {
-	return &traceClient{
+// NewClient create new Sporingslogger client
+func NewClient(sporingURL string) Sporingslogger {
+	return &sporingsloggerClient{
 		url:     sporingURL,
 		enabled: sporingURL != "",
 	}
 }
 
-type traceClient struct {
+type sporingsloggerClient struct {
 	url     string
 	enabled bool
 }
 
 // SendImageMetadata send image metadata to sporingslogger
-func (traceClient *traceClient) SendImageMetadata(data interface{}) error {
+func (sporingsloggerClient *sporingsloggerClient) SendImageMetadata(data interface{}) error {
 	ctx := context.Background()
 	timeoutIn := time.Now().Add(5 * time.Second)
 	ctx, cancelFunc := context.WithDeadline(ctx, timeoutIn)
@@ -49,13 +49,13 @@ func (traceClient *traceClient) SendImageMetadata(data interface{}) error {
 	if err != nil {
 		return errors.Wrapf(err, "Unable to unmarshal image metadata")
 	}
-	return traceClient.send(ctx, string(d))
+	return sporingsloggerClient.send(ctx, string(d))
 
 	return nil
 }
 
-func (traceClient *traceClient) send(ctx context.Context, jsonStr string) error {
-	uri := traceClient.url + "/api/v1/image"
+func (sporingsloggerClient *sporingsloggerClient) send(ctx context.Context, jsonStr string) error {
+	uri := sporingsloggerClient.url + "/api/v1/image"
 
 	req, err := http.NewRequestWithContext(ctx, "POST", uri, bytes.NewBuffer([]byte(jsonStr)))
 	if err != nil {
@@ -80,7 +80,7 @@ func (traceClient *traceClient) send(ctx context.Context, jsonStr string) error 
 }
 
 // SendBaseImageMetadata send baseimage metadata to sporingslogger
-func (traceClient *traceClient) SendBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig) {
+func (sporingsloggerClient *sporingsloggerClient) SendBaseImageMetadata(application config.ApplicationSpec, imageInfo *runtime.ImageInfo, containerConfig *docker.ContainerConfig) {
 	payload := BaseImage{
 		Type:        "baseImage",
 		Name:        application.BaseImageSpec.BaseImage,
@@ -88,13 +88,13 @@ func (traceClient *traceClient) SendBaseImageMetadata(application config.Applica
 		Digest:      imageInfo.Digest,
 		ImageConfig: containerConfig,
 	}
-	logrus.Debugf("Pushing trace data %v", payload)
-	traceClient.SendImageMetadata(payload)
+	logrus.Debugf("Pushing sporingslogger data %v", payload)
+	sporingsloggerClient.SendImageMetadata(payload)
 
 }
 
 // use syft to discover packages + distro only
-func (traceClient *traceClient) ScanImage(buildFolder string) ([]Dependency, error) {
+func (sporingsloggerClient *sporingsloggerClient) ScanImage(buildFolder string) ([]Dependency, error) {
 
 	imageUrl := "dir:" + buildFolder
 	input, err := source.ParseInput(imageUrl, "", false)
@@ -124,7 +124,7 @@ func (traceClient *traceClient) ScanImage(buildFolder string) ([]Dependency, err
 		},
 		Source: src.Metadata,
 	}
-	data, err := syft.Encode(resultSbom, format.Format())
+	data, err := syft.Encode(resultSbom, sbomFormat.Format())
 	if err != nil {
 		return nil, errors.Wrapf(err, "syft.Encode failed")
 	}

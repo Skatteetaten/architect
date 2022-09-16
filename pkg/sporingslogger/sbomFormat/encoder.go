@@ -1,5 +1,7 @@
-package format
+package sbomFormat
 
+// This encoder is based on the encoder for GitHub sbomFormat (in the syft package),
+// The encoder is adjusted to fit the needs for Sporingslogger.
 import (
 	"fmt"
 	"github.com/mholt/archiver/v3"
@@ -50,7 +52,7 @@ func toPath(s source.Metadata, p pkg.Package) string {
 }
 
 // toGithubManifests manifests, each of which represents a specific location that has dependencies
-func toGithubManifests(s *sbom.SBOM) []PackageNode {
+func toPackageNodes(s *sbom.SBOM) []PackageNode {
 	var packages []PackageNode
 	for _, p := range s.Artifacts.PackageCatalog.Sorted() {
 		path := toPath(s.Source, p)
@@ -70,11 +72,11 @@ func toGithubManifests(s *sbom.SBOM) []PackageNode {
 	return packages
 }
 
-// The code for getting Checksum is taken from the spdx module
+// The code for getting Checksum is taken from the spdx encoder in syft
+// we generate digest for some Java packages
+// see page 33 of the spdx specification for 2.2
+// spdx.github.io/spdx-spec/package-information/#710-package-checksum-field
 func getChecksums(p pkg.Package) (string, string) {
-	// we generate digest for some Java packages
-	// see page 33 of the spdx specification for 2.2
-	// spdx.github.io/spdx-spec/package-information/#710-package-checksum-field
 
 	var checksumValue string
 	var checksumAlgorithm string
@@ -86,9 +88,8 @@ func getChecksums(p pkg.Package) (string, string) {
 			checksumAlgorithm = javaMetadata.ArchiveDigests[0].Algorithm
 		}
 		if len(javaMetadata.ArchiveDigests) > 1 {
-			logrus.Info("Only one checksum is handeled by Sporingslogger")
+			logrus.Warn("Only one checksum is handeled by Sporingslogger")
 		}
 	}
-
 	return checksumAlgorithm, checksumValue
 }

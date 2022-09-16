@@ -1,4 +1,4 @@
-package trace
+package sporingslogger
 
 import (
 	"encoding/json"

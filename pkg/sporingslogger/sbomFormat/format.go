@@ -1,4 +1,4 @@
-package format
+package sbomFormat
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ func Format() sbom.Format {
 	return sbom.NewFormat(
 		ID,
 		func(writer io.Writer, sbom sbom.SBOM) error {
-			bom := toGithubManifests(&sbom)
+			bom := toPackageNodes(&sbom)
 			bytes, err := json.Marshal(bom)
 			if err != nil {
 				return err

@@ -12,8 +12,8 @@ import (
 	nexus_mock "github.com/skatteetaten/architect/v2/pkg/nexus/mocks"
 	"github.com/skatteetaten/architect/v2/pkg/process/build"
 	build_mock "github.com/skatteetaten/architect/v2/pkg/process/build/mocks"
-	"github.com/skatteetaten/architect/v2/pkg/trace"
-	trace_mock "github.com/skatteetaten/architect/v2/pkg/trace/mocks"
+	"github.com/skatteetaten/architect/v2/pkg/sporingslogger"
+	sporingslogger_mock "github.com/skatteetaten/architect/v2/pkg/sporingslogger/mocks"
 	"io/ioutil"
 	"testing"
 )
@@ -142,7 +142,7 @@ func TestBuild(t *testing.T) {
 		registryClient := docker_mock.NewMockRegistry(mockCtrl)
 		nexusDownloader := nexus_mock.NewMockDownloader(mockCtrl)
 		layerBuilder := build_mock.NewMockBuilder(mockCtrl)
-		traceMock := trace_mock.NewMockTrace(mockCtrl)
+		mockSporingslogger := sporingslogger_mock.NewMockSporingslogger(mockCtrl)
 
 		registryClient.EXPECT().GetImageInfo(gomock.Any(), "BaseImageName", gomock.Any()).Return(&runtime.ImageInfo{
 			CompleteBaseImageVersion: "CompleteBaseImageVersion",
@@ -202,15 +202,15 @@ func TestBuild(t *testing.T) {
 			t.Fatalf(" error reading testdata/dependencies.json %v ", err)
 		}
 
-		var dependencies []trace.Dependency
+		var dependencies []sporingslogger.Dependency
 		err = json.Unmarshal([]byte(jsonFile), &dependencies)
 		if err != nil {
 			t.Fatalf("Unmarshal error %v ", err)
 		}
-		traceMock.EXPECT().ScanImage(gomock.Any()).Return(dependencies, nil)
+		mockSporingslogger.EXPECT().ScanImage(gomock.Any()).Return(dependencies, nil)
 
-		traceMock.EXPECT().SendImageMetadata(gomock.Eq(
-			trace.DeployableImage{
+		mockSporingslogger.EXPECT().SendImageMetadata(gomock.Eq(
+			sporingslogger.DeployableImage{
 				Type:             "deployableImage",
 				Digest:           "ImageDigest",
 				Name:             "ServiceNameTest",
@@ -223,7 +223,7 @@ func TestBuild(t *testing.T) {
 				Dependencies:     dependencies,
 			}))
 
-		err = process.Build(ctx, registryClient, registryClient, &testConfig, nexusDownloader, mockPrepper, layerBuilder, traceMock)
+		err = process.Build(ctx, registryClient, registryClient, &testConfig, nexusDownloader, mockPrepper, layerBuilder, mockSporingslogger)
 
 		if err != nil {
 			t.Fatal("Overwrite should be allowed for tagWith-snapshot")

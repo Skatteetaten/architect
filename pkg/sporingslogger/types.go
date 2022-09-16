@@ -1,10 +1,10 @@
-package trace
+package sporingslogger
 
 import (
 	"github.com/skatteetaten/architect/v2/pkg/docker"
 )
 
-// BaseImage representation used in trace
+// BaseImage representation used in sporingslogger
 type BaseImage struct {
 	Type        string                  `json:"type"`
 	Name        string                  `json:"name"`
@@ -23,7 +23,7 @@ type Dependency struct {
 	SourceLocation    string `json:"sourceLocation"`
 }
 
-// DeployableImage representation used in trace
+// DeployableImage representation used in sporingslogger
 type DeployableImage struct {
 	Type             string       `json:"imageType"`
 	Name             string       `json:"name"`

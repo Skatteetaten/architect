@@ -9,7 +9,7 @@ import (
 	"github.com/skatteetaten/architect/v2/pkg/docker"
 	"github.com/skatteetaten/architect/v2/pkg/nexus"
 	"github.com/skatteetaten/architect/v2/pkg/process/tagger"
-	"github.com/skatteetaten/architect/v2/pkg/trace"
+	"github.com/skatteetaten/architect/v2/pkg/sporingslogger"
 	"strings"
 )
 
@@ -22,7 +22,7 @@ type Builder interface {
 
 // Build a container image
 func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docker.Registry, cfg *config.Config,
-	downloader nexus.Downloader, prepper Prepper, layerBuilder Builder, sporingsLoggerClient trace.Trace) error {
+	downloader nexus.Downloader, prepper Prepper, layerBuilder Builder, sporingsLoggerClient sporingslogger.Sporingslogger) error {
 	application := cfg.ApplicationSpec
 	snapshot := application.MavenGav.IsSnapshot()
 	buildImage := &runtime.ArchitectImage{
@@ -75,7 +75,7 @@ func Build(ctx context.Context, pullRegistry docker.Registry, pushRegistry docke
 		pushRegistry, shortTags,
 		baseImage)
 	if err != nil {
-		logrus.Warnf("Unable to send trace to Sporinglogger  %s:%s  error: %v",
+		logrus.Warnf("Unable to send sporingslogger to Sporinglogger  %s:%s  error: %v",
 			dockerBuildConfig.DockerRepository, shortTags[0], err)
 		return nil
 	}
@@ -133,7 +133,7 @@ func pushImage(ctx context.Context, cfg *config.Config, buildResult *LayerProvid
 	return nil
 }
 
-func sendImageInfoToSporingsLogger(sporingsLoggerClient trace.Trace, ctx context.Context, cfg *config.Config,
+func sendImageInfoToSporingsLogger(sporingsLoggerClient sporingslogger.Sporingslogger, ctx context.Context, cfg *config.Config,
 	dockerBuildConfig *docker.BuildConfig, version string, snapshot bool, dockerRegistry docker.Registry,
 	shortTags []string, baseImage runtime.BaseImage) error {
 	if cfg.NoPush {
@@ -152,7 +152,7 @@ func sendImageInfoToSporingsLogger(sporingsLoggerClient trace.Trace, ctx context
 	}
 	logrus.Infof("Sending image info to sporingslogger %s ", imageInfo.Digest)
 
-	return sporingsLoggerClient.SendImageMetadata(trace.DeployableImage{
+	return sporingsLoggerClient.SendImageMetadata(sporingslogger.DeployableImage{
 		Type:             "deployableImage",
 		Name:             dockerBuildConfig.DockerRepository,
 		AppVersion:       version,

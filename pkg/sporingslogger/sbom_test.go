@@ -1,11 +1,11 @@
-package trace_test
+package sporingslogger_test
 
 import (
 	"github.com/skatteetaten/architect/v2/pkg/config"
 	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
 	"github.com/skatteetaten/architect/v2/pkg/java/prepare"
 	"github.com/skatteetaten/architect/v2/pkg/nexus"
-	"github.com/skatteetaten/architect/v2/pkg/trace"
+	"github.com/skatteetaten/architect/v2/pkg/sporingslogger"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -43,10 +43,10 @@ func TestScanImage(t *testing.T) {
 		runtime.BaseImage{DockerImage: runtime.DockerImage{}},
 	)
 	assert.NoError(t, err)
-	var traceClient = trace.NewClient("url")
+	var traceClient = sporingslogger.NewClient("url")
 	dependencies, err := traceClient.ScanImage(buildConfig.BuildFolder)
 	assert.NoError(t, err)
-	var dep1 = trace.Dependency{Purl: "pkg:maven/org.slf4j/slf4j-api@1.7.6",
+	var dep1 = sporingslogger.Dependency{Purl: "pkg:maven/org.slf4j/slf4j-api@1.7.6",
 		DependencyId:      "93824bab1fb3d6e0",
 		Name:              "slf4j-api",
 		Version:           "1.7.6",

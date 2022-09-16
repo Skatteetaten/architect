@@ -1,4 +1,4 @@
-package format
+package sbomFormat
 
 import "github.com/anchore/syft/syft/artifact"
 
