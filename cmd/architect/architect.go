@@ -3,7 +3,7 @@ package architect
 import (
 	"context"
 	"fmt"
-	"github.com/skatteetaten/architect/v2/pkg/trace"
+	"github.com/skatteetaten/architect/v2/pkg/sporingslogger"
 	"net/url"
 	"os"
 	"time"
@@ -72,7 +72,7 @@ func RunArchitect(configuration RunConfiguration) {
 	pushRegistry := docker.NewRegistryClient(pushRegistryConn)
 	pullRegistry := docker.NewRegistryClient(pullRegistryConn)
 
-	sporingsLoggerClient := trace.NewClient(c.Sporingstjeneste)
+	sporingsLoggerClient := sporingslogger.NewClient(c.Sporingstjeneste)
 
 	var builder process.Builder
 	builder = process.NewLayerBuilder(c, pushRegistry, pullRegistry)
@@ -97,7 +97,7 @@ func RunArchitect(configuration RunConfiguration) {
 	logrus.Infof("Timer stage=RunArchitect apptype=%s registry=%s repository=%s timetaken=%.3fs", c.ApplicationType, c.DockerSpec.OutputRegistry, c.DockerSpec.OutputRepository, time.Since(startTimer).Seconds())
 }
 func performBuild(ctx context.Context, configuration *RunConfiguration, c *config.Config, pullRegistry docker.Registry,
-	pushRegistry docker.Registry, builder process.Builder, sporingsLoggerClient trace.Trace) error {
+	pushRegistry docker.Registry, builder process.Builder, sporingsLoggerClient sporingslogger.Sporingslogger) error {
 	var prepper process.Prepper
 	if c.ApplicationType == config.JavaLeveransepakke {
 		logrus.Info("Perform Java build")

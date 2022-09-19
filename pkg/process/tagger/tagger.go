@@ -28,7 +28,7 @@ type SingleTagResolver struct {
 	Tag        string
 }
 
-// ResolveTags create single tag of format registry/repository:tag
+// ResolveTags create single tag of sbomFormat registry/repository:tag
 func (m *SingleTagResolver) ResolveTags(_ *runtime.AuroraVersion, _ config.PushExtraTags) ([]string, error) {
 	return docker.CreateImageNameFromSpecAndTags([]string{m.Tag}, m.Registry, m.Repository), nil
 }

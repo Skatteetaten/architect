@@ -2,6 +2,7 @@ package process_test
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/golang/mock/gomock"
 	"github.com/skatteetaten/architect/v2/pkg/config"
 	"github.com/skatteetaten/architect/v2/pkg/config/runtime"
@@ -11,8 +12,9 @@ import (
 	nexus_mock "github.com/skatteetaten/architect/v2/pkg/nexus/mocks"
 	"github.com/skatteetaten/architect/v2/pkg/process/build"
 	build_mock "github.com/skatteetaten/architect/v2/pkg/process/build/mocks"
-	"github.com/skatteetaten/architect/v2/pkg/trace"
-	trace_mock "github.com/skatteetaten/architect/v2/pkg/trace/mocks"
+	"github.com/skatteetaten/architect/v2/pkg/sporingslogger"
+	sporingslogger_mock "github.com/skatteetaten/architect/v2/pkg/sporingslogger/mocks"
+	"io/ioutil"
 	"testing"
 )
 
@@ -140,12 +142,12 @@ func TestBuild(t *testing.T) {
 		registryClient := docker_mock.NewMockRegistry(mockCtrl)
 		nexusDownloader := nexus_mock.NewMockDownloader(mockCtrl)
 		layerBuilder := build_mock.NewMockBuilder(mockCtrl)
-		traceMock := trace_mock.NewMockTrace(mockCtrl)
+		mockSporingslogger := sporingslogger_mock.NewMockSporingslogger(mockCtrl)
 
 		registryClient.EXPECT().GetImageInfo(gomock.Any(), "BaseImageName", gomock.Any()).Return(&runtime.ImageInfo{
 			CompleteBaseImageVersion: "CompleteBaseImageVersion",
 			Labels:                   map[string]string{},
-			Enviroment:               map[string]string{},
+			Environment:              map[string]string{},
 			Digest:                   "BaseImageDigest",
 		}, nil).AnyTimes()
 
@@ -169,10 +171,6 @@ func TestBuild(t *testing.T) {
 			SHA1: "SHA1",
 		}, nil)
 
-		layerBuilder.EXPECT().Pull(gomock.Any(), gomock.Any()).Return(nil, nil)
-		layerBuilder.EXPECT().Push(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-		layerBuilder.EXPECT().Build(gomock.Any(), gomock.Any()).Return(nil, nil)
-
 		mockPrepper := func(
 			cfg *config.Config,
 			auroraVersion *runtime.AuroraVersion,
@@ -195,11 +193,24 @@ func TestBuild(t *testing.T) {
 			}, nil
 		}
 
-		tags := make(map[string]string)
-		tags["TagWith"] = "OutputRegistry/ServiceNameTest:TagWith"
+		layerBuilder.EXPECT().Pull(gomock.Any(), gomock.Any()).Return(nil, nil)
+		layerBuilder.EXPECT().Push(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		layerBuilder.EXPECT().Build(gomock.Any(), gomock.Any()).Return(nil, nil)
 
-		traceMock.EXPECT().AddImageMetadata(gomock.Eq(
-			trace.DeployableImage{
+		jsonFile, err := ioutil.ReadFile("testdata/dependencies.json")
+		if err != nil {
+			t.Fatalf(" error reading testdata/dependencies.json %v ", err)
+		}
+
+		var dependencies []sporingslogger.Dependency
+		err = json.Unmarshal([]byte(jsonFile), &dependencies)
+		if err != nil {
+			t.Fatalf("Unmarshal error %v ", err)
+		}
+		mockSporingslogger.EXPECT().ScanImage(gomock.Any()).Return(dependencies, nil)
+
+		mockSporingslogger.EXPECT().SendImageMetadata(gomock.Eq(
+			sporingslogger.DeployableImage{
 				Type:             "deployableImage",
 				Digest:           "ImageDigest",
 				Name:             "ServiceNameTest",
@@ -209,9 +220,10 @@ func TestBuild(t *testing.T) {
 				BaseImageDigest:  "BaseImageDigest",
 				BuildVersion:     "BuildImageVersion123",
 				Snapshot:         false,
+				Dependencies:     dependencies,
 			}))
 
-		err := process.Build(ctx, registryClient, registryClient, &testConfig, nexusDownloader, mockPrepper, layerBuilder, traceMock)
+		err = process.Build(ctx, registryClient, registryClient, &testConfig, nexusDownloader, mockPrepper, layerBuilder, mockSporingslogger)
 
 		if err != nil {
 			t.Fatal("Overwrite should be allowed for tagWith-snapshot")

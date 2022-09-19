@@ -321,5 +321,4 @@ gomock brukes for build_test:
 mockgen -destination=pkg/docker/mocks/mock_registry.go -package=mocks -source=pkg/docker/registry.go Registry
 mockgen -destination=pkg/nexus/mocks/mock_nexus.go -package=mocks -source=pkg/nexus/nexus.go Downloader
 mockgen -destination=pkg/process/build/mocks/mock_layer_builder.go -package=mocks -source=pkg/process/build/build.go  Builder
-mockgen -destination=pkg/trace/mocks/mock_trace.go -package=mocks -source=pkg/trace/trace.go  Trace
-
+mockgen -destination=pkg/sporingslogger/mocks/mock_sporingslogger.go -package=mocks -source=pkg/sporingslogger/sporingslogger.go  Sporingslogger
