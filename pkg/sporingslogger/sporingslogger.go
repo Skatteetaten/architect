@@ -15,6 +15,7 @@ import (
 	"github.com/skatteetaten/architect/v2/pkg/docker"
 	"github.com/skatteetaten/architect/v2/pkg/sporingslogger/sbomFormat"
 	"net/http"
+	"net/http/httputil"
 	"time"
 )
 
@@ -66,16 +67,17 @@ func (sporingsloggerClient *sporingsloggerClient) send(ctx context.Context, json
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
+	defer resp.Body.Close()
+
 	if err != nil {
 		logrus.Warnf("Request failed: %s", err)
 		return errors.Wrapf(err, "Request failed")
 	}
 	if resp.StatusCode >= 300 {
-		logrus.Warnf("Request failed: %s", err)
+		errorBody, _ := httputil.DumpResponse(resp, true)
+		logrus.Warnf("Request failed, error from Sporingslogger:  %s", errorBody)
 		return errors.Wrapf(err, "Request failed %d", resp.StatusCode)
 	}
-
-	defer resp.Body.Close()
 	return nil
 }
 

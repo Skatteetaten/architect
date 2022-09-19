@@ -51,7 +51,7 @@ func toPath(s source.Metadata, p pkg.Package) string {
 	return fmt.Sprintf("%s%s", inputPath, s.ImageMetadata.UserInput)
 }
 
-// toGithubManifests manifests, each of which represents a specific location that has dependencies
+// toPackageNodes manifests, each of which represents a specific location that has dependencies
 func toPackageNodes(s *sbom.SBOM) []PackageNode {
 	var packages []PackageNode
 	for _, p := range s.Artifacts.PackageCatalog.Sorted() {
@@ -88,7 +88,7 @@ func getChecksums(p pkg.Package) (string, string) {
 			checksumAlgorithm = javaMetadata.ArchiveDigests[0].Algorithm
 		}
 		if len(javaMetadata.ArchiveDigests) > 1 {
-			logrus.Warn("Only one checksum is handeled by Sporingslogger")
+			logrus.Warnf("Only one checksum is handeled by Sporingslogger, %s", p.PURL)
 		}
 	}
 	return checksumAlgorithm, checksumValue

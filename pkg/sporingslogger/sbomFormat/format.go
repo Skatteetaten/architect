@@ -7,7 +7,7 @@ import (
 	"github.com/anchore/syft/syft/sbom"
 )
 
-const ID sbom.FormatID = "github-0-json"
+const ID sbom.FormatID = "sporingslogger-0-json"
 
 func Format() sbom.Format {
 	return sbom.NewFormat(
