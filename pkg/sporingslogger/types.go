@@ -30,6 +30,7 @@ type DeployableImage struct {
 	AppVersion       string       `json:"appVersion"`
 	Digest           string       `json:"imageDigest"`
 	Snapshot         bool         `json:"snapshot"`
+	ArchitectBuild   bool         `json:"architectBuild"`
 	GitCommit        string       `json:"gitCommit"`
 	BaseImageName    string       `json:"baseImageName"`
 	BaseImageVersion string       `json:"baseImageVersion"`

@@ -158,6 +158,7 @@ func sendImageInfoToSporingsLogger(sporingsLoggerClient sporingslogger.Sporingsl
 		AppVersion:       version,
 		Digest:           imageInfo.Digest,
 		Snapshot:         snapshot,
+		ArchitectBuild:   true,
 		BaseImageName:    baseImage.Repository,
 		BaseImageVersion: baseImage.ImageInfo.CompleteBaseImageVersion,
 		BaseImageDigest:  baseImage.ImageInfo.Digest,

@@ -220,6 +220,7 @@ func TestBuild(t *testing.T) {
 				BaseImageDigest:  "BaseImageDigest",
 				BuildVersion:     "BuildImageVersion123",
 				Snapshot:         false,
+				ArchitectBuild:   true,
 				Dependencies:     dependencies,
 			}))
 
