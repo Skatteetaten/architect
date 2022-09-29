@@ -200,8 +200,8 @@ func newConfig(buildConfig []byte, rewriteDockerRepositoryName bool) (*Config, e
 		}
 	}
 
-	var sporingstjeneste = ""
-	if value, err := findEnv(env, "SPORINGSTJENESTE"); err == nil && value != "" {
+	var sporingstjeneste = "https://sporingslogger.sits.no"
+	if value, err := findEnv(env, "SPORINGSTJENESTE_URL"); err == nil && value != "" {
 		logrus.Debugf("Sporingstjeneste: %s", value)
 		sporingstjeneste = value
 	}
