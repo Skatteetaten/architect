@@ -46,7 +46,7 @@ func CalculateDigestFromFile(path string) (string, error) {
 	return fmt.Sprintf("sha256:%s", digest), nil
 }
 
-// CalculateDigest calculates the 256 sha of the provided byte slice
+// CalculateDigest returns sha256:<base64 digest> string of the provided byte slice.
 func CalculateDigest(data []byte) string {
 	hasher := sha256.New()
 	hasher.Write(data)
