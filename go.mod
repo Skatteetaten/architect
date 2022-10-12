@@ -3,7 +3,7 @@ module github.com/skatteetaten/architect/v2
 go 1.19
 
 require (
-	github.com/anchore/syft v0.57.0
+	github.com/anchore/syft v0.58.0
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/golang/mock v1.6.0
 	github.com/hashicorp/go-version v1.6.0
@@ -25,7 +25,7 @@ require (
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/anchore/go-macholibre v0.0.0-20220308212642-53e6d0aaf6fb // indirect
 	github.com/anchore/packageurl-go v0.1.1-0.20220428202044-a072fa3cb6d7 // indirect
-	github.com/anchore/stereoscope v0.0.0-20220829182958-659c89aa659f // indirect
+	github.com/anchore/stereoscope v0.0.0-20220921141924-56552770e555 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.2.0 // indirect
 	github.com/containerd/containerd v1.6.8 // indirect
